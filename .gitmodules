@@ -1,0 +1,9 @@
+[submodule "rawdraw"]
+	path = rawdraw
+	url = https://github.com/cnlohr/rawdraw
+[submodule "cntools"]
+	path = cntools
+	url = https://github.com/cnlohr/cntools
+[submodule "openvr"]
+	path = openvr
+	url = https://github.com/ValveSoftware/openvr
