@@ -530,7 +530,7 @@ void quatslerp(cnovr_quat q, const cnovr_quat qa, const cnovr_quat qb, FLT t) {
     // Compute the cosine of the angle between the two vectors.
     double dot = dot3d(qa, qb);
 
-	LinmathQuat nqb;
+	cnovr_quat nqb;
 
     // If the dot product is negative, slerp won't take
     // the shorter path. Note that v1 and -v1 are equivalent when
@@ -551,7 +551,7 @@ void quatslerp(cnovr_quat q, const cnovr_quat qa, const cnovr_quat qb, FLT t) {
         // and normalize the result.
 
         //Quaternion result = v0 + t*(v1 - v0);
-		LinmathQuat tmp;
+		cnovr_quat tmp;
 		quatsub( tmp, nqb, qa );
 		quatscale( tmp, tmp, t );
 		quatadd( q, qa, tmp );
@@ -568,8 +568,8 @@ void quatslerp(cnovr_quat q, const cnovr_quat qa, const cnovr_quat qb, FLT t) {
 	double s0 = cos( theta ) - dot * sin_theta / sin_theta_0;  // == sin(theta_0 - theta) / sin(theta_0)
 	double s1 = sin_theta / sin_theta_0;
 
-	LinmathQuat aside;
-	LinmathQuat bside;
+	cnovr_quat aside;
+	cnovr_quat bside;
 	quatscale(bside, nqb, s1 );
 	quatscale(aside, qa, s0 );
 	quatadd(q, aside, bside);
