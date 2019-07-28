@@ -212,6 +212,7 @@ void pose_invert(cnovr_pose *poseout, const cnovr_pose *pose_in);
 static inline cnovr_pose pose_invert_rtn(const cnovr_pose *pose_in) {cnovr_pose rtn;pose_invert(&rtn, pose_in);return rtn;}
 
 void pose_to_matrix44(FLT *mat44, const cnovr_pose *pose_in);
+void matrix44_to_pose(cnovr_pose * poseout, const FLT * m44 );	//HMD43-safe.
 
 //XXX TODO Need matrix-to-pose.
 
