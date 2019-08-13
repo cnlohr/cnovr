@@ -3,6 +3,7 @@
 #include <chew.h>
 #include <cnovr.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdlib.h>
 
 struct VR_IVRSystem_FnTable * openvr;
@@ -151,5 +152,26 @@ int CNOVRCheck()
 	}
 	return e;
 }
+
+
+void CNOVRAlert( cnovr_header * obj, int priority, const char * format, ... )
+{
+	va_list args;
+	char buffer[BUFSIZ];
+	va_start(args, format);
+	vsnprintf(buffer, sizeof buffer, format, args);
+	va_end(args);
+	puts( buffer );
+
+	//XXX TODO: Use asprintf
+	//XXX TODO: Actually put warning somewhere.
+}
+
+
+
+
+
+
+
 
 
