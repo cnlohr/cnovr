@@ -3,6 +3,7 @@
 
 #include <GL/gl.h>
 #include <os_generic.h>
+#include <cnovrmath.h>
 
 typedef int (*cnovrfn)( void * ths );
 
@@ -18,6 +19,9 @@ typedef struct cnovr_header_t
 
 #define CNOVRDelete( x ) { if(x) (x)->header.Delete( x ); }
 
+#define TYPE_RFBUFFER 1
+#define TYPE_SHADER   2
+#define TYPE_TEXTURE  3
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -29,10 +33,27 @@ typedef struct cnovr_rf_buffer_t
 	GLuint nResolveTextureId;
 	GLuint nDepthBufferId;
 	GLuint nRenderTextureId;
+
+	int width, height;
+	int origw, origh; //For holding while activating buffer.
 } cnovr_rf_buffer;
 
 cnovr_rf_buffer * CNOVRRFBufferCreate( int w, int h, int multisample );
 void CNOVRFBufferActivate( cnovr_rf_buffer * b );
+void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
+
+///////////////////////////////////////////////////////////////////////////////
+
+typedef struct cnovr_shader_t
+{
+	cnovr_header header;
+	GLuint nShaderID;
+	const char * shaderfilebase;
+	uint8_t bChangeFlag; //geo, frag, vert
+} cnovr_shader;
+
+//Call 'render' submethod to activate, and 'prerender' checks to see if anything is tainted.
+cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase );
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -40,18 +61,27 @@ typedef struct cnovr_texture_t
 {
 	cnovr_header header;
 	GLuint nTextureId;
+	GLint  nInternalFormat;
+	GLenum nFormat;
+	GLenum nType;
+
 	uint8_t * data;
 	int width;
 	int height;
 	int channels;
 	const char * texfile;
+	uint8_t bTaintData;
 	uint8_t bLoading;
+	uint8_t bFileChangeFlag;
+
+	og_mutex_t mutProtect;
 } cnovr_texture;
+
 
 //Defaults to a 1x1 px texture.
 cnovr_texture CNOVRTextureCreate( int initw, int inith, int initchan ); //Set to all 0 to have the load control these details.
-int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile, int lod );
-int CNOVRTextureLoadData( cnovr_texture * tex, int w, int h, int chan, void * data, int lod );
+int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile );
+int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data ); //data must have been alloc'd on the heap.
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -106,6 +136,7 @@ typedef struct cnovr_model_t
 	int iTextures;
 	og_mutex_t model_mutex;
 	const char * geofile;
+	double geofilename;
 
 	uint8_t bTaintIndices;
 	uint8_t bIsLoading;
@@ -113,7 +144,7 @@ typedef struct cnovr_model_t
 
 cnovr_model * CNOVRModelCreate();
 void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename );
-cnovr_geometry * CNOVRModelTackVBO( cnovr_model * m );
+cnovr_vbo * CNOVRModelTackVBO( cnovr_model * m );
 void CNOVRModelTack( cnovr_model * m, int nindices, ...);
 void CNOVRModelTackv( cnovr_model * m, int nindices, uint32_t * indices );
 
@@ -125,8 +156,6 @@ void CNOVRModelLoadRenderModelAsync( cnovr_model * m, const char * pchRenderMode
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile );
 
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
