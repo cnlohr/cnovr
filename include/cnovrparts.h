@@ -98,7 +98,6 @@ typedef struct cnovr_vbo_t
 	int  		iStride;
 
 	uint8_t 	bTainting;
-	uint8_t 	nAllowCollisionMask;
 	uint8_t		bDynamic;
 
 	og_mutex_t  mutData;
@@ -119,8 +118,9 @@ typedef struct cnovr_collide_results_t
 {
 	float t;
 	int whichmesh;
-	int whichtriangle;
-	float collidecoords[4][4];
+	int whichvert;
+	float collidepos[3];
+	float collidevs[4][4];
 } cnovr_collide_results;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -138,7 +138,6 @@ typedef struct cnovr_model_t
 	int * iMeshMarks;
 	int nMeshes;
 
-	//This is only applicable where all VBOs are in lockstep
 	int iLastVertMark;
 
 	//Canonically, it would go:

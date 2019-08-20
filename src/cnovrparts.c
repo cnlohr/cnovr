@@ -427,7 +427,6 @@ cnovr_vbo * CNOVRCreateVBO( int iStride, int bDynamic, int iInitialSize, int iAt
 	ret->iStride = iStride;
 
 	glGenBuffers( 1, &ret->nVBO );
-	ret->nAllowCollisionMask = 0xff;
 	ret->bDynamic = bDynamic;
 	ret->mutData = OGCreateMutex();
 
@@ -830,20 +829,6 @@ void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float sx, float sy
 	OGUnlockMutex( m->model_mutex );
 }
 
-int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r )
-{
-	int iMeshNo = 0;
-	//Iterate through all this.
-}
-
-void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
-{
-}
-
-void CNOVRModelLoadRenderModelAsync( cnovr_model * m, const char * pchRenderModelName )
-{
-}
-
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile )
 {
 	if( m->iTextures == 0 )
@@ -860,7 +845,85 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 	m->header.Render( m );
 }
 
+int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r )
+{
+	if( m->iGeos == 0 ) return -1;
+	int iMeshNo = 0;
+	//Iterate through all this.
+	float * vpos = pGeos[0]->pVertices;
+	int stride = pGeos[0]->iStride;
+	int i;
+	for( i = 0; i < m->nMeshes; i++ )
+	{
+		int meshStart = m->iMeshMarks[i] 
+		int meshEnd = (i == m->nMeshes-1 ) ? m->iIndexCount : m->iMeshMarks[i+1];
+		int j;
+		for( j = meshStart; j < meshEnd; j+=3 )
+		{
+			int i0 = j+0;
+			int i1 = j+1;
+			int i2 = j+2;
+			//i0..2 are the indices we will be verting.
+			float * v0 = &vpos[i0*stride];
+			float * v1 = &vpos[i1*stride];
+			float * v2 = &vpos[i2*stride];
 
+			float v10[3];
+			float v21[3];
+			float v02[3];
+			float N[3];
+			sub3d( v10, v1, v0 );
+			sub3d( v21, v2, v1 );
+			sub3d( v02, v0, v2 );
+			{
+				float v20[3];
+				cross3d( N, v20, v10 );
+				sub3d( v20, v2, v0 );
+			}
+			normalize3d( N, N );
+			float D = dot3d(N, v0);
+			float t = -( dot( N, start ) + D) / dot( N, direction ); 
+			float Phit[3];
+			scale3d( Phit, direction, t );
+			add3d( Phit, start );
+			float C0[3];
+			float C1[3];
+			float C2[3];
+			sub3d( C0, Phit, v0 );
+			sub3d( C1, Phit, v1 );
+			sub3d( C2, Phit, v2 );
+			crossProduct( C0, v10, C0 );
+			crossProduct( C1, v21, C1 );
+			crossProduct( C2, v02, C2 );
+			if( dot3d( N, C0 ) < 0 ||
+				dot3d( N, C1 ) < 0 ||
+				dot3d( N, C2 ) < 0 ) continue;
 
+			//Else: We have a hit.
+			if( t < r->t )
+			{
+				r->t = t;
+				r->whichmesh = i;
+				r->whichvert = j;
+				copy3d( r->collidepos, Phit );
 
+				//Now, do barycentric coordinates to get the rest of the info here.
+				//XXX TODO TODO.
+			}
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+//Model Loaders
+
+void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
+{
+	
+}
+
+void CNOVRModelLoadRenderModelAsync( cnovr_model * m, const char * pchRenderModelName )
+{
+	
+}
 
