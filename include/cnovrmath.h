@@ -1,4 +1,5 @@
-// Copyright 2013,2016,2019 <>< C. N. Lohr.  This file licensed under the terms of the MIT/x11 license.
+//Copyright 2013,2016,2019 <>< Charles Lohr licensable under the MIT/X11 or NewBSD licenses.
+//Portions of cnovrmath.c were originally written by a variety of authors.  See cnovrmath.c for more details. 
 
 #ifndef _CNOVRMATH_H
 #define _CNOVRMATH_H

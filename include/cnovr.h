@@ -1,3 +1,5 @@
+// Copyright 2019 <>< Charles Lohr licensable under the MIT/X11 or NewBSD licenses.
+
 #ifndef _CNOVR_H
 #define _CNOVR_H
 
@@ -45,12 +47,12 @@ typedef void(cnovr_cb_fn)( void * opaquev, int opaquei );
 typedef enum
 {
 	cnovrQLow,			//Things like making sure we're up to date - not sure?
-	cnovrQAsync,		//
-	cnovrQUpdate,		//Happens in the render thread
+	cnovrQAsync,		//??? No access to GL thread.
+	cnovrQUpdate,		//???
 	cnovrQPrerender,	//Happens in the render thread
 } cnovrQueueType;
 
-//Async, but, has delays between each completion.
+//Async, but, has delays between each completion. TBD: Multiple identical queued items will be squashed? Maybe?  Cancellation must match all parameters.
 void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
 void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
 

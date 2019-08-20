@@ -1,4 +1,4 @@
-// Copyright 2013,2016,2019 <>< C. N. Lohr.  This file licensed under the terms of the MIT license.
+// Copyright 2009,2013,2016,2018,2019 <>< C. N. Lohr licensable under the MIT/X11 or NewBSD licenses.
 // Portions copyright under the same license to Adam Lowman, Josua Allen and Charles Lohr
 
 #include <cnovrmath.h>
