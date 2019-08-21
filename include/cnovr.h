@@ -54,21 +54,6 @@ struct cnovrstate_t
 extern struct cnovrstate_t * cnovrstate;
 
 //////////////////////////////////////////////////////////////////////////////
-typedef void(cnovr_cb_fn)( void * opaquev, int opaquei );
-
-typedef enum
-{
-	cnovrQLow,			//Things like making sure we're up to date - not sure?
-	cnovrQAsync,		//??? No access to GL thread.
-	cnovrQUpdate,		//???
-	cnovrQPrerender,	//Happens in the render thread
-} cnovrQueueType;
-
-//Async, but, has delays between each completion. TBD: Multiple identical queued items will be squashed? Maybe?  Cancellation must match all parameters.
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
-
-//////////////////////////////////////////////////////////////////////////////
 int CNOVRInit( const char * appname, int screenx, int screeny );
 void CNOVRUpdate();
 int CNOVRCheck(); //Check for errors.

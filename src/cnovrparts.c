@@ -7,9 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-
-
-#define STB_IMAGE_IMPLEMENTATION
+#include <stdarg.h>
 #include <stb_image.h>
 
 

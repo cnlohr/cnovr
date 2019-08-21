@@ -9,24 +9,6 @@
 //void * GetNamedPtr( const char * namedptr, const char * type );
 //void * NamedPtr( const char * namedptr, const char * type, int size );
 
-/*
-//Make a task manager?  Not sure if we need this, either.
-typedef struct cnovrtask_t
-{
-	void (*taskcb)( void * opaque, int ret );
-	int (*task)( void * opaque );
-	void * opaque;
-	int priority;
-} cnovrtask;
-
-int (*taskcb)( void * opaque );
-int (*task)( void * opaque );
-//int WaitOnTask( 
-//int AddTask( void * taskid, 
-*/
-
-//Various other tools.
-
 //These must be threadsafe.  Also, need a way to wholesale clear out a class of these guys.
 void FileTimeAddWatch( const char * fname, uint8_t * flag, void * tag );
 void FileTimeRemoveWatch( const char * fname, uint8_t * flag, void * tag );
@@ -39,5 +21,26 @@ int StringCompareEndingCase( const char * thing_to_search, const char * check_ex
 void CNOVRInternalStartCacheSystem();
 void CNOVRInternalStopCacheSystem();
 
+
+//////////////////////////////////////////////////////////////////////////////
+
+typedef void(cnovr_cb_fn)( void * opaquev, int opaquei );
+
+typedef enum
+{
+	cnovrQLow,			//Things like making sure we're up to date - not sure?
+	cnovrQAsync,		//??? No access to GL thread.
+	//cnovrQUpdate,		//???
+	cnovrQPrerender,	//Happens in the render thread
+	cnovrQMAX,
+} cnovrQueueType;
+
+//Async, but, has delays between each completion. Multiple identical items can queue.  Cancellation must match all parameters.
+int CNOVRProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still processing.
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
+
+
 #endif
+
 
