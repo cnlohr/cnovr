@@ -1,6 +1,10 @@
 #ifndef _CNOVRUTIL_H
 #define _CNOVRUTIL_H
 
+#include <stdint.h>
+
+#define CNOVR_MAX_PATH 255
+
 //Not sure if we need this feature.
 //void * GetNamedPtr( const char * namedptr, const char * type );
 //void * NamedPtr( const char * namedptr, const char * type, int size );
@@ -30,6 +34,7 @@ void FileTimeRemoveTagged( void * tag );
 double FileTimeCached( const char * fname );
 char * FileToString( const char * fname, int * length );
 char ** SplitStrings( const char * line, char * split, char * white, int merge_fields ); //You can just free(...) the return. it's safe.
+int StringCompareEndingCase( const char * thing_to_search, const char * check_extension );
 
 void CNOVRInternalStartCacheSystem();
 void CNOVRInternalStopCacheSystem();

@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include "cnovrparts.h"
 
-struct VR_IVRSystem_FnTable * openvr;
 struct cnovrstate_t  * cnovrstate;
 
 #ifdef TCC
@@ -74,10 +74,17 @@ int CNOVRInit( const char * appname, int screenx, int screeny )
 		return -1;
 	}
 
+
+	//OK, OpenVR is set up.  Now, set up rendering system.
+	cnovrstate = malloc( sizeof( *cnovrstate ) );
+	memset( cnovrstate, 0, sizeof( *cnovrstate ) );
+	cnovrstate->fNear = 0.01;
+	cnovrstate->fFar = 100.0;
+
 	char fnTableName[128];
 	int result1 = sprintf(fnTableName, "FnTable:%s", IVRSystem_Version);
-	openvr = (struct VR_IVRSystem_FnTable *)VR_GetGenericInterface(fnTableName, &e);
-	ovrprintf( "OpenVR: %p (%d)\n", openvr, e );
+	cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)VR_GetGenericInterface(fnTableName, &e);
+	ovrprintf( "OpenVR: %p (%d)\n", cnovrstate->oSystem, e );
 
 
 	ovrprintf( "Initializing Extensions.\n" );
@@ -89,15 +96,9 @@ int CNOVRInit( const char * appname, int screenx, int screeny )
 	{
 		char strbuf[128];
 		memset( strbuf, 0, sizeof( strbuf ) );
-		r = openvr->GetStringTrackedDeviceProperty( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_SerialNumber_String, strbuf, sizeof(strbuf)-1, 0 );
+		r = cnovrstate->oSystem->GetStringTrackedDeviceProperty( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_SerialNumber_String, strbuf, sizeof(strbuf)-1, 0 );
 		ovrprintf( "Using HMD: %s\n", strbuf );
 	}
-
-	//OK, OpenVR is set up.  Now, set up rendering system.
-	cnovrstate = malloc( sizeof( *cnovrstate ) );
-	memset( cnovrstate, 0, sizeof( *cnovrstate ) );
-	cnovrstate->fNear = 0.01;
-	cnovrstate->fFar = 100.0;
 
 
 	if( 1 )
@@ -117,7 +118,7 @@ void CNOVRUpdate()
 	//Possibly update stereo target resolutions.
 	{
 		int iRenderWidth, iRenderHeight;
-		openvr->GetRecommendedRenderTargetSize( &iRenderWidth, &iRenderHeight );
+		cnovrstate->oSystem->GetRecommendedRenderTargetSize( &iRenderWidth, &iRenderHeight );
 		if( iRenderWidth != cnovrstate->iRTWidth || iRenderHeight != cnovrstate->iRTHeight )
 		{
 			CNOVRDelete( cnovrstate->sterotargets[0] );
@@ -154,7 +155,7 @@ int CNOVRCheck()
 }
 
 
-void CNOVRAlert( cnovr_header * obj, int priority, const char * format, ... )
+void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... )
 {
 	va_list args;
 	char buffer[BUFSIZ];

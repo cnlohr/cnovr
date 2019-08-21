@@ -6,6 +6,7 @@
 #include <GL/gl.h>
 #include <os_generic.h>
 #include <cnovrmath.h>
+#include <stdint.h>
 
 //XXX TODO: Check for updates to things.
 
@@ -53,7 +54,7 @@ typedef struct cnovr_shader_t
 {
 	cnovr_header header;
 	GLuint nShaderID;
-	const char * shaderfilebase;
+	char * shaderfilebase;
 	uint8_t bChangeFlag; //geo, frag, vert
 } cnovr_shader;
 
@@ -74,7 +75,7 @@ typedef struct cnovr_texture_t
 	int width;
 	int height;
 	int channels;
-	const char * texfile;
+	char * texfile;
 	uint8_t bTaintData;
 	uint8_t bLoading;
 	uint8_t bFileChangeFlag;
@@ -84,7 +85,7 @@ typedef struct cnovr_texture_t
 
 
 //Defaults to a 1x1 px texture.
-cnovr_texture CNOVRTextureCreate( int initw, int inith, int initchan ); //Set to all 0 to have the load control these details.
+cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan ); //Set to all 0 to have the load control these details.
 int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile );
 int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data ); //data must have been alloc'd on the heap.
 
@@ -136,6 +137,7 @@ typedef struct cnovr_model_t
 
 	//For delineating the index marks per mesh.
 	int * iMeshMarks;
+	char ** sMeshMarks;
 	int nMeshes;
 
 	int iLastVertMark;
@@ -150,28 +152,34 @@ typedef struct cnovr_model_t
 	int iGeos;
 	int iTextures;
 	og_mutex_t model_mutex;
-	const char * geofile;
+	char * geofile;
 
-	uint8_t bTaintIndices;
 	uint8_t bIsLoading;
 } cnovr_model;
 
-cnovr_model * CNOVRModelCreate(  int initial_indices, int rendertype );
+//XXX TODO: Reorganize this.
+
+cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertype );
+
+
 void CNOVRModelSetNumVBOs( cnovr_model * m, int vbos );
-void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename );
-void CNOVRModelTack( cnovr_model * m, int nindices, ...);
-void CNOVRModelTackv( cnovr_model * m, int nindices, uint32_t * indices );
+void CNOVRModelSetNumVBOsWithStrides( cnovr_model * m, int vbos, ... );
+
+void CNOVRModelTaintIndices( cnovr_model * vm );
+
+void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename ); //Append ".rendermodel" to be an OpenVR rendermodel.
+void CNOVRModelTackIndex( cnovr_model * m, int nindices, ...);
+void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices );
 void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices );
 void CNOVRModelResetMarks( cnovr_model * m );
 
 void CNOVRModelAppendCube( cnovr_model * m, float sx, float sy, float sz );
 void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float sx, float sy );
 
-void CNOVRDelinateGeometry( cnovr_model * m );
+//If before first index, names first section.
+void CNOVRDelinateGeometry( cnovr_model * m, const char * newGeoName );
 
 int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r );
-
-void CNOVRModelLoadRenderModelAsync( cnovr_model * m, const char * pchRenderModelName );
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile );
 
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );

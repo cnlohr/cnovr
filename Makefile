@@ -4,7 +4,7 @@ OBJS:=src/main.o rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cn
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
 
 
-CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash
+CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread
 LDFLAGS+=openvr/lib/linux64/libopenvr_api.so
 

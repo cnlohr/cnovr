@@ -1,12 +1,17 @@
 // Copyright 2019 <>< Charles Lohr licensable under the MIT/X11 or NewBSD licenses.
 
 #include <cnovrparts.h>
+#include <cnovr.h>
+#include <cnovrutil.h>
 #include <chew.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
 
 static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 {
@@ -55,7 +60,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 	{
-		CNOVRDeleteRenderFrameBuffer( ret );
+		CNOVRRenderFrameBufferDelete( ret );
 		return 0;
 	}
 
@@ -98,7 +103,7 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b )
 
 static void CNOVRShaderDelete( cnovr_shader * ths )
 {
-	if( ths->glDeleteProgram ) glDeleteProgram( glDeleteProgram );
+	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
 	FileTimeRemoveTagged( ths );
 	free( ths->shaderfilebase );
 	free( ths );
@@ -114,13 +119,13 @@ static GLuint CNOVRShaderCompilePart( GLuint shader_type, const char * shadernam
 	glGetShaderiv( nShader, GL_COMPILE_STATUS, &vShaderCompiled );
 	if ( vShaderCompiled != GL_TRUE )
 	{
-		CNOVRAlert( cnovrstate->pCurrentModel, "Unable to compile shader: %s\n", shadername );
+		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Unable to compile shader: %s\n", shadername );
 		int retval;
 		glGetShaderiv( nShader, GL_INFO_LOG_LENGTH, &retval );
 		if ( retval > 1 ) {
 			char * log = (char*)malloc( retval );
 			glGetShaderInfoLog( nShader, retval, NULL, log );
-			CNOVRAlert( cnovrstate->pCurrentModel, "%s\n", log );
+			CNOVRAlert( cnovrstate->pCurrentModel, 1, "%s\n", log );
 			free( log );
 		}
 
@@ -130,7 +135,7 @@ static GLuint CNOVRShaderCompilePart( GLuint shader_type, const char * shadernam
 	return nShader;
 }
 
-
+//XXX TODO: Cleanup reload mechanism.
 static void CNOVRShaderPrerender( cnovr_shader * ths )
 {
 	if( ths->bChangeFlag )
@@ -148,32 +153,32 @@ static void CNOVRShaderPrerender( cnovr_shader * ths )
 		GLuint nFragShader = 0;
 		GLuint nVertShader = 0;
 
+		char stfbGeo[CNOVR_MAX_PATH];
+		char stfbFrag[CNOVR_MAX_PATH];
+		char stfbVert[CNOVR_MAX_PATH];
 		const char * filedataGeo = 0;
 		const char * filedataFrag = 0;
 		const char * filedataVert = 0;
-		{
-			char stfb[MAX_PATH];
-	 
-			sprintf( stfb, "%s.geo", ths->shaderfilebase );
-			filedataGeo = FileToString( stfb, 0 );
-			sprintf( stfb, "%s.frag", ths->shaderfilebase );
-			filedataFrag = FileToString( stfb, 0 );
-			sprintf( stfb, "%s.vert", ths->shaderfilebase );
-			filedataVert = FileToString( stfb, 0 );
-		}
+
+		sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
+		filedataGeo = FileToString( stfbGeo, 0 );
+		sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
+		filedataFrag = FileToString( stfbFrag, 0 );
+		sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
+		filedataVert = FileToString( stfbVert, 0 );
 
 		if( !filedataFrag || !filedataVert )
 		{
-			CNOVRAlert( cnovrstate->pCurrentModel, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
+			CNOVRAlert( cnovrstate->pCurrentModel, 1, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
 			return;
 		}
 
 		if( filedataGeo )
 		{
-			nGeoShader = CNOVRShaderCompilePart( GL_GEOMETRY_SHADER, stfb, filedataGeo );
+			nGeoShader = CNOVRShaderCompilePart( GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
 		}
-		nFragShader = CNOVRShaderCompilePart( GL_FRAGMENT_SHADER, stfb, filedataFrag );
-		nVertShader = CNOVRShaderCompilePart( GL_VERTEX_SHADER, stfb, filedataVert );
+		nFragShader = CNOVRShaderCompilePart( GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
+		nVertShader = CNOVRShaderCompilePart( GL_VERTEX_SHADER, stfbVert, filedataVert );
 
 		bool compfail = false;
 		if( filedataGeo )
@@ -191,7 +196,7 @@ static void CNOVRShaderPrerender( cnovr_shader * ths )
 		if ( !compfail )
 		{
 			unProgramID = glCreateProgram();
-			if ( GeoData.length() )
+			if( filedataGeo )
 			{
 				glAttachShader( unProgramID, nGeoShader );
 			}
@@ -203,13 +208,13 @@ static void CNOVRShaderPrerender( cnovr_shader * ths )
 			glGetProgramiv( unProgramID, GL_LINK_STATUS, &programSuccess );
 			if ( programSuccess != GL_TRUE )
 			{
-				CNOVRAlert( cnovrstate->pCurrentModel, "Shader linking failed: %s\n", ths->shaderfilebase );
+				CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
 				int retval;
 				glGetShaderiv( unProgramID, GL_INFO_LOG_LENGTH, &retval );
 				if ( retval > 1 ) {
 					char * log = (char*)malloc( retval );
 					glGetProgramInfoLog( unProgramID, retval, NULL, log );
-					CNOVRAlert( cnovrstate->pCurrentModel, "%s\n", log );
+					CNOVRAlert( cnovrstate->pCurrentModel, 1, "%s\n", log );
 					free( log );
 				}
 				glDeleteProgram( unProgramID );
@@ -218,7 +223,7 @@ static void CNOVRShaderPrerender( cnovr_shader * ths )
 		}
 		else
 		{
-			CNOVRAlert( cnovrstate->pCurrentModel, "Shader compilation failed: %s\n", ths->shaderfilebase );
+			CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader compilation failed: %s\n", ths->shaderfilebase );
 		}
 
 		if ( unProgramID )
@@ -239,11 +244,6 @@ static void CNOVRShaderPrerender( cnovr_shader * ths )
 
 static void CNOVRShaderRender( cnovr_shader * ths )
 {
-	if( ths->markforcheck )
-	{
-		ths->markforcheck = 0;
-	}
-
 	int shdid = ths->nShaderID;
 	if( !shdid ) return;
 	glUseProgram( shdid );
@@ -255,7 +255,7 @@ static void CNOVRShaderRender( cnovr_shader * ths )
 
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 {
-	cnovr_rf_buffer * ret = malloc( sizeof( cnovr_rf_buffer ) );
+	cnovr_shader * ret = malloc( sizeof( cnovr_shader ) );
 	memset( ret, 0, sizeof( *ret ) );
 	ret->header.Delete = (cnovrfn)CNOVRShaderDelete;
 	ret->header.Render = (cnovrfn)CNOVRShaderRender;
@@ -263,15 +263,15 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 	ret->header.Type = TYPE_SHADER;
 	ret->shaderfilebase = strdup( shaderfilebase );
 
-	char stfb[MAX_PATH];
+	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
-	FileTimeAddWatch( stfb, &ret->changeflag, ret );
+	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
 	sprintf( stfb, "%s.frag", shaderfilebase );
-	FileTimeAddWatch( stfb, &ret->changeflag, ret );
+	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
 	sprintf( stfb, "%s.vert", shaderfilebase );
-	FileTimeAddWatch( stfb, &ret->changeflag, ret );
+	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
 
-	ret->changeflag = 1;
+	ret->bChangeFlag = 1;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -279,10 +279,9 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 static void CNOVRTextureLoadFileTask( void * opaquev, int opaquei )
 {
 	cnovr_texture * t = (cnovr_texture*)opaquev;
-
-	OGLockMutex( ths->mutProtect );
+	OGLockMutex( t->mutProtect );
 	char * localfn = strdup( t->texfile );
-	OGUnlockMutex( ths->mutProtect );
+	OGUnlockMutex( t->mutProtect );
 
 	int x, y, chan;
 	stbi_uc * data = stbi_load( localfn, &x, &y, &chan, 4 );
@@ -296,6 +295,25 @@ static void CNOVRTextureLoadFileTask( void * opaquev, int opaquei )
 
 }
 
+static void CNOVRTextureUploadCallback( void * vths, int i )
+{
+	cnovr_texture * t = (cnovr_texture*)vths;
+	OGLockMutex( t->mutProtect );
+	t->bTaintData = 0;
+	glBindTexture( GL_TEXTURE_2D, t->nTextureId );
+	glTexImage2D( GL_TEXTURE_2D,
+		0,
+		t->nInternalFormat,
+		t->width,
+		t->height,
+		0,
+		t->nFormat,
+		t->nType,
+		t->data );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+	OGUnlockMutex( t->mutProtect );
+}
+
 static void CNOVRTextureDelete( cnovr_texture * ths )
 {
 	OGLockMutex( ths->mutProtect );
@@ -303,13 +321,14 @@ static void CNOVRTextureDelete( cnovr_texture * ths )
 	FileTimeRemoveTagged( ths );
 
 	//Pre-emptively kill any possible pending queued events.
-	CNOVRJobCancel( cnovrQAsync, CNOVRLoadFile, ths, 0 );
+	CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, ths, 0 );
 	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, ths, 0 );
 
 	if( ths->nTextureId )
 	{
 		glDeleteTextures( 1, &ths->nTextureId );
 	}
+
 	if( ths->data ) free( ths->data );
 	if( ths->texfile ) free( ths->texfile );
 	OGDeleteMutex( ths->mutProtect );
@@ -321,26 +340,8 @@ static void CNOVRTextureRender( cnovr_texture * ths )
 	glBindTexture( GL_TEXTURE_2D, ths->nTextureId );
 }
 
-static void CNOVRTextureUploadCallback( cnovr_texture * ths, int i )
-{
-	OGLockMutex( ths->mutProtect );
-	ths->bTaintData = 0;
-	glBindTexture( GL_TEXTURE_2D, ths->nTextureId );
-	glTexImage2D( GL_TEXTURE_2D,
-		0,
-		ths->nInternalFormat,
-		ths->width,
-		ths->height,
-		0,
-		ths->nFormat,
-		ths->nType,
-		ths->data );
-	glBindTexture( GL_TEXTURE_2D, 0 );
-	OGUnlockMutex( ths->mutProtect );
-}
-
 //Defaults to a 1x1 px texture.
-cnovr_texture CNOVRTextureCreate( int initw, int inith, int initchan )
+cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan )
 {
 	cnovr_texture * ret = malloc( sizeof( cnovr_rf_buffer ) );
 	memset( ret, 0, sizeof( *ret ) );
@@ -378,13 +379,13 @@ cnovr_texture CNOVRTextureCreate( int initw, int inith, int initchan )
 
 int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile )
 {
-	OGLockMutex( ths->mutProtect );
-	if( tex->texfile ) free( tex->Texfile );
+	OGLockMutex( tex->mutProtect );
+	if( tex->texfile ) free( tex->texfile );
 	tex->texfile = strdup( texfile );
 	tex->bLoading = 1;
 	CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0 ); //Just in case.
 	CNOVRJobTack( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0 );
-	OGUnlockMutex( ths->mutProtect );
+	OGUnlockMutex( tex->mutProtect );
 }
 
 int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data )
@@ -398,16 +399,16 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	tex->channels = chan;
 
 	static const int channelmapF[] = { 0, GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F };
-	static const int channelmapI[] = { 0, GL_RF, GL_RG8, GL_RGB8, GL_RGBA8 };
+	static const int channelmapI[] = { 0, GL_R8, GL_RG8, GL_RGB8, GL_RGBA8 };
 	static const int channelmapB[] = { 0, GL_RED, GL_RG, GL_RGB, GL_RGBA };
 
 	if( is_float )
-		ths->nInternalFormat = channelmapF[chan];
+		tex->nInternalFormat = channelmapF[chan];
 	else
-		ths->nInternalFormat = channelmapI[chan];
-	ths->nFormat = channelmapB[chan];
-	ths->nType = is_float?GL_FLOAT:GL_UNSIGNED_BYTE;
-	ths->bTaintData = 1;
+		tex->nInternalFormat = channelmapI[chan];
+	tex->nFormat = channelmapB[chan];
+	tex->nType = is_float?GL_FLOAT:GL_UNSIGNED_BYTE;
+	tex->bTaintData = 1;
 	CNOVRJobTack( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0 );
 	OGUnlockMutex( tex->mutProtect );
 }
@@ -430,8 +431,8 @@ cnovr_vbo * CNOVRCreateVBO( int iStride, int bDynamic, int iInitialSize, int iAt
 	ret->bDynamic = bDynamic;
 	ret->mutData = OGCreateMutex();
 
-	glBindBuffer(GL_ARRAY_BUFFER, VertexVBOID);
-	glEnableClientState(GL_VERTEX_ARRAY);
+	glBindBuffer( GL_ARRAY_BUFFER, ret->nVBO);
+	glEnableClientState( GL_VERTEX_ARRAY);
 	glEnableVertexAttribArray( iAttribNo );
 	glVertexPointer( iStride, GL_FLOAT, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -442,10 +443,10 @@ cnovr_vbo * CNOVRCreateVBO( int iStride, int bDynamic, int iInitialSize, int iAt
 
 void CNOVRVBOTackv( cnovr_vbo * g, int nverts, float * v )
 {
-	CNOVRLockMutex( g->mutData );
+	OGLockMutex( g->mutData );
 	int stride = g->iStride;
-	ret->pVertices = realloc( ret->pVertices, (g->iVertexCount+1)*stride*sizeof(float) );
-	float * verts = ret->pVertices + (g->iVertexCount*stride);
+	g->pVertices = realloc( g->pVertices, (g->iVertexCount+1)*stride*sizeof(float) );
+	float * verts = g->pVertices + (g->iVertexCount*stride);
 	int tocopy = nverts;
 	if( nverts > stride ) tocopy = stride;
 	int i;
@@ -458,16 +459,16 @@ void CNOVRVBOTackv( cnovr_vbo * g, int nverts, float * v )
 		verts[i] = 0;
 	}
 	g->iVertexCount++;
-	CNOVRUnlockMutex( g->mutData );
+	OGUnlockMutex( g->mutData );
 	CNOVRVBOTaint( g );
 }
 
 void CNOVRVBOTack( cnovr_vbo * g,  int nverts, ... )
 {
-	CNOVRLockMutex( g->mutData );
+	OGLockMutex( g->mutData );
 	int stride = g->iStride;
-	ret->pVertices = realloc( ret->pVertices, (g->iVertexCount+1)*stride*sizeof(float) );
-	float * verts = ret->pVertices;
+	g->pVertices = realloc( g->pVertices, (g->iVertexCount+1)*stride*sizeof(float) );
+	float * verts = g->pVertices;
 	va_list argp;
 	va_start( argp, nverts );
 	int i;
@@ -475,15 +476,17 @@ void CNOVRVBOTack( cnovr_vbo * g,  int nverts, ... )
 	{
 		verts[i] = va_arg(argp, double);
 	}
-	ret->pVertices++;
+	g->pVertices++;
 	va_end( argp );
-	CNOVRUnlockMutex( g->mutData );
+	OGUnlockMutex( g->mutData );
 	CNOVRVBOTaint( g );
 }
 
-static void CNOVRVBOPerformUpload( cnovr_vbo * g, int opaquei )
+static void CNOVRVBOPerformUpload( void * gv, int opaquei )
 {
-	CNOVRLockMutex( g->mutData );
+	cnovr_vbo * g = (cnovr_vbo *)gv;
+
+	OGLockMutex( g->mutData );
 
 	//This happens from within the render thread
 	glBindBuffer( GL_ARRAY_BUFFER, g->nVBO );
@@ -492,22 +495,22 @@ static void CNOVRVBOPerformUpload( cnovr_vbo * g, int opaquei )
 	glBufferData( GL_ARRAY_BUFFER, g->iStride*sizeof(float)*g->iVertexCount, g->pVertices, g->bDynamic?GL_DYNAMIC_DRAW:GL_STATIC_DRAW);
 	glVertexPointer( g->iStride, GL_FLOAT, 0, 0);
 
-	CNOVRUnlockMutex( g->mutData );
+	OGUnlockMutex( g->mutData );
 }
 
 void CNOVRVBOTaint( cnovr_vbo * g )
 {
-	CNOVRJobCancel( cnovrQPrerender, (cnovr_cb_fn)CNOVRVBOPerformUpload, (void*)g, 0 );
-	CNOVRJobTack( cnovrQPrerender, (cnovr_cb_fn)CNOVRVBOPerformUpload, (void*)g, 0 );
+	CNOVRJobCancel( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0 );
+	CNOVRJobTack( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0 );
 }
 
 void CNOVRVBODelete( cnovr_vbo * g )
 {
-	CNOVRLockMutex( g->mutData );
-	CNOVRJobCancel( cnovrQPrerender, (cnovr_cb_fn)CNOVRVBOPerformUpload, (void*)g, 0 );
+	OGLockMutex( g->mutData );
+	CNOVRJobCancel( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0 );
 	glDeleteBuffers( 1, &g->nVBO );
 	free( g->pVertices );
-	CNOVRDeleteMutex( g->mutData );
+	OGDeleteMutex( g->mutData );
 }
 
 void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
@@ -518,24 +521,35 @@ void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void CNOVRModelUpdateIBO( cnovr_model * m, int i )
+static void CNOVRModelUpdateIBO( void * vm, int i )
 {
+	cnovr_model * m = (cnovr_model *)vm;
+	OGLockMutex( m->model_mutex );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ushort)*3, m->pIndices, GL_STATIC_DRAW);
-	m->bTaintIndices = 0;
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);
+	OGUnlockMutex( m->model_mutex );
 }
 
+void CNOVRModelTaintIndices( cnovr_model * vm )
+{
+	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0 );	
+}
 
 static int CNOVRModelDelete( cnovr_model * m )
 {
 	OGLockMutex( m->model_mutex );
-	CNOVRJobCancel( cnovrQPrerender, (cnovr_cb_fn)CNOVRModelUpdateIBO, (void*)g, 0 );
+	CNOVRJobCancel( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)m, 0 );
 	int i;
 	for( i = 0; i < m->iGeos; i++ )
 	{
 		CNOVRVBODelete( m->pGeos[i] );
 	}
+	for( i = 0; i < m->nMeshes; i++ )
+	{
+		if( m->sMeshMarks && m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+	}
 	free( m->pIndices );
+	if( m->geofile ) free( m->geofile );
 	glDeleteBuffers( 1, &m->nIBO );
 }
 
@@ -543,18 +557,14 @@ static int CNOVRModelDelete( cnovr_model * m )
 static int CNOVRModelRender( cnovr_model * m )
 {
 	static cnovr_model * last_rendered_model = 0;
-	if( m->bTaintIndices )
-	{
-		//This should almost never be changed.
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(ushort)*3, m->pIndices GL_STATIC_DRAW);
-	}
+
+	//XXX Tricky: Don't lock model, so if we're loading while rendering, we don't hitch.
 	if( m != last_rendered_model )
 	{
 		//Try binding any textures.
 		int i;
 		int count = m->iTextures;
-		cnovr_texture * ts = m->pTextures;
+		cnovr_texture ** ts = m->pTextures;
 		for( i = 0; i < count; i++ )
 		{
 			glActiveTexture( GL_TEXTURE0 + i );
@@ -565,24 +575,24 @@ static int CNOVRModelRender( cnovr_model * m )
 		count = m->iGeos;
 		for( i = 0; i < count; i++ )
 		{
-			glBindBuffer( GL_ARRAY_BUFFER, m->pGeos[i].nVBO );
+			glBindBuffer( GL_ARRAY_BUFFER, m->pGeos[i]->nVBO );
 			glEnableVertexAttribArray(i);
 		}
 	}
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
+	glDrawElements( GL_TRIANGLES, m->iIndexCount, GL_UNSIGNED_INT, 0 );
 }
 
 cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertype )
 {
 	cnovr_model * ret = malloc( sizeof( cnovr_model ) );
 	memset( ret, 0, sizeof( cnovr_model ) );
-	ret->Delete = (cnovrfn)CNOVRModelDelete;
-	ret->Render = (cnovrfn)CNOVRModelRender;
+	ret->header.Delete = (cnovrfn)CNOVRModelDelete;
+	ret->header.Render = (cnovrfn)CNOVRModelRender;
 	ret->header.Type = TYPE_GEOMETRY;
-	glGenBuffers( 1, &ret->nVBO );
+	glGenBuffers( 1, &ret->nIBO );
 	ret->iIndexCount = initial_indices;
 	if( initial_indices < 1 ) initial_indices = 1;
-	ret->indices = malloc( initial_indices * sizeof( GLuint ) );
+	ret->pIndices = malloc( initial_indices * sizeof( GLuint ) );
 	ret->nRenderType = rendertype;
 	ret->iMeshMarks = malloc( sizeof( int ) );
 	ret->iMeshMarks[0] = 0;
@@ -594,10 +604,30 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 	*ret->pTextures = 0;
 	ret->iTextures = 0;
 	ret->geofile = 0;
-	ret->bTaintIndices = 0;
+
 	ret->bIsLoading = 0;
 	ret->iLastVertMark = 0;
 	ret->model_mutex = OGCreateMutex(); 
+}
+
+void CNOVRModelSetNumVBOsWithStrides( cnovr_model * m, int vbos, ... )
+{
+	int i;
+	va_list argp;
+	va_start( argp, vbos );
+
+	for( i = 0; i < m->iGeos; i++ )
+	{
+		CNOVRVBODelete( m->pGeos[i] );
+	}
+	m->pGeos = realloc( m->pGeos, sizeof( cnovr_vbo * ) * vbos );
+	m->iGeos = vbos;
+
+	for( i = 0; i < vbos; i++ )
+	{
+		m->pGeos[i] = CNOVRCreateVBO( va_arg(argp, int), 0, 0, i );
+	}
+	va_end( argp );
 }
 
 void CNOVRModelSetNumVBOs( cnovr_model * m, int vbos )
@@ -608,7 +638,7 @@ void CNOVRModelSetNumVBOs( cnovr_model * m, int vbos )
 		CNOVRVBODelete( m->pGeos[i] );
 	}
 	m->pGeos = realloc( m->pGeos, sizeof( cnovr_vbo * ) * vbos );
-	m->iGeos = vbos
+	m->iGeos = vbos;
 
 	for( i = 0; i < vbos; i++ )
 	{
@@ -624,42 +654,53 @@ void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices )
 
 void CNOVRModelResetMarks( cnovr_model * m )
 {
+	int i;
+	for( i = 0; i < m->nMeshes; i++ )
+	{
+		if( m->sMeshMarks && m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+	}
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) );
 	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) );
 	m->nMeshes = 1;
 	m->iMeshMarks[0] = 0;
 	m->iLastVertMark = 0;
 }
 
-void CNOVRDelinateGeometry( cnovr_model * m )
+void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 {
-	m->nMeshes++;
+	if( m->iIndexCount == 0 )
+	{
+		m->nMeshes = 1;
+	}
+	else
+	{
+		m->nMeshes++;
+	}
 	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * m->nMeshes );
-	m->iMeshMarks[m->nMeshes] = iIndexCount;
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * m->nMeshes );
+	m->iMeshMarks[m->nMeshes] = m->iIndexCount;
+	m->sMeshMarks[m->nMeshes] = strdup( sectionname );
 }
 
 
-void CNOVRModelTack( cnovr_model * m, int nindices, ...)
+void CNOVRModelTackIndex( cnovr_model * m, int nindices, ...)
 {
-	OGLockMutex( m->model_mutex );
 	int iIndexCount = m->iIndexCount;
 	m->pIndices = realloc( m->pIndices, iIndexCount + nindices );
 	uint32_t * pIndices = m->pIndices + iIndexCount;
 	int i;
 	va_list argp;
-	va_start( argp, nverts );
+	va_start( argp, nindices );
 	for( i = 0; i < nindices; i++ )
 	{
 		pIndices[i] = va_arg(argp, int);
 	}
 	va_end( argp );
 	m->iIndexCount = m->iIndexCount + nindices;
-	m->bTaintIndices = 1;
-	OGUnockMutex( m->model_mutex );
 }
 
-void CNOVRModelTackv( cnovr_model * m, int nindices, uint32_t * indices )
+void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 {
-	OGLockMutex( m->model_mutex );
 	int iIndexCount = m->iIndexCount;
 	m->pIndices = realloc( m->pIndices, iIndexCount + nindices );
 	uint32_t * pIndices = m->pIndices + iIndexCount;
@@ -669,13 +710,10 @@ void CNOVRModelTackv( cnovr_model * m, int nindices, uint32_t * indices )
 		pIndices[i] = indices[i];
 	}
 	m->iIndexCount = m->iIndexCount + nindices;
-	m->bTaintIndices = 1;
-	OGUnlockMutex( m->model_mutex );
 }
 
 void CNOVRModelMakeCube( cnovr_model * m, float sx, float sy, float sz )
 {
-	CNOVRModelSetNumVBOs( m, 3 );
 	//Bit pattern. 0 means -1, 1 means +1 on position.
 	//n[face] n[+-](inverted)  v1[xyz] v2[xyz] v3[xyz];; TC can be computed from table based on N
 	//XXX TODO: Check texture coord correctness.
@@ -696,17 +734,18 @@ void CNOVRModelMakeCube( cnovr_model * m, float sx, float sy, float sz )
 	OGLockMutex( m->model_mutex );
 	if( m->iGeos != 3 )
 	{
-		CNOVRModelSetNumVBOs( m, 3 );
+		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 4, 3 );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
+	CNOVRDelinateGeometry( m, "cube" );
 
 	int i;
 	{
 		uint32_t * indices = m->pIndices;
 		for( i = 0; i < 36; i++ ) 
 		{
-			CNOVRModelTack( m, i + m->iLastVertMark );
+			CNOVRModelTackIndex( m, i + m->iLastVertMark );
 		}
 	}
 
@@ -730,23 +769,24 @@ void CNOVRModelMakeCube( cnovr_model * m, float sx, float sy, float sz )
 			for( j = 0; j < 3; j++ )
 			{
 				float stage[4];
-				stage[0] = (vkey[j]&4)?1:-1;
-				stage[1] = (vkey[j]&2)?1:-1;
-				stage[2] = (vkey[j]&1)?1:-1;
+				float staget[4];
+				stage[0] = (vkeys[j]&4)?1:-1;
+				stage[1] = (vkeys[j]&2)?1:-1;
+				stage[2] = (vkeys[j]&1)?1:-1;
 				stage[3] = 1;
-				CNOVRVBOTackv( m->pGeos[0], 4, stage );
+				CNOVRVBOTackv( m->pGeos[0], 3, stage );
 
-				stage[0] = points[ti+tcaxis1];
-				stage[1] = points[ti+tcaxis2];
-				stage[2] = 1;
-				stage[3] = m->nMeshes;
-				CNOVRVBOTackv( m->pGeos[1], 4, stage );
+				staget[0] = stage[tcaxis1];
+				staget[1] = stage[tcaxis2];
+				staget[2] = 1;
+				staget[3] = m->nMeshes;
+				CNOVRVBOTackv( m->pGeos[1], 4, staget );
 
 				stage[0] = (normaxis==0)?normplus:0;
 				stage[1] = (normaxis==1)?normplus:0;
 				stage[2] = (normaxis==2)?normplus:0;
 				stage[3] = 0;
-				CNOVRVBOTackv( m->pGeos[2], 4, stage );
+				CNOVRVBOTackv( m->pGeos[2], 3, stage );
 			}
 		}
 	}
@@ -756,13 +796,12 @@ void CNOVRModelMakeCube( cnovr_model * m, float sx, float sy, float sz )
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
 	CNOVRVBOTaint( m->pGeos[2] );
-	m->bTaintIndices = 1;
+	CNOVRModelTaintIndices( m );
 
-	CNOVRDelinateGeometry( m );
 	OGUnlockMutex( m->model_mutex );
 }
 
-void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float sx, float sy )
+void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float w, float h )
 {
 	//Copied from Spreadgine.
 	int i;
@@ -774,11 +813,13 @@ void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float sx, float sy
 
 	if( m->iGeos != 3 )
 	{
-		CNOVRModelSetNumVBOs( m, 3 );
+		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 4, 3 );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
 	CNOVRModelSetNumIndices( m, 6*c );
+
+	CNOVRDelinateGeometry( m, "mesh" );
 
 	{
 		uint32_t * indices = m->pIndices;
@@ -787,23 +828,22 @@ void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float sx, float sy
 		{
 			int i = x + y * w;
 			int k = m->iLastVertMark;
-			CNOVRModelTack( m, k + x + y * (w+1) );
-			CNOVRModelTack( m, k + (x+1) + y * (w+1) );
-			CNOVRModelTack( m, k + (x+1) + (y+1) * (w+1) );
-			CNOVRModelTack( m, k + (x) + (y) * (w+1) );
-			CNOVRModelTack( m, k + (x+1) + (y+1) * (w+1) );
-			CNOVRModelTack( m, k + (x) + (y+1) * (w+1) );
+			CNOVRModelTackIndex( m, k + x + y * (w+1) );
+			CNOVRModelTackIndex( m, k + (x+1) + y * (w+1) );
+			CNOVRModelTackIndex( m, k + (x+1) + (y+1) * (w+1) );
+			CNOVRModelTackIndex( m, k + (x) + (y) * (w+1) );
+			CNOVRModelTackIndex( m, k + (x+1) + (y+1) * (w+1) );
+			CNOVRModelTackIndex( m, k + (x) + (y+1) * (w+1) );
 		}
 	}
 
 	{
 		float stage[4];
-		float stagen[4];
+		float stagen[3];
 
 		stagen[0] = 0;
 		stagen[1] = 0;
 		stagen[2] = -1;
-		stagen[3] = 0;
 
 		for( y = 0; y <= h; y++ )
 		for( x = 0; x <= w; x++ )
@@ -813,18 +853,18 @@ void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float sx, float sy
 			stage[2] = 1;
 			stage[3] = m->nMeshes;
 
-			CNOVRVBOTackv( m->pGeos[0], 4, stage );
+			CNOVRVBOTackv( m->pGeos[0], 3, stage );
 			CNOVRVBOTackv( m->pGeos[1], 4, stage );
-			CNOVRVBOTackv( m->pGeos[2], 4, stagen );
+			CNOVRVBOTackv( m->pGeos[2], 3, stagen );
 		}
 	}
 
 	m->iLastVertMark += (w+1)*(h+1);
-	m->bTaintIndices = 1;
-	CNOVRDelinateGeometry( m );
+
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
 	CNOVRVBOTaint( m->pGeos[2] );
+	CNOVRModelTaintIndices( m );
 
 	OGUnlockMutex( m->model_mutex );
 }
@@ -833,7 +873,7 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 {
 	if( m->iTextures == 0 )
 	{
-		*m->pTextures[0] = CNOVRTextureCreate( 1, 1, 4 );
+		m->pTextures[0] = CNOVRTextureCreate( 1, 1, 4 );
 		m->iTextures = 1;
 	}
 	CNOVRTextureLoadFileAsync( m->pTextures[0], sTextureFile );
@@ -841,7 +881,8 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 {
-	pose_to_matrix44( cnovrstate.mModel, pose );
+	pose_to_matrix44( cnovrstate->mModel, pose );
+	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 0, cnovrstate->mModel );
 	m->header.Render( m );
 }
 
@@ -850,12 +891,12 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 	if( m->iGeos == 0 ) return -1;
 	int iMeshNo = 0;
 	//Iterate through all this.
-	float * vpos = pGeos[0]->pVertices;
-	int stride = pGeos[0]->iStride;
+	float * vpos = m->pGeos[0]->pVertices;
+	int stride = m->pGeos[0]->iStride;
 	int i;
 	for( i = 0; i < m->nMeshes; i++ )
 	{
-		int meshStart = m->iMeshMarks[i] 
+		int meshStart = m->iMeshMarks[i];
 		int meshEnd = (i == m->nMeshes-1 ) ? m->iIndexCount : m->iMeshMarks[i+1];
 		int j;
 		for( j = meshStart; j < meshEnd; j+=3 )
@@ -882,19 +923,19 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			}
 			normalize3d( N, N );
 			float D = dot3d(N, v0);
-			float t = -( dot( N, start ) + D) / dot( N, direction ); 
+			float t = -( dot3d( N, start ) + D) / dot3d( N, direction ); 
 			float Phit[3];
 			scale3d( Phit, direction, t );
-			add3d( Phit, start );
+			add3d( Phit, Phit, start );
 			float C0[3];
 			float C1[3];
 			float C2[3];
 			sub3d( C0, Phit, v0 );
 			sub3d( C1, Phit, v1 );
 			sub3d( C2, Phit, v2 );
-			crossProduct( C0, v10, C0 );
-			crossProduct( C1, v21, C1 );
-			crossProduct( C2, v02, C2 );
+			cross3d( C0, v10, C0 );
+			cross3d( C1, v21, C1 );
+			cross3d( C2, v02, C2 );
 			if( dot3d( N, C0 ) < 0 ||
 				dot3d( N, C1 ) < 0 ||
 				dot3d( N, C2 ) < 0 ) continue;
@@ -917,13 +958,299 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 ///////////////////////////////////////////////////////////////////////////////
 //Model Loaders
 
-void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
+#define OBJBUFFERSIZE 256
+
+///
+/// OBJ File Loader (From Spreadgine)
+///
+
+#define TBUFFERSIZE 256
+#define VBUFFERSIZE 524288
+
+struct TempObject
 {
-	
+	int     CVertCount;
+	float * CVerts;
+	int     CNormalCount;
+	float * CNormals;
+	int     CTexCount;
+	float * CTexs;
+};
+
+
+static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
+{
+	int filelen;
+	char * file = FileToString( filename, &filelen );
+	char ** splits = SplitStrings( file, "\n", "\r", 1 );
+	free( file );
+
+	int flipv = 1;
+
+	struct TempObject t;
+	memset( &t, 0, sizeof( t ) );
+	if( m->iGeos != 3 )
+	{
+		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 4, 3 );
+		CNOVRModelSetNumIndices( m, 0 );
+		CNOVRModelResetMarks( m );
+	}
+	CNOVRModelSetNumIndices( m, 0 );
+
+	int indices = 0;
+	char * line;
+	int lineno;
+	int nObjNo = 0;
+	for( lineno = 0; line = splits[lineno] ; lineno++ )
+	{
+		int linelen = strlen( line );
+		if( linelen < 2 ) continue;
+		if( tolower( line[0] ) == 'v' )
+		{
+			if( tolower( line[1] ) == 'n' )
+			{
+				t.CNormals = realloc( t.CNormals, ( t.CNormalCount + 1 ) * 3 * sizeof( float ) );
+				int r = sscanf( line + 3, "%f %f %f", 
+					&t.CNormals[0 + t.CNormalCount * 3], 
+					&t.CNormals[1 + t.CNormalCount * 3], 
+					&t.CNormals[2 + t.CNormalCount * 3] );
+				t.CNormals[3 + t.CNormalCount * 3] = 0;
+				if( r == 3 )
+					t.CNormalCount++;
+			}
+			else if( tolower( line[1] ) == 't' )
+			{
+				t.CTexs = realloc( t.CTexs, ( t.CTexCount + 1 ) * 4 * sizeof( float ) );
+				t.CTexs[1 + t.CTexCount * 4] = 0;
+				t.CTexs[2 + t.CTexCount * 4] = 0;
+				t.CTexs[3 + t.CTexCount * 4] = nObjNo;
+				int r = sscanf( line + 3, "%f %f %f", 
+					&t.CTexs[0 + t.CTexCount * 4], 
+					&t.CTexs[1 + t.CTexCount * 4], 
+					&t.CTexs[2 + t.CTexCount * 4] );
+
+				if( flipv )
+					t.CTexs[1 + t.CTexCount * 4] = 1. - t.CTexs[1 + t.CTexCount * 4];
+				if( r == 3 || r == 2 )
+					t.CTexCount++;
+				else
+				{
+					CNOVRAlert( m, 1, "Error: Invalid Tex Coords (%d) (%s)\n", r, line + 3 );
+				}
+			}
+			else
+			{
+				t.CVerts = realloc( t.CVerts, ( t.CVertCount + 1 ) * 3 * sizeof( float ) );
+				t.CVerts[2 + t.CVertCount * 3] = 0;
+				int r = sscanf( line + 2, "%f %f %f", 
+					&t.CVerts[0 + t.CVertCount * 3], 
+					&t.CVerts[1 + t.CVertCount * 3], 
+					&t.CVerts[2 + t.CVertCount * 3] );
+				if( r == 3 || r == 2 )
+					t.CVertCount++;
+				else
+				{
+					fprintf( stderr, "Error: Invalid Vertex\n" );
+				}
+			}
+		}
+		else if( tolower( line[0] ) == 'f' )
+		{
+			char buffer[3][TBUFFERSIZE];
+			int p = 0;
+			int r = sscanf( line + 1, "%30s %30s %30s", 
+				buffer[0], buffer[1], buffer[2] );
+
+			if( r != 3 )
+			{
+				//Invalid line - continue.
+				continue;
+			}
+
+			//Whatever... they're all populated with something now.
+
+			for( p = 0; p < 3; p++ )
+			{
+				char buffer2[3][TBUFFERSIZE];
+				int mark = 0, markb = 0;
+				int i;
+				int sl = strlen( buffer[p] );
+				for( i = 0; i < sl; i++ )
+				{
+					if( buffer[p][i] == '/' )
+					{
+						buffer2[mark][markb] = 0;
+						mark++;
+						if( mark >= 3 ) break;
+						markb = 0;
+					}
+					else
+						buffer2[mark][markb++] = buffer[p][i];
+				}
+				buffer2[mark][markb] = 0;
+				for( i = mark+1; i < 3; i++ )
+				{
+					buffer2[i][0] = '0';
+					buffer2[i][1] = 0;
+				}
+
+				int VNumber = atoi( buffer2[0] ) - 1;
+				int TNumber = atoi( buffer2[1] ) - 1;
+				int NNumber = atoi( buffer2[2] ) - 1;
+
+				CNOVRModelTackIndex( m, indices++ );
+				CNOVRModelTackIndex( m, indices++ );
+				CNOVRModelTackIndex( m, indices++ );
+
+				if( VNumber < t.CVertCount )
+					CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
+				else
+					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0, 0 );
+
+				if( TNumber < t.CTexCount )
+
+					CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber*4] );
+				else
+					CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+
+				if( NNumber < t.CNormalCount )
+					CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber*3] );
+				else
+					CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
+			}
+		}
+		else if( tolower( line[0] ) == 'o' )
+		{
+			const char * marker = ( strlen( line ) > 2 )?( line + 2 ):0;
+			nObjNo++;
+			CNOVRDelinateGeometry( m, marker );
+		}
+		else if( strncmp( line, "usemtl", 6 ) == 0 )
+		{
+			//Not implemented.
+		}
+		else if( strncmp( line, "mtllib", 6 ) == 0 )
+		{
+			//Not implemented.
+		}
+		else if( tolower( line[0] ) == 's' )
+		{
+			//Not implemented.
+		}
+	}
+
+	if( t.CVerts ) free( t.CVerts ); 
+	if( t.CTexs ) free( t.CTexs ); 
+	if( t.CNormals ) free( t.CNormals ); 
+	free( splits );
+
+	CNOVRVBOTaint( m->pGeos[0] );
+	CNOVRVBOTaint( m->pGeos[1] );
+	CNOVRVBOTaint( m->pGeos[2] );
+	CNOVRModelTaintIndices( m );
+	return;
 }
 
-void CNOVRModelLoadRenderModelAsync( cnovr_model * m, const char * pchRenderModelName )
+
+
+static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelName )
 {
-	
+	RenderModel_t * pModel = NULL;
+	while( cnovrstate->oRenderModels->LoadRenderModel_Async( pchRenderModelName, &pModel ) == EVRRenderModelError_VRRenderModelError_Loading)
+	{
+		OGUSleep( 100 );
+	}
+
+	if( cnovrstate->oRenderModels->LoadRenderModel_Async( pchRenderModelName, &pModel ) || pModel == NULL )
+	{
+		CNOVRAlert( m, 1, "Unable to load render model %s\n", pchRenderModelName );
+		return;
+	}
+
+
+	RenderModel_TextureMap_t *pTexture = NULL;
+
+	while( cnovrstate->oRenderModels->LoadTexture_Async( pModel->diffuseTextureId, &pTexture ) == EVRRenderModelError_VRRenderModelError_Loading )
+	{
+		OGUSleep( 100 );
+	}
+
+	if( cnovrstate->oRenderModels->LoadTexture_Async(pModel->diffuseTextureId, &pTexture) || pTexture == NULL )
+	{
+		CNOVRAlert( m, 1, "Unable to load render model %s\n", pchRenderModelName );
+		cnovrstate->oRenderModels->FreeRenderModel( pModel );
+		return;
+	}
+
+	if( m->iGeos != 3 )
+	{
+		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 2, 3 );
+		CNOVRModelSetNumIndices( m, 0 );
+		CNOVRModelResetMarks( m );
+	}
+	CNOVRModelSetNumIndices( m, 0 );
+	CNOVRDelinateGeometry( m, pchRenderModelName );
+	int i;
+	for( i = 0; i < pModel->unVertexCount; i++ )
+	{
+		RenderModel_Vertex_t * v = pModel->rVertexData + i;
+		CNOVRVBOTackv( m->pGeos[0], 3, v->vPosition.v );
+		CNOVRVBOTackv( m->pGeos[1], 2, v->rfTextureCoord );
+		CNOVRVBOTackv( m->pGeos[2], 3, v->vNormal.v );
+	}
+	for( i = 0; i < pModel->unTriangleCount; i++ )
+	{
+		CNOVRModelTackIndex( m, 3, pModel->rIndexData[i*3+0], pModel->rIndexData[i*3+1], pModel->rIndexData[i*3+2] );
+	}
+
+	if( m->iTextures == 0 )
+	{
+		m->pTextures = realloc( m->pTextures, sizeof( cnovr_texture * ) * 1 );
+		m->pTextures[0] = CNOVRTextureCreate( 1, 1, 4 );
+		m->iTextures = 1;
+	}
+	uint8_t * copyTexture = malloc( pTexture->unWidth * pTexture->unHeight * 4 );
+	memcpy( copyTexture, pTexture->rubTextureMapData, pTexture->unWidth * pTexture->unHeight * 4 );
+	CNOVRTextureLoadDataAsync( m->pTextures[0], pTexture->unWidth, pTexture->unHeight, 4, 0, copyTexture );
+
+	CNOVRVBOTaint( m->pGeos[0] );
+	CNOVRVBOTaint( m->pGeos[1] );
+	CNOVRVBOTaint( m->pGeos[2] );
+
+	cnovrstate->oRenderModels->FreeRenderModel( pModel );
+	cnovrstate->oRenderModels->FreeTexture( pTexture );
+}
+
+
+void CNOVRModelLoadFromFileAsyncCallback( void * vm, int i )
+{
+	cnovr_model * m = (cnovr_model*) vm;
+	OGLockMutex( m->model_mutex );
+	char * filename = m->geofile;
+	int slen = strlen( filename );
+	if( StringCompareEndingCase( filename, ".obj" ) == 0 )
+	{
+		CNOVRModelLoadOBJ( m, filename );
+	}
+	else if( StringCompareEndingCase( filename, ".rendermodel" ) == 0 )
+	{
+		CNOVRModelLoadRenderModel( m, filename );
+	}
+	else
+	{
+		CNOVRAlert( m, 1, "Error: Could not open model file: \"%s\".\n", filename );
+	}
+	OGUnlockMutex( m->model_mutex );
+
+}
+
+void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
+{
+	OGLockMutex( m->model_mutex );
+	if( m->geofile ) free( m->geofile );
+	m->geofile = strdup( filename );
+	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0 );
+	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0 );
+	OGUnlockMutex( m->model_mutex );
 }
 
