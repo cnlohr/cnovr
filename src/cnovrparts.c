@@ -270,6 +270,7 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
 
 	ret->bChangeFlag = 1;
+	return ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -384,6 +385,7 @@ int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile )
 	CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0 ); //Just in case.
 	CNOVRJobTack( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0 );
 	OGUnlockMutex( tex->mutProtect );
+	return 0;
 }
 
 int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data )
@@ -409,6 +411,7 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	tex->bTaintData = 1;
 	CNOVRJobTack( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0 );
 	OGUnlockMutex( tex->mutProtect );
+	return 0;
 }
 
 
@@ -533,7 +536,7 @@ void CNOVRModelTaintIndices( cnovr_model * vm )
 	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0 );	
 }
 
-static int CNOVRModelDelete( cnovr_model * m )
+static void CNOVRModelDelete( cnovr_model * m )
 {
 	OGLockMutex( m->model_mutex );
 	CNOVRJobCancel( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)m, 0 );
@@ -552,7 +555,7 @@ static int CNOVRModelDelete( cnovr_model * m )
 }
 
 
-static int CNOVRModelRender( cnovr_model * m )
+static void CNOVRModelRender( cnovr_model * m )
 {
 	static cnovr_model * last_rendered_model = 0;
 
@@ -606,6 +609,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 	ret->bIsLoading = 0;
 	ret->iLastVertMark = 0;
 	ret->model_mutex = OGCreateMutex(); 
+	return ret;
 }
 
 void CNOVRModelSetNumVBOsWithStrides( cnovr_model * m, int vbos, ... )
@@ -886,6 +890,7 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 
 int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r )
 {
+	int ret = -1;
 	if( m->iGeos == 0 ) return -1;
 	int iMeshNo = 0;
 	//Iterate through all this.
@@ -948,9 +953,11 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 
 				//Now, do barycentric coordinates to get the rest of the info here.
 				//XXX TODO TODO.
+				ret = i;
 			}
 		}
 	}
+	return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -999,7 +1006,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 	char * line;
 	int lineno;
 	int nObjNo = 0;
-	for( lineno = 0; line = splits[lineno] ; lineno++ )
+	for( lineno = 0; (line = splits[lineno]) ; lineno++ )
 	{
 		int linelen = strlen( line );
 		if( linelen < 2 ) continue;

@@ -10,7 +10,7 @@
 
 //XXX TODO: Check for updates to things.
 
-typedef int (*cnovrfn)( void * ths );
+typedef void (*cnovrfn)( void * ths );
 
 struct cnovr_header_t;
 typedef struct cnovr_header_t

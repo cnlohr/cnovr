@@ -117,7 +117,7 @@ void CNOVRUpdate()
 {
 	//Possibly update stereo target resolutions.
 	{
-		int iRenderWidth, iRenderHeight;
+		uint32_t iRenderWidth, iRenderHeight;
 		cnovrstate->oSystem->GetRecommendedRenderTargetSize( &iRenderWidth, &iRenderHeight );
 		if( iRenderWidth != cnovrstate->iRTWidth || iRenderHeight != cnovrstate->iRTHeight )
 		{

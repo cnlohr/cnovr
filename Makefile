@@ -7,6 +7,8 @@ CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread
 LDFLAGS+=openvr/lib/linux64/libopenvr_api.so
 
+CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function
+
 #CFLAGS+=-O0 -ffunction-sections -fdata-sections
 #LDFLAGS+=-Wl,--gc-sections
 
