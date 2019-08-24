@@ -54,7 +54,7 @@ char ** SplitStrings( const char * line, char * split, char * white, int merge_f
 		if( c == 0 || ( ( is_split ) && ( !merge_fields || did_hit_not_white ) ) )
 		{
 			//Mark off new point.
-			lengths[elements-1] = thislengthconfirm + 1; //XXX BUGGY
+			lengths[elements-1] = thislengthconfirm + 1; //XXX BUGGY ... Or is bad it?  I can't tell what's wrong.  the "buggy" note was from a previous coding session.
 			ret[elements-1] = (char*)lstart + 0; //XXX BUGGY //I promise I won't change the value.
 			needed_bytes += thislengthconfirm + 1;
 			elements++;
@@ -266,55 +266,91 @@ void FileTimeRemoveTagged( void * tag )
 
 
 ///////////////////////////////////////////////////////////////////////////////
-//
-// TODO: We could significantly optimize this using various datastructures.
-// TODO: Improve performance or change behavior of an in-progress queue execution.
-// TODO: Consider changing behavior of removing with duplicates.
-// XXX: Warning: You can only have one consumer per queue.
+
+// Warning: You can only have one consumer per queue with the way locking is currently set up.
 typedef struct CNOVRJobElement_t
 {
 	cnovr_cb_fn * fn;
 	void * opaquev;
 	int opaquei;
 	struct CNOVRJobElement_t * next;
+	struct CNOVRJobElement_t * prev;
 } CNOVRJobElement;
 
 typedef struct CNOVRJobQueue_t
 {
-	CNOVRJobElement * e;
+	CNOVRJobElement * front;
+	CNOVRJobElement * back;
 	CNOVRJobElement staged;
+	cnhashtable * hash;
 	og_mutex_t mut;
 	og_sema_t  sem;
+	og_sema_t  pendingsem;
 } CNOVRJobQueue;
+
+
+static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( (uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->opaquev-((void*)0)) + he->opaquei ); }
+static int      JQcomp( void * key_a, void * key_b, void * opaque )
+{
+	if( !key_a || !key_b ) return 1;
+	CNOVRJobElement * he = (CNOVRJobElement*)key_a;
+	CNOVRJobElement * hf = (CNOVRJobElement*)key_b;
+	if( he->fn == hf->fn && 
+		he->opaquev == hf->opaquev &&
+		he->opaquei == hf->opaquei)
+		return 0;
+	else
+		return 1;
+} 
 
 static CNOVRJobQueue CNOVRJEQ[cnovrQMAX];
 
+void DEBUGDumpQueue( cnovrQueueType qt )
+{
+	CNOVRJobQueue * q = &CNOVRJEQ[qt];
+	printf( "Q: FRONT: %p   BACK: %p\n", q->front, q->back );
+	CNOVRJobElement * e = q->front;
+	while( e )
+	{
+		printf( "  <<%16p %16p(%4d) %16p>>\n",  e->prev, e, e->opaquei, e->next );
+		e = e->next;
+	}
+}
+
+
 static void * CNOVRJobProcessor( void * v )
 {
-	CNOVRJobQueue * q = (CNOVRJobQueue*)v;
+	CNOVRJobQueue * jq = (CNOVRJobQueue*)v;
 	while(1)
 	{
-		OGLockSema( q->sem );
-		OGLockMutex( q->mut );
-		CNOVRJobElement * k = q->e;
-		if( k )
+		OGLockSema( jq->sem );
+		OGLockMutex( jq->mut );
+		CNOVRJobElement * front = jq->front;
+		CNOVRJobElement * staged = &(jq->staged);
+		if( front )
 		{
-			CNOVRJobElement * staged = &q->staged;
-			staged->fn = k->fn;
-			staged->opaquev = k->opaquev;
-			staged->opaquei = k->opaquei;
-			q->e = k->next;
+			memcpy( staged, front, sizeof( jq->staged ) );
+			jq->front = front->next; 
+			if( !jq->front ) jq->back = 0;
+			if( jq->front ) jq->front->prev = 0; //safety
+			free( front );
+			CNHashDelete( jq->hash, staged );
 		}
-		OGUnlockMutex( q->mut );
+		OGUnlockMutex( jq->mut );
 
-		if( k )
+		if( front )
 		{
-			k->fn( k->opaquev, k->opaquei );
+			staged->fn( staged->opaquev, staged->opaquei );
 
 			//If you were to cancel the job, spinlock until e->staged == 0.
-			k->opaquev = 0;
-			k->opaquei = 0;
-			k->fn = 0;
+			staged->opaquev = 0;
+			staged->opaquei = 0;
+			staged->fn = 0;
+
+			//In case any close-outs were pending.
+			OGLockMutex( jq->mut );
+			while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
+			OGUnlockMutex( jq->mut );
 		}
 	}
 	return 0;
@@ -327,7 +363,10 @@ void CNOVRJobInit()
 	{
 		CNOVRJEQ[i].mut = OGCreateMutex();
 		CNOVRJEQ[i].sem = OGCreateSema();
-		CNOVRJEQ[i].e = 0;
+		CNOVRJEQ[i].pendingsem = OGCreateSema();
+		CNOVRJEQ[i].front = 0;
+		CNOVRJEQ[i].back = 0;
+		CNOVRJEQ[i].hash = CNHashGenerate( 0, 0, JQhash, JQcomp, 0 );
 		memset( &CNOVRJEQ[i].staged, 0, sizeof( CNOVRJEQ[i].staged ) );
 	}
 
@@ -335,20 +374,35 @@ void CNOVRJobInit()
 	OGCreateThread( CNOVRJobProcessor, &CNOVRJEQ[cnovrQAsync] );
 }
 
-int CNOVRProcessQueueElement( cnovrQueueType q )
+int CNOVRJobProcessQueueElement( cnovrQueueType q )
 {
+	printf( "JQUI\n" );
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 	OGLockMutex( jq->mut );
-	if( jq->e )
+	CNOVRJobElement * front = jq->front;
+	if( front )
 	{
 		CNOVRJobElement * staged = &(jq->staged);
-		memcpy( staged, jq->e, sizeof( jq->staged ) );
-		jq->e = jq->e->next; 
+		memcpy( staged, front, sizeof( jq->staged ) );
+		jq->front = front->next;
+		if( !jq->front ) jq->back = 0;
+		if( jq->front ) jq->front->prev = 0; //safety
+		free( front );
+		CNHashDelete( jq->hash, staged );
 		OGUnlockMutex( jq->mut );
 
+printf( "IN\n" );
+		staged->fn( staged->opaquev, staged->opaquei );
 		staged->opaquev = 0;
 		staged->opaquei = 0;
 		staged->fn = 0;
+printf( "X\n" );
+		//In case any close-outs were pending.
+		//XXX TODO: Stress test verify no race condition.
+		OGLockMutex( jq->mut );
+		while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
+		OGUnlockMutex( jq->mut );
+printf( "Y\n" );
 		return 1;
 	}
 
@@ -356,57 +410,77 @@ int CNOVRProcessQueueElement( cnovrQueueType q )
 	return 0;
 }
 
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei )
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei, int insert_even_if_pending )
 {
 	CNOVRJobElement * newe = malloc( sizeof( CNOVRJobElement ) );
 	newe->fn = fn;
 	newe->opaquev = opaquev;
 	newe->opaquei = opaquei;
 	newe->next = 0;
+	newe->prev = 0;
 
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
+
 	OGLockMutex( jq->mut );
-	CNOVRJobElement ** el = &CNOVRJEQ[q].e;
-	while( *el )
+	int is_pending = JQcomp( newe, &jq->staged, 0 ) == 0;
+
+	//Look for duplicates
+	if( ( is_pending && !insert_even_if_pending ) || CNHashInsert( jq->hash, newe, newe ) )
 	{
-		CNOVRJobElement * elp = *el;
-		//Don't add duplicates.
-		if( elp->fn == fn && elp->opaquev == opaquev && elp->opaquei == opaquei ) goto skip;
-		el = &elp->next;
+		printf( "INSERT FAILED\n" );
+		//Failed to insert.
+		free( newe );
 	}
-	//No duplicates?  Tack it on the end.
-	*el = newe;
-skip:
+	else
+	{
+		printf( "Inserting %d\n", newe->opaquei );
+		if( jq->back )
+		{
+			jq->back->next = newe;
+			newe->prev = jq->back;
+			jq->back = newe;
+		}
+		else
+		{
+			jq->back = jq->front = newe;
+		}
+	}
 	OGUnlockSema( jq->sem );
 	OGUnlockMutex( jq->mut );
 }
 
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei )
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei, int wait_on_pending )
 {
+	CNOVRJobElement compe;
+	compe.fn = fn;
+	compe.opaquev = opaquev;
+	compe.opaquei = opaquei;
+
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
 	OGLockMutex( jq->mut );
 
-	CNOVRJobElement * jes = &jq->staged;
-
-	//If the exact message is currently happening, then spinlock.
-	while( jes->fn == fn && jes->opaquev == opaquev && jes->opaquei == opaquei );
-
-	//DO NOT Down-count the semaphore. 
-	//It's ok.  You can have extra up semaphores.
-	//Search for any matching blocks and bail.
-	CNOVRJobElement ** el = &jq->e;
-	while( *el )
+	while( wait_on_pending && (JQcomp( &compe, &jq->staged, 0 ) == 0) )
 	{
-		CNOVRJobElement * elp = *el;
-		//Don't add duplicates.
-		if( elp->fn == fn && elp->opaquev == opaquev && elp->opaquei == opaquei )
-		{
-			*el = elp->next;
-			break;
-		}
+		//We're going to need to spin on the currently staged operation.
+		OGUnlockMutex( jq->mut );
+		OGLockSema( jq->pendingsem );
+		OGLockMutex( jq->mut );
 	}
 
+	//Look for duplicates
+	CNOVRJobElement * dupat = (CNOVRJobElement*)CNHashGet( jq->hash, &compe );
+	if( dupat )
+	{
+		//There is a duplicate!
+		if( dupat->prev )		dupat->prev->next = dupat->next;
+		if( dupat->next )		dupat->next->prev = dupat->prev;
+		if( dupat == jq->front )jq->front = dupat->next;
+		if( dupat == jq->back )	jq->back = dupat->prev;
+
+		CNHashDelete( jq->hash, dupat );
+		free( dupat );
+	}
 	OGUnlockMutex( jq->mut );
 }
 

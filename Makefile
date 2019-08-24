@@ -1,6 +1,6 @@
-all : main
+all : main offlinetests
 
-OBJS:=src/main.o rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cnhash.o
+OBJS:=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cnhash.o
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
@@ -19,8 +19,11 @@ CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function
 %.o : %.c
 	$(CC) -c -o $@ $^ $(CFLAGS)
 
-main : $(OBJS)
+main : $(OBJS) src/main.o 
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+offlinetests : $(OBJS) src/offlinetests.o 
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)	
 
 clean :
 	rm -rf *.o *~ $(OBJS)

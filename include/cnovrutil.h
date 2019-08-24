@@ -36,10 +36,13 @@ typedef enum
 } cnovrQueueType;
 
 //Async, but, has delays between each completion. Multiple identical items can queue.  Cancellation must match all parameters.
-int CNOVRProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still processing.
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei );
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei, int insert_even_if_pending );
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei, int wait_on_pending );
 
+//Usually internal
+void DEBUGDumpQueue( cnovrQueueType qt );
+void CNOVRJobInit(); //Internal
+int CNOVRJobProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still processing.
 
 #endif
 
