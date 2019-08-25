@@ -9,18 +9,25 @@
 //void * GetNamedPtr( const char * namedptr, const char * type );
 //void * NamedPtr( const char * namedptr, const char * type, int size );
 
-//These must be threadsafe.  Also, need a way to wholesale clear out a class of these guys.
-void FileTimeAddWatch( const char * fname, uint8_t * flag, void * tag );
-void FileTimeRemoveWatch( const char * fname, uint8_t * flag, void * tag );
-void FileTimeRemoveTagged( void * tag );
-double FileTimeCached( const char * fname );
 char * FileToString( const char * fname, int * length );
 char ** SplitStrings( const char * line, char * split, char * white, int merge_fields ); //You can just free(...) the return. it's safe.
 int StringCompareEndingCase( const char * thing_to_search, const char * check_extension );
 
+
+
+//////////////////////////////////////////////////////////////////////////////
+
+
+//These must be threadsafe.  Also, need a way to wholesale clear out a class of these guys.
+void FileTimeAddWatch( const char * fname, uint8_t * flag, void * tag );
+void FileTimeRemoveWatch( const char * fname, uint8_t * flag, void * tag );
+void FileTimeRemoveTagged( void * tag );
+
+double FileTimeCached( const char * fname );
+
+//Internal
 void CNOVRInternalStartCacheSystem();
 void CNOVRInternalStopCacheSystem();
-
 
 //////////////////////////////////////////////////////////////////////////////
 

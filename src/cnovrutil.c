@@ -107,6 +107,14 @@ char ** SplitStrings( const char * line, char * split, char * white, int merge_f
 	return ret;
 }
 
+int StringCompareEndingCase( const char * thing_to_search, const char * check_extension )
+{
+	if( !thing_to_search || !check_extension ) return -1;
+	int tsclen = strlen( thing_to_search );
+	return strcasecmp( thing_to_search + tsclen - strlen( check_extension ), check_extension );
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 static og_thread_t   thdFileTimeCacher;
 static volatile int  intStopFileTimeCacher;
@@ -194,13 +202,6 @@ void CNOVRInternalStopCacheSystem()
 	intStopFileTimeCacher = 1;
 	OGJoinThread( thdFileTimeCacher ); 
 	OGDeleteMutex( mutFileTimeCacher );
-}
-
-int StringCompareEndingCase( const char * thing_to_search, const char * check_extension )
-{
-	if( !thing_to_search || !check_extension ) return -1;
-	int tsclen = strlen( thing_to_search );
-	return strcasecmp( thing_to_search + tsclen - strlen( check_extension ), check_extension );
 }
 
 void FileTimeAddWatch( const char * fname, uint8_t * flag, void * tag )
@@ -333,8 +334,8 @@ static void * CNOVRJobProcessor( void * v )
 			jq->front = front->next; 
 			if( !jq->front ) jq->back = 0;
 			if( jq->front ) jq->front->prev = 0; //safety
-			free( front );
 			CNHashDelete( jq->hash, staged );
+			free( front );
 		}
 		OGUnlockMutex( jq->mut );
 
@@ -376,7 +377,6 @@ void CNOVRJobInit()
 
 int CNOVRJobProcessQueueElement( cnovrQueueType q )
 {
-	printf( "JQUI\n" );
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 	OGLockMutex( jq->mut );
 	CNOVRJobElement * front = jq->front;
@@ -387,22 +387,21 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		jq->front = front->next;
 		if( !jq->front ) jq->back = 0;
 		if( jq->front ) jq->front->prev = 0; //safety
-		free( front );
 		CNHashDelete( jq->hash, staged );
+		free( front );
 		OGUnlockMutex( jq->mut );
 
-printf( "IN\n" );
 		staged->fn( staged->opaquev, staged->opaquei );
 		staged->opaquev = 0;
 		staged->opaquei = 0;
 		staged->fn = 0;
-printf( "X\n" );
+
 		//In case any close-outs were pending.
-		//XXX TODO: Stress test verify no race condition.
+		//This is probably a place worth peeking if there's a problem found with this code
+		//verify no race condition in your particular application/fitness
 		OGLockMutex( jq->mut );
 		while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
 		OGUnlockMutex( jq->mut );
-printf( "Y\n" );
 		return 1;
 	}
 
@@ -425,15 +424,13 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei
 	int is_pending = JQcomp( newe, &jq->staged, 0 ) == 0;
 
 	//Look for duplicates
-	if( ( is_pending && !insert_even_if_pending ) || CNHashInsert( jq->hash, newe, newe ) )
+	if( ( is_pending && !insert_even_if_pending ) || CNHashInsert( jq->hash, newe, newe ) != 0 )
 	{
-		printf( "INSERT FAILED\n" );
 		//Failed to insert.
 		free( newe );
 	}
 	else
 	{
-		printf( "Inserting %d\n", newe->opaquei );
 		if( jq->back )
 		{
 			jq->back->next = newe;
@@ -444,8 +441,8 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei
 		{
 			jq->back = jq->front = newe;
 		}
+		OGUnlockSema( jq->sem );
 	}
-	OGUnlockSema( jq->sem );
 	OGUnlockMutex( jq->mut );
 }
 
@@ -469,7 +466,7 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaqu
 	}
 
 	//Look for duplicates
-	CNOVRJobElement * dupat = (CNOVRJobElement*)CNHashGet( jq->hash, &compe );
+	CNOVRJobElement * dupat = (CNOVRJobElement*)CNHashGetValue( jq->hash, &compe );
 	if( dupat )
 	{
 		//There is a duplicate!
