@@ -268,14 +268,18 @@ void FileTimeRemoveTagged( void * tag )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+struct CNOVRJobQueue_t;
+
 // Warning: You can only have one consumer per queue with the way locking is currently set up.
 typedef struct CNOVRJobElement_t
 {
 	cnovr_cb_fn * fn;
-	void * opaquev;
+	void * tag;
 	int opaquei;
 	struct CNOVRJobElement_t * next;
 	struct CNOVRJobElement_t * prev;
+	CNOVRIndexedListByTag * correspondance;
+	struct CNOVRJobQueue_t * jq;
 } CNOVRJobElement;
 
 typedef struct CNOVRJobQueue_t
@@ -289,15 +293,14 @@ typedef struct CNOVRJobQueue_t
 	og_sema_t  pendingsem;
 } CNOVRJobQueue;
 
-
-static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( (uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->opaquev-((void*)0)) + he->opaquei ); }
+static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( (uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + he->opaquei ); }
 static int      JQcomp( void * key_a, void * key_b, void * opaque )
 {
 	if( !key_a || !key_b ) return 1;
 	CNOVRJobElement * he = (CNOVRJobElement*)key_a;
 	CNOVRJobElement * hf = (CNOVRJobElement*)key_b;
 	if( he->fn == hf->fn && 
-		he->opaquev == hf->opaquev &&
+		he->tag == hf->tag &&
 		he->opaquei == hf->opaquei)
 		return 0;
 	else
@@ -305,6 +308,41 @@ static int      JQcomp( void * key_a, void * key_b, void * opaque )
 } 
 
 static CNOVRJobQueue CNOVRJEQ[cnovrQMAX];
+static CNOVRIndexedList * JQELIST;
+
+static void IndexedDestructor( void * key, void * data, void * opaque )
+{
+	CNOVRJobElement * je = (CNOVRJobElement*)data;
+	CNOVRJobQueue * jq = je->jq;
+
+	//This function is not threadsafe.
+	if( jq->front == je )
+	{
+		jq->front = je->next;
+		if( jq->front )
+		{
+			jq->front->prev = 0;
+		}
+	}
+	if( jq->back == je )
+	{
+		jq->back = je->prev;
+		if( jq->back )
+		{
+			jq->back->next = 0;
+		}
+	}
+	if( je->prev ) je->prev->next = je->next;
+	if( je->next ) je->next->prev = je->prev;
+
+	CNHashDelete( jq->hash, je );
+	free( je );	
+}
+
+static void BackendDeleteJob( CNOVRJobQueue * jq, CNOVRJobElement * je )
+{
+	CNOVRIndexedListDeleteItemHandle( JQELIST, je->correspondance );
+}
 
 void DEBUGDumpQueue( cnovrQueueType qt )
 {
@@ -331,20 +369,16 @@ static void * CNOVRJobProcessor( void * v )
 		if( front )
 		{
 			memcpy( staged, front, sizeof( jq->staged ) );
-			jq->front = front->next; 
-			if( !jq->front ) jq->back = 0;
-			if( jq->front ) jq->front->prev = 0; //safety
-			CNHashDelete( jq->hash, staged );
-			free( front );
+			BackendDeleteJob( jq, front );
 		}
 		OGUnlockMutex( jq->mut );
 
 		if( front )
 		{
-			staged->fn( staged->opaquev, staged->opaquei );
+			staged->fn( staged->tag, staged->opaquei );
 
 			//If you were to cancel the job, spinlock until e->staged == 0.
-			staged->opaquev = 0;
+			staged->tag = 0;
 			staged->opaquei = 0;
 			staged->fn = 0;
 
@@ -360,6 +394,9 @@ static void * CNOVRJobProcessor( void * v )
 void CNOVRJobInit()
 {
 	int i;
+
+	JQELIST = CNOVRIndexedListCreate( IndexedDestructor, 0 );
+
 	for( i = 0; i < cnovrQMAX; i++ )
 	{
 		CNOVRJEQ[i].mut = OGCreateMutex();
@@ -384,15 +421,11 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 	{
 		CNOVRJobElement * staged = &(jq->staged);
 		memcpy( staged, front, sizeof( jq->staged ) );
-		jq->front = front->next;
-		if( !jq->front ) jq->back = 0;
-		if( jq->front ) jq->front->prev = 0; //safety
-		CNHashDelete( jq->hash, staged );
-		free( front );
+		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
 
-		staged->fn( staged->opaquev, staged->opaquei );
-		staged->opaquev = 0;
+		staged->fn( staged->tag, staged->opaquei );
+		staged->tag = 0;
 		staged->opaquei = 0;
 		staged->fn = 0;
 
@@ -409,11 +442,11 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 	return 0;
 }
 
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei, int insert_even_if_pending )
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, int insert_even_if_pending )
 {
 	CNOVRJobElement * newe = malloc( sizeof( CNOVRJobElement ) );
 	newe->fn = fn;
-	newe->opaquev = opaquev;
+	newe->tag = tag;
 	newe->opaquei = opaquei;
 	newe->next = 0;
 	newe->prev = 0;
@@ -441,45 +474,48 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei
 		{
 			jq->back = jq->front = newe;
 		}
+		CNOVRIndexedListInsert( JQELIST, tag, newe );
 		OGUnlockSema( jq->sem );
 	}
 	OGUnlockMutex( jq->mut );
 }
 
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * opaquev, int opaquei, int wait_on_pending )
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, int wait_on_pending )
 {
 	CNOVRJobElement compe;
 	compe.fn = fn;
-	compe.opaquev = opaquev;
+	compe.tag = tag;
 	compe.opaquei = opaquei;
 
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
 	OGLockMutex( jq->mut );
-
-	while( wait_on_pending && (JQcomp( &compe, &jq->staged, 0 ) == 0) )
-	{
-		//We're going to need to spin on the currently staged operation.
-		OGUnlockMutex( jq->mut );
-		OGLockSema( jq->pendingsem );
-		OGLockMutex( jq->mut );
-	}
-
-	//Look for duplicates
+	//Look for job tdelete
 	CNOVRJobElement * dupat = (CNOVRJobElement*)CNHashGetValue( jq->hash, &compe );
 	if( dupat )
 	{
-		//There is a duplicate!
-		if( dupat->prev )		dupat->prev->next = dupat->next;
-		if( dupat->next )		dupat->next->prev = dupat->prev;
-		if( dupat == jq->front )jq->front = dupat->next;
-		if( dupat == jq->back )	jq->back = dupat->prev;
-
-		CNHashDelete( jq->hash, dupat );
-		free( dupat );
+		BackendDeleteJob( jq, dupat );
 	}
 	OGUnlockMutex( jq->mut );
+
+	while( wait_on_pending && (JQcomp( &compe, &jq->staged, 0 ) == 0) )
+	{
+		OGLockSema( jq->pendingsem );
+	}
 }
+
+void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
+{
+	OGLockMutex( jq->mut );
+	CNOVRIndexedListDeleteTag( JQELIST, tag );
+	OGUnlockMutex( jq->mut );
+
+	while( wait_on_pending && compe.tag == )
+	{
+		OGLockSema( jq->pendingsem );
+	}
+}
+
 
 
 
