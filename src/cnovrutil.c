@@ -4,6 +4,7 @@
 #include <os_generic.h>
 #include <string.h>
 #include <stdio.h>
+#include <cnovrindexedlist.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -30,6 +31,13 @@ char * FileToString( const char * fname, int * length )
 
 char ** SplitStrings( const char * line, char * split, char * white, int merge_fields )
 {
+	if( !line || strlen( line ) == 0 )
+	{
+		char ** ret = malloc( sizeof( char * )  );
+		*ret = 0;
+		return ret;
+	}
+
 	int elements = 1;
 	char ** ret = malloc( elements * sizeof( char * )  );
 	int * lengths = malloc( elements * sizeof( int ) ); 
@@ -120,21 +128,27 @@ static og_thread_t   thdFileTimeCacher;
 static volatile int  intStopFileTimeCacher;
 static og_mutex_t    mutFileTimeCacher;
 static cnhashtable * htFileTimeCacher;
-
+static og_sema_t     semPendinger;
 struct filetimetagged_t;
 
 typedef struct filetimetagged_t
 {
 	void * tag;
-	uint8_t * flag;
+	void * opaquev;
+	cnovr_cb_fn * fn;
 	struct filetimetagged_t * next;
+	struct filetimetagged_t * prev;
+	CNOVRIndexedListByTag * correspondance;
 } filetimetagged;
 
 typedef struct filetimedata_t
 {
 	double time;
-	filetimetagged * tagged;
+	filetimetagged * front;
 } filetimedata;
+
+static CNOVRIndexedList * ftindexlist;
+static filetimetagged ftstaged; //Current callback, used to make sure we don't delete something ongoing.
 
 void * thdfiletimechecker( void * v )
 {
@@ -153,13 +167,22 @@ void * thdfiletimechecker( void * v )
 				if( k->time != ft )
 				{
 					k->time = ft;
-					filetimetagged * t = k->tagged;
-					while( t )
+					filetimetagged * l = k->front;
+					filetimetagged * staged = &ftstaged;
+					while( l )
 					{
-						*(t->flag) = 0xff;
-						t = t->next;
+						staged->tag = l->tag;
+						staged->opaquev = l->opaquev;
+						staged->fn = l->fn;
+						OGUnlockMutex( mutFileTimeCacher );
+						l->fn( l->tag, l->opaquev );
+						OGLockMutex( mutFileTimeCacher );
+						staged->tag = 0;
+						staged->opaquev = 0;
+						staged->fn = 0;
 					}
 				}
+				while( OGGetSema( semPendinger ) == 0 ) OGUnlockSema( semPendinger ); 
 				OGUnlockMutex( mutFileTimeCacher );
 				OGUSleep( 1000 );
 				OGLockMutex( mutFileTimeCacher );
@@ -182,11 +205,32 @@ double FileTimeCached( const char * fname )
 		return r;
 	}
 	filetimedata * in = malloc( sizeof( filetimedata ) );
-	in->tagged = 0;
+	in->front = 0;
 	in->time = 0;
 	CNHashInsert( htFileTimeCacher, strdup( fname ), in );
 	OGUnlockMutex( mutFileTimeCacher );
 	return 0;
+}
+
+static void ftremovefn( void * tag, void * item, void * opaque )
+{
+	filetimetagged * t = (filetimetagged*)item;
+	filetimedata * d = (filetimedata*)opaque;
+
+	if( d->front == t )
+	{
+		d->front = t->next;
+	}
+	if( t->prev )
+	{
+		t->prev->next = t->next;
+	}
+	if( t->next )
+	{
+		t->next->prev = t->prev;
+	}
+	free( t );
+
 }
 
 void CNOVRInternalStartCacheSystem()
@@ -194,6 +238,8 @@ void CNOVRInternalStartCacheSystem()
 	mutFileTimeCacher = OGCreateMutex();
 	intStopFileTimeCacher = 0;
 	htFileTimeCacher = CNHashGenerate( 0, 0, CNHASH_STRINGS );
+	semPendinger = OGCreateSema(); 
+	ftindexlist = CNOVRIndexedListCreate( ftremovefn );
 	thdFileTimeCacher = OGCreateThread( thdfiletimechecker, 0 );
 }
 
@@ -202,67 +248,65 @@ void CNOVRInternalStopCacheSystem()
 	intStopFileTimeCacher = 1;
 	OGJoinThread( thdFileTimeCacher ); 
 	OGDeleteMutex( mutFileTimeCacher );
+	OGDeleteSema( semPendinger );
+	CNOVRIndexedListDestroy( ftindexlist );
 }
 
-void FileTimeAddWatch( const char * fname, uint8_t * flag, void * tag )
+void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
 	OGLockMutex( mutFileTimeCacher );
-	filetimedata * ret = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
-	if( !ret )
+	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
+	if( !ftd )
 	{
-		ret = malloc( sizeof( filetimedata ) );
-		ret->tagged = 0;
-		ret->time = 0;
-		CNHashInsert( htFileTimeCacher, strdup( fname ), ret );
+		ftd = malloc( sizeof( filetimedata ) );
+		ftd->front = 0;
+		ftd->time = 0;
+		CNHashInsert( htFileTimeCacher, strdup( fname ), ftd );
 	}
 	filetimetagged * t = malloc( sizeof( filetimetagged ) );
 	t->tag = tag;
-	t->flag = flag;
-	t->next = ret->tagged;
-	ret->tagged = t;
+	t->opaquev = opaquev;
+	t->fn = fn;
+	t->prev = 0;
+	t->next = ftd->front;
+	if( t->next )
+	{
+		t->next->prev = t;
+	}
+	ftd->front = t;
+	t->correspondance = CNOVRIndexedListInsert( ftindexlist, tag, t, ftd );
+
 	OGUnlockMutex( mutFileTimeCacher );
 }
 
-void FileTimeRemoveWatch( const char * fname, uint8_t * flag, void * tag )
+
+void FileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
 	OGLockMutex( mutFileTimeCacher );
 	filetimedata * ret = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
-	filetimetagged ** t = &ret->tagged;
+	filetimetagged ** t = &ret->front;
 	while( *t )
 	{
-		if( (*t)->flag == flag && (*t)->tag == tag )
-		{
-			*t = (*t)->next;
-		}
-		t = &(*t)->next;
+		if( (*t)->fn == fn && (*t)->tag == tag && (*t)->opaquev == opaquev ) break;
+		t = &((*t)->next);
+	}
+	if( *t )
+	{
+		CNOVRIndexedListDeleteItemHandle( ftindexlist, (*t)->correspondance );
 	}
 	OGUnlockMutex( mutFileTimeCacher );
 }
 
-void FileTimeRemoveTagged( void * tag )
+void FileTimeRemoveTagged( void * tag, int wait_on_pending )
 {
-	//TODO: Make another data structure which holds all tag mapping.
 	OGLockMutex( mutFileTimeCacher );
-	int i;
-	for( i = 0; i < htFileTimeCacher->array_size; i++ )
-	{
-		cnhashelement * e = htFileTimeCacher->elements + i;
-		if( e->data )
-		{
-			filetimedata * f = e->data;
-			filetimetagged ** t = &f->tagged;
-			while( *t )
-			{
-				if( (*t)->tag == tag )
-				{
-					*t = (*t)->next;
-				}
-				t = &(*t)->next;
-			}
-		}
-	}
-
+	CNOVRIndexedListDeleteTag( ftindexlist, tag );
 	OGUnlockMutex( mutFileTimeCacher );
+
+	while( wait_on_pending && ftstaged.tag == tag )
+	{
+		OGLockSema( semPendinger );
+	}
 }
 
 
@@ -275,11 +319,10 @@ typedef struct CNOVRJobElement_t
 {
 	cnovr_cb_fn * fn;
 	void * tag;
-	int opaquei;
+	void * opaquev;
 	struct CNOVRJobElement_t * next;
 	struct CNOVRJobElement_t * prev;
 	CNOVRIndexedListByTag * correspondance;
-	struct CNOVRJobQueue_t * jq;
 } CNOVRJobElement;
 
 typedef struct CNOVRJobQueue_t
@@ -293,7 +336,7 @@ typedef struct CNOVRJobQueue_t
 	og_sema_t  pendingsem;
 } CNOVRJobQueue;
 
-static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( (uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + he->opaquei ); }
+static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
 static int      JQcomp( void * key_a, void * key_b, void * opaque )
 {
 	if( !key_a || !key_b ) return 1;
@@ -301,7 +344,7 @@ static int      JQcomp( void * key_a, void * key_b, void * opaque )
 	CNOVRJobElement * hf = (CNOVRJobElement*)key_b;
 	if( he->fn == hf->fn && 
 		he->tag == hf->tag &&
-		he->opaquei == hf->opaquei)
+		he->opaquev == hf->opaquev)
 		return 0;
 	else
 		return 1;
@@ -310,10 +353,10 @@ static int      JQcomp( void * key_a, void * key_b, void * opaque )
 static CNOVRJobQueue CNOVRJEQ[cnovrQMAX];
 static CNOVRIndexedList * JQELIST;
 
-static void IndexedDestructor( void * key, void * data, void * opaque )
+static void IndexedDestructor( void * tag, void * item, void * opaque )
 {
-	CNOVRJobElement * je = (CNOVRJobElement*)data;
-	CNOVRJobQueue * jq = je->jq;
+	CNOVRJobElement * je = (CNOVRJobElement*)item;
+	CNOVRJobQueue * jq = (CNOVRJobQueue*)opaque;
 
 	//This function is not threadsafe.
 	if( jq->front == je )
@@ -351,7 +394,7 @@ void DEBUGDumpQueue( cnovrQueueType qt )
 	CNOVRJobElement * e = q->front;
 	while( e )
 	{
-		printf( "  <<%16p %16p(%4d) %16p>>\n",  e->prev, e, e->opaquei, e->next );
+		printf( "  <<%16p %16p(%p) %16p>>\n",  e->prev, e, e->opaquev, e->next );
 		e = e->next;
 	}
 }
@@ -375,11 +418,11 @@ static void * CNOVRJobProcessor( void * v )
 
 		if( front )
 		{
-			staged->fn( staged->tag, staged->opaquei );
+			staged->fn( staged->tag, staged->opaquev );
 
 			//If you were to cancel the job, spinlock until e->staged == 0.
 			staged->tag = 0;
-			staged->opaquei = 0;
+			staged->opaquev = 0;
 			staged->fn = 0;
 
 			//In case any close-outs were pending.
@@ -395,7 +438,7 @@ void CNOVRJobInit()
 {
 	int i;
 
-	JQELIST = CNOVRIndexedListCreate( IndexedDestructor, 0 );
+	JQELIST = CNOVRIndexedListCreate( IndexedDestructor );
 
 	for( i = 0; i < cnovrQMAX; i++ )
 	{
@@ -424,9 +467,9 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
 
-		staged->fn( staged->tag, staged->opaquei );
+		staged->fn( staged->tag, staged->opaquev );
 		staged->tag = 0;
-		staged->opaquei = 0;
+		staged->opaquev = 0;
 		staged->fn = 0;
 
 		//In case any close-outs were pending.
@@ -442,12 +485,12 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 	return 0;
 }
 
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, int insert_even_if_pending )
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, int insert_even_if_pending )
 {
 	CNOVRJobElement * newe = malloc( sizeof( CNOVRJobElement ) );
 	newe->fn = fn;
 	newe->tag = tag;
-	newe->opaquei = opaquei;
+	newe->opaquev = opaquev;
 	newe->next = 0;
 	newe->prev = 0;
 
@@ -474,18 +517,19 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, in
 		{
 			jq->back = jq->front = newe;
 		}
-		CNOVRIndexedListInsert( JQELIST, tag, newe );
+		newe->correspondance = CNOVRIndexedListInsert( JQELIST, tag, newe, jq );
+
 		OGUnlockSema( jq->sem );
 	}
 	OGUnlockMutex( jq->mut );
 }
 
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, int wait_on_pending )
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, int wait_on_pending )
 {
 	CNOVRJobElement compe;
 	compe.fn = fn;
 	compe.tag = tag;
-	compe.opaquei = opaquei;
+	compe.opaquev = opaquev;
 
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
@@ -498,6 +542,7 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, 
 	}
 	OGUnlockMutex( jq->mut );
 
+	//Make srue we don't have any remaining pends.
 	while( wait_on_pending && (JQcomp( &compe, &jq->staged, 0 ) == 0) )
 	{
 		OGLockSema( jq->pendingsem );
@@ -506,13 +551,24 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, int opaquei, 
 
 void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 {
-	OGLockMutex( jq->mut );
-	CNOVRIndexedListDeleteTag( JQELIST, tag );
-	OGUnlockMutex( jq->mut );
-
-	while( wait_on_pending && compe.tag == )
+	int list;
+	for( list = 0; list < cnovrQMAX; list++ )
 	{
-		OGLockSema( jq->pendingsem );
+		OGLockMutex( CNOVRJEQ[list].mut );
+	}
+	CNOVRIndexedListDeleteTag( JQELIST, tag );
+	for( list = 0; list < cnovrQMAX; list++ )
+	{
+		OGUnlockMutex( CNOVRJEQ[list].mut );
+	}
+
+	for( list = 0; list < cnovrQMAX; list++ )
+	{
+		CNOVRJobQueue * jq = &CNOVRJEQ[list];
+		while( wait_on_pending && jq->staged.tag == tag )
+		{
+			OGLockSema( jq->pendingsem );
+		}
 	}
 }
 

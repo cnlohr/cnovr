@@ -1,4 +1,6 @@
 #include <cnovrindexedlist.h>
+#include <stdlib.h>
+#include <string.h>
 
 static uint32_t CNILhash( void * key, void * opaque ) { return (key - (void*)0); }
 static int      CNILcomp( void * key_a, void * key_b, void * opaque ) { return key_a != key_b; }
@@ -13,35 +15,53 @@ CNOVRIndexedList * CNOVRIndexedListCreate( cnhash_delete_function df )
 	return ret;
 }
 
-//These both call the destructor.
-void CNOVRIndexedListDeleteItemHandle( CNOVRIndexedList * list, CNOVRIndexedListByItem * item_handle )
+void CNOVRIndexedListDestroy( CNOVRIndexedList * list )
 {
-	if( !item_handle->prev )
+	int i;
+	if( list->df )
 	{
-		if( !item_handle->next )
+		for( i = 0; i < list->ht_by_tag->array_size; i++ )
+		{
+			cnhashelement * e = &list->ht_by_tag->elements[i];
+			if( e->hashvalue )
+			{
+				CNOVRIndexedListByTag * d = (CNOVRIndexedListByTag *)e->data;
+				list->df( 0, d->byitem, d->thisopaque );
+			}
+		}
+	}
+	CNHashDestroy( list->ht_by_tag );
+}
+
+//These both call the destructor.
+void CNOVRIndexedListDeleteItemHandle( CNOVRIndexedList * list, CNOVRIndexedListByTag * bylisttag )
+{
+	if( !bylisttag->prev )
+	{
+		if( !bylisttag->next )
 		{
 			//Last item, delete element.
-			CNHashDelete( list->ht_by_tag, item_handle->tag ); 
+			CNHashDelete( list->ht_by_tag, bylisttag->tag ); 
 		}
 		else
 		{
 			//Tricky: We're the first in the list.  We need to update the index.
-			cnhashelement * e = CNHashIndex( list->ht_by_tag, item_handle->tag ); //If get fails, insert
-			e->data = item_handle->next;
+			cnhashelement * e = CNHashIndex( list->ht_by_tag, bylisttag->tag ); //If get fails, insert
+			e->data = bylisttag->next;
 		}
 	}
 	else
 	{
-		item_handle->prev->next = item_handle->next;
+		bylisttag->prev->next = bylisttag->next;
 	}
-	if( item_handle->next )
+	if( bylisttag->next )
 	{
-		item_handle->next->prev = item_handle->prev;
+		bylisttag->next->prev = bylisttag->prev;
 	}
 
-	list->df( 0, item_handle->byitem, item_handle->thisopaque );
+	if( list->df ) list->df( 0, bylisttag->byitem, bylisttag->thisopaque );
 
-	free( item_handle );
+	free( bylisttag );
 }
 
 void CNOVRIndexedListDeleteTag( CNOVRIndexedList * list, void * tag )
@@ -49,7 +69,7 @@ void CNOVRIndexedListDeleteTag( CNOVRIndexedList * list, void * tag )
 	CNOVRIndexedListByTag * e = CNHashGetValue( list->ht_by_tag, tag );
 	while( e )
 	{
-		list->df( 0, e->byitem, e->thisopaque );
+		if( list->df ) list->df( e->tag, e->byitem, e->thisopaque );
 		CNOVRIndexedListByTag * next = e->next;
 		free( e );
 		e = next;
@@ -57,7 +77,7 @@ void CNOVRIndexedListDeleteTag( CNOVRIndexedList * list, void * tag )
 	CNHashDelete( list->ht_by_tag, tag );
 }
 
-void CNOVRIndexedListInsert( CNOVRIndexedList * list, void * tag, void * item, void * thisopaque )
+CNOVRIndexedListByTag * CNOVRIndexedListInsert( CNOVRIndexedList * list, void * tag, void * item, void * thisopaque )
 {
 	CNOVRIndexedListByTag * newt = malloc( sizeof( CNOVRIndexedListByTag ) );
 	newt->next = 0;
@@ -72,11 +92,7 @@ void CNOVRIndexedListInsert( CNOVRIndexedList * list, void * tag, void * item, v
 	{
 		newt->next->prev = newt;
 	}
+	return newt;
 }
-
-
-
-
-
 
 

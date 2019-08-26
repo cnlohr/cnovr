@@ -28,11 +28,12 @@ typedef struct CNOVRIndexedList_t
 //Just FYI "deletes" from cnhash_delete_function pass in your item as the value.  "key" is not to be trusted in the callback.
 
 CNOVRIndexedList * CNOVRIndexedListCreate( cnhash_delete_function df );
+void CNOVRIndexedListDestroy( CNOVRIndexedList * list ); // This calls "delete" on all entries.
 
 //These both call the destructor.
-void CNOVRIndexedListDeleteItemHandle( CNOVRIndexedList * list, CNOVRIndexedListByItem * item_handle );
+void CNOVRIndexedListDeleteItemHandle( CNOVRIndexedList * list, CNOVRIndexedListByTag * bylisttag );
 void CNOVRIndexedListDeleteTag( CNOVRIndexedList * list, void * tag );
-void CNOVRIndexedListInsert( CNOVRIndexedList * list, void * tag, void * item, void * thisopaque );
+CNOVRIndexedListByTag * CNOVRIndexedListInsert( CNOVRIndexedList * list, void * tag, void * item, void * thisopaque );
 
 #endif
 

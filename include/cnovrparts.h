@@ -55,7 +55,6 @@ typedef struct cnovr_shader_t
 	cnovr_header header;
 	GLuint nShaderID;
 	char * shaderfilebase;
-	uint8_t bChangeFlag; //geo, frag, vert
 } cnovr_shader;
 
 //Call 'render' submethod to activate, and 'prerender' checks to see if anything is tainted.

@@ -101,8 +101,9 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b )
 
 static void CNOVRShaderDelete( cnovr_shader * ths )
 {
+	FileTimeRemoveTagged( ths, 1 );
+	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
-	FileTimeRemoveTagged( ths );
 	free( ths->shaderfilebase );
 	free( ths );
 }
@@ -134,110 +135,108 @@ static GLuint CNOVRShaderCompilePart( GLuint shader_type, const char * shadernam
 }
 
 //XXX TODO: Cleanup reload mechanism.
-static void CNOVRShaderPrerender( cnovr_shader * ths )
+static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
-	if( ths->bChangeFlag )
+	//Re-load shader
+	cnovr_shader * ths = (cnovr_shader*)tag;
+
+	//Careful: Need to re-try in case a program is still writing.
+
+	GLuint nGeoShader  = 0;
+	GLuint nFragShader = 0;
+	GLuint nVertShader = 0;
+
+	char stfbGeo[CNOVR_MAX_PATH];
+	char stfbFrag[CNOVR_MAX_PATH];
+	char stfbVert[CNOVR_MAX_PATH];
+	const char * filedataGeo = 0;
+	const char * filedataFrag = 0;
+	const char * filedataVert = 0;
+
+	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
+	filedataGeo = FileToString( stfbGeo, 0 );
+	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
+	filedataFrag = FileToString( stfbFrag, 0 );
+	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
+	filedataVert = FileToString( stfbVert, 0 );
+
+	if( !filedataFrag || !filedataVert )
 	{
-		//Re-load shader
+		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
+		return;
+	}
 
-		//Careful: Need to re-try in case a program is still writing.
-		if( ths->bChangeFlag++ > 2 )
-		{
-			ths->bChangeFlag = 0;
-			return;
-		}
-		
-		GLuint nGeoShader  = 0;
-		GLuint nFragShader = 0;
-		GLuint nVertShader = 0;
+	if( filedataGeo )
+	{
+		nGeoShader = CNOVRShaderCompilePart( GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
+	}
+	nFragShader = CNOVRShaderCompilePart( GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
+	nVertShader = CNOVRShaderCompilePart( GL_VERTEX_SHADER, stfbVert, filedataVert );
 
-		char stfbGeo[CNOVR_MAX_PATH];
-		char stfbFrag[CNOVR_MAX_PATH];
-		char stfbVert[CNOVR_MAX_PATH];
-		const char * filedataGeo = 0;
-		const char * filedataFrag = 0;
-		const char * filedataVert = 0;
+	bool compfail = false;
+	if( filedataGeo )
+	{
+		if ( !nGeoShader )
+			compfail = true;
+	}
+	if ( !nVertShader || !nFragShader )
+	{
+		compfail = true;
+	}
 
-		sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
-		filedataGeo = FileToString( stfbGeo, 0 );
-		sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
-		filedataFrag = FileToString( stfbFrag, 0 );
-		sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
-		filedataVert = FileToString( stfbVert, 0 );
+	GLuint unProgramID = 0;
 
-		if( !filedataFrag || !filedataVert )
-		{
-			CNOVRAlert( cnovrstate->pCurrentModel, 1, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
-			return;
-		}
-
+	if ( !compfail )
+	{
+		unProgramID = glCreateProgram();
 		if( filedataGeo )
 		{
-			nGeoShader = CNOVRShaderCompilePart( GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
+			glAttachShader( unProgramID, nGeoShader );
 		}
-		nFragShader = CNOVRShaderCompilePart( GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
-		nVertShader = CNOVRShaderCompilePart( GL_VERTEX_SHADER, stfbVert, filedataVert );
+		glAttachShader( unProgramID, nFragShader );
+		glAttachShader( unProgramID, nVertShader );
+		glLinkProgram( unProgramID );
 
-		bool compfail = false;
-		if( filedataGeo )
+		GLint programSuccess = GL_TRUE;
+		glGetProgramiv( unProgramID, GL_LINK_STATUS, &programSuccess );
+		if ( programSuccess != GL_TRUE )
 		{
-			if ( !nGeoShader )
-				compfail = true;
-		}
-		if ( !nVertShader || !nFragShader )
-		{
+			CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
+			int retval;
+			glGetShaderiv( unProgramID, GL_INFO_LOG_LENGTH, &retval );
+			if ( retval > 1 ) {
+				char * log = (char*)malloc( retval );
+				glGetProgramInfoLog( unProgramID, retval, NULL, log );
+				CNOVRAlert( cnovrstate->pCurrentModel, 1, "%s\n", log );
+				free( log );
+			}
+			glDeleteProgram( unProgramID );
 			compfail = true;
 		}
-
-		GLuint unProgramID = 0;
-
-		if ( !compfail )
-		{
-			unProgramID = glCreateProgram();
-			if( filedataGeo )
-			{
-				glAttachShader( unProgramID, nGeoShader );
-			}
-			glAttachShader( unProgramID, nFragShader );
-			glAttachShader( unProgramID, nVertShader );
-			glLinkProgram( unProgramID );
-
-			GLint programSuccess = GL_TRUE;
-			glGetProgramiv( unProgramID, GL_LINK_STATUS, &programSuccess );
-			if ( programSuccess != GL_TRUE )
-			{
-				CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
-				int retval;
-				glGetShaderiv( unProgramID, GL_INFO_LOG_LENGTH, &retval );
-				if ( retval > 1 ) {
-					char * log = (char*)malloc( retval );
-					glGetProgramInfoLog( unProgramID, retval, NULL, log );
-					CNOVRAlert( cnovrstate->pCurrentModel, 1, "%s\n", log );
-					free( log );
-				}
-				glDeleteProgram( unProgramID );
-				compfail = true;
-			}
-		}
-		else
-		{
-			CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader compilation failed: %s\n", ths->shaderfilebase );
-		}
-
-		if ( unProgramID )
-		{
-			if ( ths->nShaderID )
-			{
-				ths->bChangeFlag = 0;
-				glDeleteProgram( ths->nShaderID );
-			}
-			ths->nShaderID = unProgramID;
-		}
-
-		if( nGeoShader )  glDeleteShader( nGeoShader );
-		if( nFragShader ) glDeleteShader( nFragShader );
-		if( nVertShader ) glDeleteShader( nVertShader );
 	}
+	else
+	{
+		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader compilation failed: %s\n", ths->shaderfilebase );
+	}
+
+	if ( unProgramID )
+	{
+		if ( ths->nShaderID )
+		{
+			//XXX Note: If we got here, we were successful.
+			glDeleteProgram( ths->nShaderID );
+		}
+		ths->nShaderID = unProgramID;
+	}
+
+	if( nGeoShader )  glDeleteShader( nGeoShader );
+	if( nFragShader ) glDeleteShader( nFragShader );
+	if( nVertShader ) glDeleteShader( nVertShader );
+}
+
+static void CNOVRShaderFileChange( void * tag, void * opaquev )
+{
+	CNOVRJobTack( cnovrQPrerender, CNOVRShaderFileChangePrerender, tag, opaquev, 1 );
 }
 
 static void CNOVRShaderRender( cnovr_shader * ths )
@@ -257,27 +256,26 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 	memset( ret, 0, sizeof( *ret ) );
 	ret->header.Delete = (cnovrfn)CNOVRShaderDelete;
 	ret->header.Render = (cnovrfn)CNOVRShaderRender;
-	ret->header.Prerender = (cnovrfn)CNOVRShaderPrerender;
 	ret->header.Type = TYPE_SHADER;
 	ret->shaderfilebase = strdup( shaderfilebase );
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
-	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
+	FileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.frag", shaderfilebase );
-	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
+	FileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.vert", shaderfilebase );
-	FileTimeAddWatch( stfb, &ret->bChangeFlag, ret );
+	FileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	CNOVRShaderFileChange( ret, 0 );
 
-	ret->bChangeFlag = 1;
 	return ret;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
-static void CNOVRTextureLoadFileTask( void * opaquev, int opaquei )
+static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 {
-	cnovr_texture * t = (cnovr_texture*)opaquev;
+	cnovr_texture * t = (cnovr_texture*)tag;
 	OGLockMutex( t->mutProtect );
 	char * localfn = strdup( t->texfile );
 	OGUnlockMutex( t->mutProtect );
@@ -294,7 +292,7 @@ static void CNOVRTextureLoadFileTask( void * opaquev, int opaquei )
 
 }
 
-static void CNOVRTextureUploadCallback( void * vths, int i )
+static void CNOVRTextureUploadCallback( void * vths, void * dump )
 {
 	cnovr_texture * t = (cnovr_texture*)vths;
 	OGLockMutex( t->mutProtect );
@@ -317,12 +315,8 @@ static void CNOVRTextureDelete( cnovr_texture * ths )
 {
 	OGLockMutex( ths->mutProtect );
 	//In case any file changes are being watched.
-	FileTimeRemoveTagged( ths );
-
-	//Pre-emptively kill any possible pending queued events.
-	CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, ths, 0 );
-	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, ths, 0 );
-
+	FileTimeRemoveTagged( ths, 1 );
+	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nTextureId )
 	{
 		glDeleteTextures( 1, &ths->nTextureId );
@@ -382,8 +376,8 @@ int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile )
 	if( tex->texfile ) free( tex->texfile );
 	tex->texfile = strdup( texfile );
 	tex->bLoading = 1;
-	CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0 ); //Just in case.
-	CNOVRJobTack( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0 );
+	CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0, 0 );
+	CNOVRJobTack( cnovrQAsync, CNOVRTextureLoadFileTask, tex, 0, 1 ); //If one's already going, let it finish.
 	OGUnlockMutex( tex->mutProtect );
 	return 0;
 }
@@ -391,6 +385,9 @@ int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile )
 int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data )
 {
 	OGLockMutex( tex->mutProtect );
+
+	//We don't want to confuse the second part of the loader.
+	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 
 	if( tex->data ) free( tex->data );
 	tex->data = data;
@@ -409,7 +406,7 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	tex->nFormat = channelmapB[chan];
 	tex->nType = is_float?GL_FLOAT:GL_UNSIGNED_BYTE;
 	tex->bTaintData = 1;
-	CNOVRJobTack( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0 );
+	CNOVRJobTack( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 	OGUnlockMutex( tex->mutProtect );
 	return 0;
 }
@@ -483,7 +480,7 @@ void CNOVRVBOTack( cnovr_vbo * g,  int nverts, ... )
 	CNOVRVBOTaint( g );
 }
 
-static void CNOVRVBOPerformUpload( void * gv, int opaquei )
+static void CNOVRVBOPerformUpload( void * gv, void * dump )
 {
 	cnovr_vbo * g = (cnovr_vbo *)gv;
 
@@ -501,14 +498,14 @@ static void CNOVRVBOPerformUpload( void * gv, int opaquei )
 
 void CNOVRVBOTaint( cnovr_vbo * g )
 {
-	CNOVRJobCancel( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0 );
-	CNOVRJobTack( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0 );
+	CNOVRJobCancel( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0, 0 );
+	CNOVRJobTack( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0, 1 );
 }
 
 void CNOVRVBODelete( cnovr_vbo * g )
 {
+	CNOVRJobCancelAllTag( (void*)g, 1 );
 	OGLockMutex( g->mutData );
-	CNOVRJobCancel( cnovrQPrerender, CNOVRVBOPerformUpload, (void*)g, 0 );
 	glDeleteBuffers( 1, &g->nVBO );
 	free( g->pVertices );
 	OGDeleteMutex( g->mutData );
@@ -522,7 +519,7 @@ void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-static void CNOVRModelUpdateIBO( void * vm, int i )
+static void CNOVRModelUpdateIBO( void * vm, void * dump )
 {
 	cnovr_model * m = (cnovr_model *)vm;
 	OGLockMutex( m->model_mutex );
@@ -533,13 +530,13 @@ static void CNOVRModelUpdateIBO( void * vm, int i )
 
 void CNOVRModelTaintIndices( cnovr_model * vm )
 {
-	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0 );	
+	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0, 1 );	
 }
 
 static void CNOVRModelDelete( cnovr_model * m )
 {
 	OGLockMutex( m->model_mutex );
-	CNOVRJobCancel( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)m, 0 );
+	CNOVRJobCancelAllTag( (void*)m, 1 );
 	int i;
 	for( i = 0; i < m->iGeos; i++ )
 	{
@@ -1227,7 +1224,7 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 }
 
 
-void CNOVRModelLoadFromFileAsyncCallback( void * vm, int i )
+void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump )
 {
 	cnovr_model * m = (cnovr_model*) vm;
 	OGLockMutex( m->model_mutex );
@@ -1254,8 +1251,8 @@ void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 	OGLockMutex( m->model_mutex );
 	if( m->geofile ) free( m->geofile );
 	m->geofile = strdup( filename );
-	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0 );
-	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0 );
+	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
+	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
 	OGUnlockMutex( m->model_mutex );
 }
 
