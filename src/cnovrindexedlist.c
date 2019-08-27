@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint32_t CNILhash( void * key, void * opaque ) { return (key - (void*)0); }
+static uint32_t CNILhash( void * key, void * opaque ) { uint32_t ret = (key - (void*)0); return ret?ret:1; }
 static int      CNILcomp( void * key_a, void * key_b, void * opaque ) { return key_a != key_b; }
 
 
@@ -31,6 +31,7 @@ void CNOVRIndexedListDestroy( CNOVRIndexedList * list )
 		}
 	}
 	CNHashDestroy( list->ht_by_tag );
+	free( list );
 }
 
 //These both call the destructor.

@@ -330,10 +330,17 @@ typedef struct CNOVRJobQueue_t
 	CNOVRJobElement * front;
 	CNOVRJobElement * back;
 	CNOVRJobElement staged;
+	int is_staged;
 	cnhashtable * hash;
 	og_mutex_t mut;
 	og_sema_t  sem;
 	og_sema_t  pendingsem;
+
+	//Prevent any new queuing of objects if deleting a tag.
+	og_mutex_t deletingmut;
+	void * deletingtag;
+	int deletingnow;
+	int quittingnow;
 } CNOVRJobQueue;
 
 static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
@@ -352,6 +359,9 @@ static int      JQcomp( void * key_a, void * key_b, void * opaque )
 
 static CNOVRJobQueue CNOVRJEQ[cnovrQMAX];
 static CNOVRIndexedList * JQELIST;
+
+static og_thread_t jt1;
+static og_thread_t jt2;
 
 static void IndexedDestructor( void * tag, void * item, void * opaque )
 {
@@ -403,7 +413,7 @@ void DEBUGDumpQueue( cnovrQueueType qt )
 static void * CNOVRJobProcessor( void * v )
 {
 	CNOVRJobQueue * jq = (CNOVRJobQueue*)v;
-	while(1)
+	while( !jq->quittingnow )
 	{
 		OGLockSema( jq->sem );
 		OGLockMutex( jq->mut );
@@ -412,6 +422,7 @@ static void * CNOVRJobProcessor( void * v )
 		if( front )
 		{
 			memcpy( staged, front, sizeof( jq->staged ) );
+			jq->is_staged = 1;
 			BackendDeleteJob( jq, front );
 		}
 		OGUnlockMutex( jq->mut );
@@ -424,7 +435,7 @@ static void * CNOVRJobProcessor( void * v )
 			staged->tag = 0;
 			staged->opaquev = 0;
 			staged->fn = 0;
-
+			jq->is_staged = 0;
 			//In case any close-outs were pending.
 			OGLockMutex( jq->mut );
 			while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
@@ -442,17 +453,49 @@ void CNOVRJobInit()
 
 	for( i = 0; i < cnovrQMAX; i++ )
 	{
-		CNOVRJEQ[i].mut = OGCreateMutex();
-		CNOVRJEQ[i].sem = OGCreateSema();
-		CNOVRJEQ[i].pendingsem = OGCreateSema();
-		CNOVRJEQ[i].front = 0;
-		CNOVRJEQ[i].back = 0;
-		CNOVRJEQ[i].hash = CNHashGenerate( 0, 0, JQhash, JQcomp, 0 );
+		CNOVRJobQueue * jq = &CNOVRJEQ[i];
+		jq->mut = OGCreateMutex();
+		jq->sem = OGCreateSema();
+		jq->pendingsem = OGCreateSema();
+		jq->deletingmut = OGCreateMutex();
+		jq->deletingtag = 0;
+		jq->deletingnow = 0;
+		jq->front = 0;
+		jq->back = 0;
+		jq->is_staged = 0;
+		jq->hash = CNHashGenerate( 0, 0, JQhash, JQcomp, 0 );
+		jq->quittingnow = 0;
 		memset( &CNOVRJEQ[i].staged, 0, sizeof( CNOVRJEQ[i].staged ) );
 	}
 
-	OGCreateThread( CNOVRJobProcessor, &CNOVRJEQ[cnovrQLow] );
-	OGCreateThread( CNOVRJobProcessor, &CNOVRJEQ[cnovrQAsync] );
+	jt1 = OGCreateThread( CNOVRJobProcessor, &CNOVRJEQ[cnovrQLow] );
+	jt2 = OGCreateThread( CNOVRJobProcessor, &CNOVRJEQ[cnovrQAsync] );
+}
+
+void CNOVRJobStop()
+{
+	int i;
+	for( i = 0; i < cnovrQMAX; i++ )
+	{
+		CNOVRJobQueue * jq = &CNOVRJEQ[i];
+		jq->quittingnow = 1;
+		OGUnlockSema( jq->sem );
+	}
+
+	OGJoinThread( jt1 );
+	OGJoinThread( jt2 );
+
+	CNOVRIndexedListDestroy( JQELIST );
+
+	for( i = 0; i < cnovrQMAX; i++ )
+	{
+		CNOVRJobQueue * jq = &CNOVRJEQ[i];
+		CNHashDestroy( jq->hash );
+		OGDeleteSema( jq->sem );
+		OGDeleteSema( jq->pendingsem );
+		OGDeleteMutex( jq->deletingmut );
+		OGDeleteMutex( jq->mut );
+	}
 }
 
 int CNOVRJobProcessQueueElement( cnovrQueueType q )
@@ -464,10 +507,14 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 	{
 		CNOVRJobElement * staged = &(jq->staged);
 		memcpy( staged, front, sizeof( jq->staged ) );
+		jq->is_staged = 1;
+
 		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
 
 		staged->fn( staged->tag, staged->opaquev );
+
+		jq->is_staged = 0;
 		staged->tag = 0;
 		staged->opaquev = 0;
 		staged->fn = 0;
@@ -497,13 +544,16 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
 	OGLockMutex( jq->mut );
+
+	//Make sure we don't permit addition of a delete-in-progress, in case the user has chained events.
+	if( jq->deletingnow && jq->deletingtag == tag ) goto fail;
+
 	int is_pending = JQcomp( newe, &jq->staged, 0 ) == 0;
 
 	//Look for duplicates
 	if( ( is_pending && !insert_even_if_pending ) || CNHashInsert( jq->hash, newe, newe ) != 0 )
 	{
-		//Failed to insert.
-		free( newe );
+		goto fail;
 	}
 	else
 	{
@@ -521,6 +571,11 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 
 		OGUnlockSema( jq->sem );
 	}
+	OGUnlockMutex( jq->mut );
+	return;
+fail:
+	//Failed to insert.
+	free( newe );
 	OGUnlockMutex( jq->mut );
 }
 
@@ -543,7 +598,8 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaque
 	OGUnlockMutex( jq->mut );
 
 	//Make srue we don't have any remaining pends.
-	while( wait_on_pending && (JQcomp( &compe, &jq->staged, 0 ) == 0) )
+	OGUnlockSema( jq->pendingsem );
+	while( wait_on_pending && jq->is_staged && (JQcomp( &compe, &jq->staged, 0 ) == 0) )
 	{
 		OGLockSema( jq->pendingsem );
 	}
@@ -555,6 +611,9 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
 		OGLockMutex( CNOVRJEQ[list].mut );
+		OGLockMutex( CNOVRJEQ[list].deletingmut );
+		CNOVRJEQ[list].deletingtag = tag;
+		CNOVRJEQ[list].deletingnow = 1;
 	}
 	CNOVRIndexedListDeleteTag( JQELIST, tag );
 	for( list = 0; list < cnovrQMAX; list++ )
@@ -565,10 +624,16 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
 		CNOVRJobQueue * jq = &CNOVRJEQ[list];
-		while( wait_on_pending && jq->staged.tag == tag )
+		OGUnlockSema( jq->pendingsem );
+		while( wait_on_pending && jq->is_staged && jq->staged.tag == tag )
 		{
 			OGLockSema( jq->pendingsem );
 		}
+	}
+	for( list = 0; list < cnovrQMAX; list++ )
+	{
+		CNOVRJEQ[list].deletingtag = 0;
+		OGUnlockMutex( CNOVRJEQ[list].deletingmut );
 	}
 }
 

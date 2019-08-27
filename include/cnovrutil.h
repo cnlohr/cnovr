@@ -33,10 +33,6 @@ void CNOVRInternalStartCacheSystem();
 void CNOVRInternalStopCacheSystem();
 
 //////////////////////////////////////////////////////////////////////////////
-
-//XXX XXX TODO: Consider chained tasks.
-//I.e. what happens if a timer callback triggers a update task.
-
 typedef enum
 {
 	cnovrQLow,			//Things like making sure we're up to date - not sure?
@@ -54,6 +50,7 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending );
 //Usually internal
 void DEBUGDumpQueue( cnovrQueueType qt );
 void CNOVRJobInit(); //Internal
+void CNOVRJobStop(); //Internal
 int CNOVRJobProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still processing.
 
 #endif
