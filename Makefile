@@ -10,7 +10,7 @@ LDFLAGS+=openvr/lib/linux64/libopenvr_api.so
 
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function
 
-#CFLAGS+=-O0 -ffunction-sections -fdata-sections
+#CFLAGS+=-Os -ffunction-sections -fdata-sections
 #LDFLAGS+=-Wl,--gc-sections
 
 #CC=tcc
@@ -29,4 +29,8 @@ offlinetests : $(OBJS) src/offlinetests.o
 clean :
 	rm -rf *.o *~ $(OBJS)
 	rm -rf main
+
+
+#motherloade
+#objdump -t main | grep .text | cut -c 35- | gawk --non-decimal-data '{ $1 = sprintf("%08d", "0x" $1) } 1' | grep -V stbi | sort | cut -f 1 -d' ' | paste -sd+ | bc
 

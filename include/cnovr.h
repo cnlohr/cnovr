@@ -5,6 +5,7 @@
 
 #include <cnovrparts.h>
 #include <openvr_capi.h>
+#include <stdbool.h>
 
 
 //Attach an alert to a specific object (or null for the general alarm)
@@ -19,6 +20,7 @@ void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... );
 #define UNIFORMSLOT_MODEL       4
 #define UNIFORMSLOT_VIEW        5
 #define UNIFORMSLOT_PERSPECTIVE 6
+#define UNIFORMSLOT_RENDERPROPS 7
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -26,10 +28,12 @@ void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... );
 struct cnovrstate_t
 {
 	//Current rendertarget
-	uint32_t iRTWidth, iRTHeight;
 	cnovr_rf_buffer * sterotargets[2];
+	cnovr_rf_buffer * previewtarget;
 
 	//GL State Stuff
+	float iRTWidth;
+	float iRTHeight;
 	float fNear;
 	float fFar;
 
@@ -45,18 +49,29 @@ struct cnovrstate_t
 	// 18 = View
 	// 19 = Model
 
-	cnovr_model * pCurrentModel;
+	cnovr_model * pCurrentModel;  //Will this change to a context?
+	cnovr_simple_node * pRootNode;
 
 	struct VR_IVRSystem_FnTable * oSystem;
 	struct VR_IVRRenderModels_FnTable * oRenderModels;
-};
+
+	cnovr_pose pPreviewPose;
+	float fPreviewFOV;
+
+	bool has_ovr;
+	bool has_preview;
+	short    iPreviewWidth, iPreviewHeight;
+	short    iEyeRenderWidth, iEyeRenderHeight;
+} __attribute__((packed));
 
 extern struct cnovrstate_t * cnovrstate;
 
 //////////////////////////////////////////////////////////////////////////////
-int CNOVRInit( const char * appname, int screenx, int screeny );
+int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr );
 void CNOVRUpdate();
 int CNOVRCheck(); //Check for errors.
+
+void CNOVRShaderLoadedSetUniformsInternal();
 
 #endif
 

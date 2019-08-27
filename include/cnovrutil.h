@@ -2,6 +2,7 @@
 #define _CNOVRUTIL_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define CNOVR_MAX_PATH 255
 
@@ -13,7 +14,7 @@ typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 //void * NamedPtr( const char * namedptr, const char * type, int size );
 
 char * FileToString( const char * fname, int * length );
-char ** SplitStrings( const char * line, char * split, char * white, int merge_fields ); //You can just free(...) the return. it's safe.
+char ** SplitStrings( const char * line, char * split, char * white, bool merge_fields ); //You can just free(...) the return. it's safe.
 int StringCompareEndingCase( const char * thing_to_search, const char * check_extension );
 
 
@@ -43,8 +44,8 @@ typedef enum
 } cnovrQueueType;
 
 //Async, but, has delays between each completion. Multiple identical items can queue.  Cancellation must match all parameters.
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, int insert_even_if_pending );
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, int wait_on_pending );
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool insert_even_if_pending );
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool wait_on_pending );
 void CNOVRJobCancelAllTag( void * tag, int wait_on_pending );
 
 //Usually internal

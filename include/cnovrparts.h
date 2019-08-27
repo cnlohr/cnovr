@@ -20,7 +20,7 @@ typedef struct cnovr_header_t
 	cnovrfn Prerender;
 	cnovrfn Render;
 	uint8_t Type;
-} cnovr_header;
+} cnovr_header; //Also synonymous with "generic object"
 
 #define CNOVRDelete( x ) { if(x) (x)->header.Delete( x ); }
 
@@ -28,6 +28,7 @@ typedef struct cnovr_header_t
 #define TYPE_SHADER   2
 #define TYPE_TEXTURE  3
 #define TYPE_GEOMETRY 4
+#define TYPE_NODE     5
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -186,6 +187,22 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
 //XXX TODO NOTE: We can set the models up to be "stamped" down with different uniform properties.  
 
 ///////////////////////////////////////////////////////////////////////////////
+
+typedef struct cnovr_simple_node_t
+{
+	cnovr_header header;
+	cnovr_header ** objects;
+	int objectcount;
+	int reserved;
+	cnovr_pose     pose;
+} cnovr_simple_node; 
+
+cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size ); //reserved size must be at least 1.
+void CNOVRNodeAddObject( cnovr_simple_node * node, cnovr_header * obj );    //O(1)
+void CNOVRNodeRemoveObject( cnovr_simple_node * node, cnovr_header * obj ); //O(n); does not free() or "Delete"
+
+///////////////////////////////////////////////////////////////////////////////
+
 
 #endif
 

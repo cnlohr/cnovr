@@ -1,3 +1,4 @@
+#include "cnovrutil.h"
 #include <cnovrutil.h>
 #include <stdlib.h>
 #include <cnhash.h>
@@ -29,7 +30,7 @@ char * FileToString( const char * fname, int * length )
 	return ret;
 }
 
-char ** SplitStrings( const char * line, char * split, char * white, int merge_fields )
+char ** SplitStrings( const char * line, char * split, char * white, bool merge_fields )
 {
 	if( !line || strlen( line ) == 0 )
 	{
@@ -330,7 +331,7 @@ typedef struct CNOVRJobQueue_t
 	CNOVRJobElement * front;
 	CNOVRJobElement * back;
 	CNOVRJobElement staged;
-	int is_staged;
+	bool is_staged;
 	cnhashtable * hash;
 	og_mutex_t mut;
 	og_sema_t  sem;
@@ -339,8 +340,8 @@ typedef struct CNOVRJobQueue_t
 	//Prevent any new queuing of objects if deleting a tag.
 	og_mutex_t deletingmut;
 	void * deletingtag;
-	int deletingnow;
-	int quittingnow;
+	bool deletingnow;
+	bool quittingnow;
 } CNOVRJobQueue;
 
 static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
@@ -532,7 +533,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 	return 0;
 }
 
-void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, int insert_even_if_pending )
+void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool insert_even_if_pending )
 {
 	CNOVRJobElement * newe = malloc( sizeof( CNOVRJobElement ) );
 	newe->fn = fn;
@@ -579,7 +580,7 @@ fail:
 	OGUnlockMutex( jq->mut );
 }
 
-void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, int wait_on_pending )
+void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool wait_on_pending )
 {
 	CNOVRJobElement compe;
 	compe.fn = fn;

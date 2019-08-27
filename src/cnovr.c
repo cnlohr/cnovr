@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <CNFGFunctions.h>
 #include <chew.h>
@@ -5,6 +6,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include "cnovrutil.h"
 #include "cnovrparts.h"
 
 struct cnovrstate_t  * cnovrstate;
@@ -46,7 +48,7 @@ void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 }
 
 
-int CNOVRInit( const char * appname, int screenx, int screeny )
+int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr )
 {
 	int r;
 
@@ -60,18 +62,31 @@ int CNOVRInit( const char * appname, int screenx, int screeny )
 
 	ovrprintf( "Initializing OpenVR.\n" );
 
+	int has_vr = 0;
+
 	EVRInitError e;
 	uint32_t vrtoken = VR_InitInternal( &e, EVRApplicationType_VRApplication_Scene );
 	if( !vrtoken )
 	{
 		ovrprintf( "Error calling VR_InitInternal: %d (%s)\n", e, VR_GetVRInitErrorAsEnglishDescription( e ) );
-		return -e;
+		if( !allow_init_without_vr )
+			return -e;
+	}
+	else
+	{
+		has_vr = 1;
 	}
 
-	if ( ! VR_IsInterfaceVersionValid(IVRSystem_Version) )
+
+	if( has_vr )
 	{
-		ovrprintf( "OpenVR Interface Invalid.\n" );
-		return -1;
+		if ( ! VR_IsInterfaceVersionValid(IVRSystem_Version) )
+		{
+			ovrprintf( "OpenVR Interface Invalid.\n" );
+			if( !allow_init_without_vr )
+				return -1;
+			has_vr = 0;
+		}
 	}
 
 
@@ -80,6 +95,17 @@ int CNOVRInit( const char * appname, int screenx, int screeny )
 	memset( cnovrstate, 0, sizeof( *cnovrstate ) );
 	cnovrstate->fNear = 0.01;
 	cnovrstate->fFar = 100.0;
+	cnovrstate->has_ovr = has_vr;
+	cnovrstate->has_preview = 1;
+	cnovrstate->iEyeRenderWidth = -1;
+	cnovrstate->iEyeRenderHeight = -1;
+	cnovrstate->iPreviewWidth = -1;
+	cnovrstate->iPreviewHeight = -1;
+	cnovrstate->sterotargets[0] = 0;
+	cnovrstate->sterotargets[1] = 0;
+	cnovrstate->previewtarget = 0;
+	cnovrstate->fPreviewFOV = 55;
+	pose_make_identity( &cnovrstate->pPreviewPose );
 
 	char fnTableName[128];
 	int result1 = sprintf(fnTableName, "FnTable:%s", IVRSystem_Version);
@@ -93,6 +119,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny )
 
 	CNOVRCheck();
 
+	if( has_vr )
 	{
 		char strbuf[128];
 		memset( strbuf, 0, sizeof( strbuf ) );
@@ -108,33 +135,95 @@ int CNOVRInit( const char * appname, int screenx, int screeny )
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	}
 
+	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
 
+	CNOVRJobInit();
+	CNOVRInternalStartCacheSystem();
 
 	return 0;
 }
 
 void CNOVRUpdate()
 {
+	//XXX TODO Waitgetposes
+
 	//Possibly update stereo target resolutions.
+	if( cnovrstate->has_ovr )
 	{
-		uint32_t iRenderWidth, iRenderHeight;
-		cnovrstate->oSystem->GetRecommendedRenderTargetSize( &iRenderWidth, &iRenderHeight );
-		if( iRenderWidth != cnovrstate->iRTWidth || iRenderHeight != cnovrstate->iRTHeight )
+		uint32_t iEyeRenderWidth, iEyeRenderHeight;
+		cnovrstate->oSystem->GetRecommendedRenderTargetSize( &iEyeRenderWidth, &iEyeRenderHeight );
+		if( iEyeRenderWidth != cnovrstate->iEyeRenderWidth || iEyeRenderHeight != cnovrstate->iEyeRenderHeight )
 		{
 			CNOVRDelete( cnovrstate->sterotargets[0] );
 			CNOVRDelete( cnovrstate->sterotargets[1] );
 	 
 			//Resize the render targets.
-			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iRenderWidth, iRenderHeight, 4 );
-			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iRenderWidth, iRenderHeight, 4 );
-			cnovrstate->iRTWidth = iRenderWidth;
-			cnovrstate->iRTHeight = iRenderHeight;
+			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 4 );
+			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 4 );
+			cnovrstate->iEyeRenderWidth = iEyeRenderWidth;
+			cnovrstate->iEyeRenderHeight = iEyeRenderHeight;
 		}
 	}
 
-	//Update everything
-	//Prerender everything
-	//Render everything
+	if( cnovrstate->has_preview )
+	{
+		short iPreviewWidth, iPreviewHeight;
+		CNFGGetDimensions( &iPreviewWidth, &iPreviewHeight );
+		if( iPreviewWidth != cnovrstate->iPreviewWidth || iPreviewHeight != cnovrstate->iPreviewHeight )
+		{
+			CNOVRDelete( cnovrstate->previewtarget );
+			cnovrstate->previewtarget = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, 4 );
+			cnovrstate->iPreviewWidth  = iPreviewWidth;
+			cnovrstate->iPreviewHeight = iPreviewHeight;
+		}
+	}
+
+	cnovr_simple_node * root = cnovrstate->pRootNode;
+
+	//Scene Graph Pre-Render
+	root->header.Update( root );
+
+	CNOVRJobProcessQueueElement( cnovrQPrerender );
+	root->header.Prerender( root );
+
+	//Scene Graph Render
+	if( cnovrstate->has_ovr )
+	{
+		int i;
+		for( i = 0; i < 2; i++ )
+		{
+			//XXX TODO: handle getting eyes.
+
+			//float width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
+			//float height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
+			//matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/height, cnovrstate->fNear, cnovrstate->fFar );
+			//pose_to_matrix44( cnovrstate->mView, cnovrstate->pPreviewPose );
+
+			if( !cnovrstate->sterotargets[i] ) continue;
+			CNOVRFBufferActivate( cnovrstate->sterotargets[i] );
+			cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
+			cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
+			root->header.Render( root );
+			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
+		}
+		//XXX TODO: Submit eye buffers.
+	}
+
+	//XXX TODO: How do we know when we need to update the preview window?
+	if( cnovrstate->has_preview )
+	{
+		int width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
+		int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
+		matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/height, cnovrstate->fNear, cnovrstate->fFar );
+		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
+
+		CNOVRFBufferActivate( cnovrstate->previewtarget );
+		root->header.Render( root );
+		CNOVRFBufferDeactivate( cnovrstate->previewtarget );
+		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+	}
+
+	//XXX TODO: blit renderbuffer to frame.
 }
 
 int CNOVRCheck()
@@ -158,18 +247,25 @@ int CNOVRCheck()
 void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... )
 {
 	va_list args;
-	char buffer[BUFSIZ];
 	va_start(args, format);
-	vsnprintf(buffer, sizeof buffer, format, args);
+	//char buffer[BUFSIZ];
+	//int len = vsnprintf(buffer, sizeof buffer, format, args);
+	char * buffer = 0;
+	int len = vasprintf( &buffer, format, args );
 	va_end(args);
+	if( len > 0 && buffer[len-1] == '\n' ) buffer[len-1] = 0;
 	puts( buffer );
-
-	//XXX TODO: Use asprintf
+	free( buffer );
 	//XXX TODO: Actually put warning somewhere.
 }
 
-
-
+void CNOVRShaderLoadedSetUniformsInternal()
+{
+	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 0, cnovrstate->mModel );
+	glUniformMatrix4fv( UNIFORMSLOT_VIEW, 1, 0, cnovrstate->mView );
+	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 0, cnovrstate->mPerspective );
+	glUniform4fv( UNIFORMSLOT_RENDERPROPS, 1, &cnovrstate->iRTWidth );
+}
 
 
 

@@ -208,7 +208,7 @@ void apply_pose_to_pose(cnovr_pose *pout, const cnovr_pose *lhs_pose, const cnov
 // This is the quat equivlant of 'pose_in^-1'; so that ApplyPoseToPose(..., InvertPose(..., pose_in), pose_in) ==
 // Identity ( [0, 0, 0], [1, 0, 0, 0] [1] )
 // by definition.
-static inline void pose_make_identity( cnovr_pose * poseout ) { zero3d( poseout->Pos ); quatidentity( poseout->Rot ); poseout->Scale = 1;}
+static inline void pose_make_identity( cnovr_pose * poseout ) { zero3d( poseout->Pos ); quatsetnone( poseout->Rot ); poseout->Scale = 1;}
 void pose_invert(cnovr_pose *poseout, const cnovr_pose *pose_in);
 static inline cnovr_pose pose_invert_rtn(const cnovr_pose *pose_in) {cnovr_pose rtn;pose_invert(&rtn, pose_in);return rtn;}
 

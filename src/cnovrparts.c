@@ -244,10 +244,7 @@ static void CNOVRShaderRender( cnovr_shader * ths )
 	int shdid = ths->nShaderID;
 	if( !shdid ) return;
 	glUseProgram( shdid );
-	glUniform4f( 16, cnovrstate->iRTWidth, cnovrstate->iRTHeight, cnovrstate->fFar, cnovrstate->fNear );
-	glUniformMatrix4fv( 17, 1, 0, cnovrstate->mPerspective ); 
-	glUniformMatrix4fv( 18, 1, 0, cnovrstate->mView ); 
-	glUniformMatrix4fv( 19, 1, 0, cnovrstate->mModel ); 
+	CNOVRShaderLoadedSetUniformsInternal();
 };
 
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
@@ -336,8 +333,8 @@ static void CNOVRTextureRender( cnovr_texture * ths )
 //Defaults to a 1x1 px texture.
 cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan )
 {
-	cnovr_texture * ret = malloc( sizeof( cnovr_rf_buffer ) );
-	memset( ret, 0, sizeof( *ret ) );
+	cnovr_texture * ret = malloc( sizeof( cnovr_texture ) );
+	memset( ret, 0, sizeof( cnovr_texture ) );
 	ret->header.Delete = (cnovrfn)CNOVRTextureDelete;
 	ret->header.Render = (cnovrfn)CNOVRTextureRender;
 	ret->header.Type = TYPE_TEXTURE;
@@ -1254,5 +1251,117 @@ void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
 	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
 	OGUnlockMutex( m->model_mutex );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+void CNOVRNodeDelete( void * ths )
+{
+	int i;
+	cnovr_simple_node * n = (cnovr_simple_node*)ths;
+	cnovr_header ** objects = (n->objects);
+	for( i = 0; i < n->objectcount; i++ )
+	{
+		cnovr_header * o = objects[i];
+		o->Delete( o );
+	}
+	free( ths );
+}
+
+void CNOVRNodePrerender( void * ths )
+{
+	int i;
+	cnovr_simple_node * n = (cnovr_simple_node*)ths;
+	cnovr_header ** objects = (n->objects);
+	for( i = 0; i < n->objectcount; i++ )
+	{
+		cnovr_header * o = objects[i];
+		o->Prerender( o );
+	}
+}
+
+void CNOVRNodeRender( void * ths )
+{
+	int i;
+	cnovr_simple_node * n = (cnovr_simple_node*)ths;
+	cnovr_header ** objects = (n->objects);
+	for( i = 0; i < n->objectcount; i++ )
+	{
+		cnovr_header * o = objects[i];
+		o->Render( o );
+	}
+}
+
+void CNOVRNodeUpdate( void * ths )
+{
+	int i;
+	cnovr_simple_node * n = (cnovr_simple_node*)ths;
+	cnovr_header ** objects = (n->objects);
+	for( i = 0; i < n->objectcount; i++ )
+	{
+		cnovr_header * o = objects[i];
+		o->Update( o );
+	}
+}
+
+
+
+cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size )
+{
+	cnovr_simple_node * ret = malloc( sizeof( cnovr_simple_node ) );
+	memset( ret, 0, sizeof( cnovr_simple_node ) );
+	ret->header.Delete = (cnovrfn)CNOVRNodeDelete;
+	ret->header.Render = (cnovrfn)CNOVRNodeRender;
+	ret->header.Prerender = (cnovrfn)CNOVRNodePrerender;
+	ret->header.Update = (cnovrfn)CNOVRNodeUpdate;
+	ret->header.Type = TYPE_NODE;
+
+	ret->reserved = reserved_size;
+	ret->objects = malloc( sizeof( cnovr_header * ) * ret->reserved );
+	ret->objectcount = 0;
+	return ret;
+}
+
+void CNOVRNodeAddObject( cnovr_simple_node * node, cnovr_header * obj )
+{
+	if( node->reserved == node->objectcount )
+	{
+		node->reserved = node->reserved * 2 + 1;
+		node->objects = realloc( node->objects, sizeof( cnovr_header * ) * node->reserved );
+	}
+	node->objects[node->objectcount++] = obj;
+}
+
+void CNOVRNodeRemoveObject( cnovr_simple_node * node, cnovr_header * obj )
+{
+	int i;
+	for( i = 0; i < node->objectcount; i++ )
+	{
+		if( obj == node->objects[i] )
+		{
+			node->objects[i] = 0;
+			break;
+		}
+	}
+
+	//Found one.
+	if( i != node->objectcount ) node->objectcount--;
+
+	for( ; i < node->objectcount; i++ )
+	{
+		node->objects[i] = node->objects[i+1];
+	}
 }
 
