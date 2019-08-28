@@ -15,16 +15,6 @@ struct cnovrstate_t  * cnovrstate;
 int __dso_handle;
 #endif
 
-S_API int VR_InitInternal( EVRInitError *peError, EVRApplicationType eType );
-S_API const char * VR_GetVRInitErrorAsEnglishDescription( EVRInitError error );
-S_API void VR_ShutdownInternal();
-S_API bool VR_IsHmdPresent();
-S_API bool VR_IsRuntimeInstalled();
-S_API intptr_t VR_GetGenericInterface(const char *pchInterfaceVersion, EVRInitError *peError);
-S_API bool VR_IsInterfaceVersionValid(const char *pchInterfaceVersion);
-
-
-
 
 void HandleKey( int keycode, int bDown )
 {
@@ -40,6 +30,8 @@ void HandleMotion( int x, int y, int mask )
 
 void HandleDestroy()
 {
+	ovrprintf( "Window closed.\n" );
+	exit( 0 );
 }
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const char* message, const void* userParam)
@@ -104,14 +96,23 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	cnovrstate->sterotargets[0] = 0;
 	cnovrstate->sterotargets[1] = 0;
 	cnovrstate->previewtarget = 0;
-	cnovrstate->fPreviewFOV = 55;
+	cnovrstate->fPreviewFOV = 95;
 	pose_make_identity( &cnovrstate->pPreviewPose );
 
-	char fnTableName[128];
-	int result1 = sprintf(fnTableName, "FnTable:%s", IVRSystem_Version);
-	cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)VR_GetGenericInterface(fnTableName, &e);
-	ovrprintf( "OpenVR: %p (%d)\n", cnovrstate->oSystem, e );
+	if( has_vr )
+	{
+		cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)CNOVRGetOpenVRFunctionTable( IVRSystem_Version );
+		cnovrstate->oRenderModels = (struct VR_IVRRenderModels_FnTable *)CNOVRGetOpenVRFunctionTable( IVRRenderModels_Version );
+		cnovrstate->oCompositor = (struct VR_IVRCompositor_FnTable *)CNOVRGetOpenVRFunctionTable( IVRCompositor_Version );
+	}
 
+	cnovrstate->openvr_renderposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+	cnovrstate->openvr_trackedposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+	cnovrstate->pRenderPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+	cnovrstate->pTrackedPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+	cnovrstate->bRenderPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
+	cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
+	cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
 
 	ovrprintf( "Initializing Extensions.\n" );
 
@@ -145,7 +146,37 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 void CNOVRUpdate()
 {
-	//XXX TODO Waitgetposes
+	//Get poses
+	int i;
+
+	if( cnovrstate->has_ovr )
+	{
+		cnovrstate->oCompositor->WaitGetPoses( 
+			cnovrstate->openvr_renderposes, MAX_POSES_TO_PULL_FROM_OPENVR, 
+			cnovrstate->openvr_trackedposes, MAX_POSES_TO_PULL_FROM_OPENVR );
+		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
+		{
+			if( ( cnovrstate->bRenderPosesValid[i] = cnovrstate->openvr_renderposes[i].bPoseIsValid ) )
+			{
+				CNOVRPoseFromHMDMatrix( &cnovrstate->pRenderPoses[i], &cnovrstate->openvr_renderposes[i].mDeviceToAbsoluteTracking );
+			}
+
+			if( ( cnovrstate->bTrackedPosesValid[i] = cnovrstate->openvr_trackedposes[i].bPoseIsValid ) )
+			{
+				CNOVRPoseFromHMDMatrix( &cnovrstate->pTrackedPoses[i], &cnovrstate->openvr_trackedposes[i].mDeviceToAbsoluteTracking );
+			}
+		}
+	}
+
+	//Update + prerender
+	cnovr_simple_node * root = cnovrstate->pRootNode;
+
+	//Scene Graph Pre-Render
+	root->header.Update( root );
+
+	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
+
+	root->header.Prerender( root );	
 
 	//Possibly update stereo target resolutions.
 	if( cnovrstate->has_ovr )
@@ -178,13 +209,9 @@ void CNOVRUpdate()
 		}
 	}
 
-	cnovr_simple_node * root = cnovrstate->pRootNode;
+	//Probably should do some other stuff while anything from the prerender step is still ticking.
 
-	//Scene Graph Pre-Render
-	root->header.Update( root );
-
-	CNOVRJobProcessQueueElement( cnovrQPrerender );
-	root->header.Prerender( root );
+	glDisable(GL_DEPTH_TEST);
 
 	//Scene Graph Render
 	if( cnovrstate->has_ovr )
@@ -192,38 +219,71 @@ void CNOVRUpdate()
 		int i;
 		for( i = 0; i < 2; i++ )
 		{
-			//XXX TODO: handle getting eyes.
+			//In case eye-to-head changes, we need to get that
+			HmdMatrix34_t xform = cnovrstate->oSystem->GetEyeToHeadTransform( EVREye_Eye_Left + i );
+			CNOVRPoseFromHMDMatrix( &cnovrstate->pEyeToHead[i], &xform );
 
-			//float width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
-			//float height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
-			//matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/height, cnovrstate->fNear, cnovrstate->fFar );
-			//pose_to_matrix44( cnovrstate->mView, cnovrstate->pPreviewPose );
+			cnovrstate->eyeTarget = i;
+			{
+				struct HmdMatrix44_t pm = cnovrstate->oSystem->GetProjectionMatrix( EVREye_Eye_Left + i, cnovrstate->fNear, cnovrstate->fFar );
+				memcpy( cnovrstate->mPerspective, &pm.m[0][0], sizeof( HmdMatrix44_t ) );
+				cnovr_pose eye_in_worldspace;
+				apply_pose_to_pose( &eye_in_worldspace, &cnovrstate->pEyeToHead[i], &cnovrstate->pTrackedPoses[0] );
+				pose_invert( &eye_in_worldspace, &eye_in_worldspace );
+				pose_to_matrix44( cnovrstate->mView, &eye_in_worldspace );
+				matrix44identity( cnovrstate->mModel );
+			}
 
 			if( !cnovrstate->sterotargets[i] ) continue;
+
+			//This is a balance:  We could render both eyes simultaneously, or we could do this. 
 			CNOVRFBufferActivate( cnovrstate->sterotargets[i] );
-			cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
-			cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
+			int width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
+			int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
+			glViewport(0, 0, width, height );
+
+			glClearColor( 0, .4, 0, 1 );
+			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 			root->header.Render( root );
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
+
+			Texture_t t;
+			t.handle = (void*)(uintptr_t)cnovrstate->sterotargets[i]->nResolveTextureId;
+			t.eType = ETextureType_TextureType_OpenGL;
+			t.eColorSpace = EColorSpace_ColorSpace_Auto;
+			cnovrstate->oCompositor->Submit( EVREye_Eye_Left + i, &t, 0, 0 ); 
 		}
-		//XXX TODO: Submit eye buffers.
 	}
 
 	//XXX TODO: How do we know when we need to update the preview window?
+	//XXX TODO: blit renderbuffer to frame?  (as an alternative to a separate render view for preview)
 	if( cnovrstate->has_preview )
 	{
-		int width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
-		int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
-		matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/height, cnovrstate->fNear, cnovrstate->fFar );
+		int width = cnovrstate->iRTWidth = cnovrstate->iPreviewWidth;
+		int height = cnovrstate->iRTHeight = cnovrstate->iPreviewHeight;
+		cnovrstate->eyeTarget = 2;
+		matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, cnovrstate->fNear, cnovrstate->fFar );
+		matrix44identity( cnovrstate->mModel );
+
+		cnovrstate->pPreviewPose.Pos[0] = 0;
+		cnovrstate->pPreviewPose.Pos[1] = 0;
+		cnovrstate->pPreviewPose.Pos[2] = -10;
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 
-		CNOVRFBufferActivate( cnovrstate->previewtarget );
+		//CNOVRFBufferActivate( cnovrstate->previewtarget );
+		glViewport(0, 0, width, height );
+
+		glClearColor( 0, .4, 0, 1 );
+		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		root->header.Render( root );
-		CNOVRFBufferDeactivate( cnovrstate->previewtarget );
-		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
+		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 
-	//XXX TODO: blit renderbuffer to frame.
+	//XXX Hacky - this disables vsync on Linux (maybe windows?)
+	void   CNFGSetVSync( int vson );
+	CNFGSetVSync( 0 );
+	CNFGSwapBuffers(1);
 }
 
 int CNOVRCheck()
@@ -261,9 +321,9 @@ void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... )
 
 void CNOVRShaderLoadedSetUniformsInternal()
 {
-	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 0, cnovrstate->mModel );
-	glUniformMatrix4fv( UNIFORMSLOT_VIEW, 1, 0, cnovrstate->mView );
-	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 0, cnovrstate->mPerspective );
+	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
+	glUniformMatrix4fv( UNIFORMSLOT_VIEW, 1, 1, cnovrstate->mView );
+	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 1, cnovrstate->mPerspective );
 	glUniform4fv( UNIFORMSLOT_RENDERPROPS, 1, &cnovrstate->iRTWidth );
 }
 

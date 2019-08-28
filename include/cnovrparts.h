@@ -56,6 +56,13 @@ typedef struct cnovr_shader_t
 	cnovr_header header;
 	GLuint nShaderID;
 	char * shaderfilebase;
+
+	//Temporary list of all watched filenames.
+	//struct watchlist
+	//{	
+	//	struct watchlist * next;
+	//	char   watchfile[1];
+	//} * tempwl;
 } cnovr_shader;
 
 //Call 'render' submethod to activate, and 'prerender' checks to see if anything is tainted.

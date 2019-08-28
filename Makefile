@@ -1,8 +1,10 @@
 all : main offlinetests
 
 OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cnhash.o
+OBJS+=lib/stb_include_custom.o lib/stb_image.o
+
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
-OBJS+=src/cnovrindexedlist.o
+OBJS+=src/cnovrindexedlist.o src/cnovropenvrutil.o
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread
@@ -27,7 +29,7 @@ offlinetests : $(OBJS) src/offlinetests.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)	
 
 clean :
-	rm -rf *.o *~ $(OBJS)
+	rm -rf *.o *~ $(OBJS) src/*.o
 	rm -rf main
 
 

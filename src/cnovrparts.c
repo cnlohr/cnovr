@@ -9,7 +9,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stb_image.h>
-
+#include <stb_include_custom.h>
 
 static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 {
@@ -99,11 +99,26 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b )
 
 //////////////////////////////////////////////////////////////////////////////
 
+#if 0
+static void CNOVRShaderFileClearWatchlist( cnovr_shader * s )
+{
+	struct watchlist * w = s->tempwl;
+	while( w )
+	{
+		struct watchlist * next = w->next;
+		free( w );
+		w = next;
+	}
+	s->tempwl = 0;
+}
+#endif
+
 static void CNOVRShaderDelete( cnovr_shader * ths )
 {
 	FileTimeRemoveTagged( ths, 1 );
 	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
+	//CNOVRShaderFileClearWatchlist( ths );
 	free( ths->shaderfilebase );
 	free( ths );
 }
@@ -134,7 +149,19 @@ static GLuint CNOVRShaderCompilePart( GLuint shader_type, const char * shadernam
 	return nShader;
 }
 
-//XXX TODO: Cleanup reload mechanism.
+static void CNOVRShaderFileChange( void * tag, void * opaquev );
+
+static void CNOVRShaderFileTackInclude( void * opaque, const char * filename )
+{
+	cnovr_shader * s = (cnovr_shader*)opaque;
+	//int fnamelen = strlen( filename );
+	FileTimeAddWatch( filename, CNOVRShaderFileChange, s, 0 );
+	//struct watchlist * new = malloc( sizeof( struct watchlist*) + fnamelen + 9 );
+	//memcpy( new->watchfile, filename, fnamelen+1 );
+	//new->next = s->tempwl;
+	//s->tempwl = new;
+}
+
 static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
 	//Re-load shader
@@ -153,12 +180,24 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	const char * filedataFrag = 0;
 	const char * filedataVert = 0;
 
+	char includeerrors1[256];
+	char includeerrors2[256];
+	includeerrors1[0] = 0;
+	includeerrors2[0] = 0;
+	printf( "THS: %p\n", ths );
 	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
-	filedataGeo = FileToString( stfbGeo, 0 );
+	filedataGeo = stb_include_file( stfbGeo, "", "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
+	//XXX TODO: Do we care about odd errors on geo?
 	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
-	filedataFrag = FileToString( stfbFrag, 0 );
+	filedataFrag = stb_include_file( stfbFrag, "", "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
-	filedataVert = FileToString( stfbVert, 0 );
+	filedataVert = stb_include_file( stfbVert, "", "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
+
+	if( includeerrors2[0] )
+	{
+		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader preprocessor errors: %s\n", includeerrors2 );
+		return;		
+	}
 
 	if( !filedataFrag || !filedataVert )
 	{
@@ -223,7 +262,17 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	{
 		if ( ths->nShaderID )
 		{
-			//XXX Note: If we got here, we were successful.
+			CNOVRAlert( cnovrstate->pCurrentModel, 3, "Compile OK: %s\n", ths->shaderfilebase );
+			//Note: If we got here, we were successful.
+			FileTimeRemoveTagged( ths, 0 );
+			char stfb[CNOVR_MAX_PATH];
+			sprintf( stfb, "%s.geo", ths->shaderfilebase );
+			FileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
+			sprintf( stfb, "%s.frag", ths->shaderfilebase );
+			FileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
+			sprintf( stfb, "%s.vert", ths->shaderfilebase );
+			FileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
+
 			glDeleteProgram( ths->nShaderID );
 		}
 		ths->nShaderID = unProgramID;
@@ -244,8 +293,9 @@ static void CNOVRShaderRender( cnovr_shader * ths )
 	int shdid = ths->nShaderID;
 	if( !shdid ) return;
 	glUseProgram( shdid );
+
 	CNOVRShaderLoadedSetUniformsInternal();
-};
+}
 
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 {
@@ -255,6 +305,7 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 	ret->header.Render = (cnovrfn)CNOVRShaderRender;
 	ret->header.Type = TYPE_SHADER;
 	ret->shaderfilebase = strdup( shaderfilebase );
+
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
@@ -427,8 +478,8 @@ cnovr_vbo * CNOVRCreateVBO( int iStride, int bDynamic, int iInitialSize, int iAt
 	ret->mutData = OGCreateMutex();
 
 	glBindBuffer( GL_ARRAY_BUFFER, ret->nVBO);
-	glEnableClientState( GL_VERTEX_ARRAY);
-	glEnableVertexAttribArray( iAttribNo );
+	//glEnableClientState( GL_VERTEX_ARRAY);	//Uncommenting will crash.
+	//glEnableVertexAttribArray( iAttribNo ); //Uncommenting will crash
 	glVertexPointer( iStride, GL_FLOAT, 0, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -489,6 +540,20 @@ static void CNOVRVBOPerformUpload( void * gv, void * dump )
 	//XXX TODO: Consider streaming the data.
 	glBufferData( GL_ARRAY_BUFFER, g->iStride*sizeof(float)*g->iVertexCount, g->pVertices, g->bDynamic?GL_DYNAMIC_DRAW:GL_STATIC_DRAW);
 	glVertexPointer( g->iStride, GL_FLOAT, 0, 0);
+	//glVertexAttribPointer( 0, g->iStride, GL_FLOAT, 0, g->iStride, g->pVertices );
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+	int i;
+	for( i = 0; i < g->iVertexCount; i++ )
+	{
+		int j;
+		for( j = 0; j < g->iStride; j++ )
+		{
+			printf( "%f ", g->pVertices[j+i*g->iStride] );
+		}
+		printf( "\n" );
+	}
+
 
 	OGUnlockMutex( g->mutData );
 }
@@ -519,14 +584,23 @@ void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 static void CNOVRModelUpdateIBO( void * vm, void * dump )
 {
 	cnovr_model * m = (cnovr_model *)vm;
+	printf( "Starting: %p\n", m );
 	OGLockMutex( m->model_mutex );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);	//XXX TODO Make this tunable.
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	OGUnlockMutex( m->model_mutex );
+	printf( "### IBO UPATE INDICES: %ld\n", sizeof(m->pIndices[0])*m->iIndexCount );
+	int i;
+	for( i = 0; i < m->iIndexCount ; i++ )
+	{
+		printf( "%d\n", m->pIndices[i] );
+	}
 }
 
 void CNOVRModelTaintIndices( cnovr_model * vm )
 {
+	printf( "#####################TACK##################### %p\n", vm  );
 	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0, 1 );	
 }
 
@@ -554,7 +628,7 @@ static void CNOVRModelRender( cnovr_model * m )
 	static cnovr_model * last_rendered_model = 0;
 
 	//XXX Tricky: Don't lock model, so if we're loading while rendering, we don't hitch.
-	if( m != last_rendered_model )
+//	if( m != last_rendered_model )
 	{
 		//Try binding any textures.
 		int i;
@@ -567,14 +641,24 @@ static void CNOVRModelRender( cnovr_model * m )
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO );
+
 		count = m->iGeos;
+		count = 1;
 		for( i = 0; i < count; i++ )
 		{
 			glBindBuffer( GL_ARRAY_BUFFER, m->pGeos[i]->nVBO );
-			glEnableVertexAttribArray(i);
+			glEnableVertexAttribArray( 0 ); //m->pGeos[i]->nVBO);
+			//glVertexPointer( m->pGeos[i]->iStride, GL_FLOAT, m->pGeos[i]->iStride, 0);    // last param is offset, not ptr
+			glVertexAttribPointer( 0, m->pGeos[i]->iStride, GL_FLOAT, GL_FALSE, m->pGeos[i]->iStride*4, 0  );
+	
 		}
 	}
+
+//	glEnableClientState(GL_VERTEX_ARRAY);
 	glDrawElements( GL_TRIANGLES, m->iIndexCount, GL_UNSIGNED_INT, 0 );
+//	glDisableClientState(GL_VERTEX_ARRAY);            // deactivate vertex position array
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,  0);
 }
 
 cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertype )
@@ -672,8 +756,8 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 	{
 		m->nMeshes++;
 	}
-	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * m->nMeshes );
-	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * m->nMeshes );
+	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 1 ) );
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes + 1 ) );
 	m->iMeshMarks[m->nMeshes] = m->iIndexCount;
 	m->sMeshMarks[m->nMeshes] = strdup( sectionname );
 }
@@ -682,7 +766,7 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 void CNOVRModelTackIndex( cnovr_model * m, int nindices, ...)
 {
 	int iIndexCount = m->iIndexCount;
-	m->pIndices = realloc( m->pIndices, iIndexCount + nindices );
+	m->pIndices = realloc( m->pIndices, (iIndexCount + nindices) * sizeof( m->pIndices[0] ) );
 	uint32_t * pIndices = m->pIndices + iIndexCount;
 	int i;
 	va_list argp;
@@ -698,7 +782,7 @@ void CNOVRModelTackIndex( cnovr_model * m, int nindices, ...)
 void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 {
 	int iIndexCount = m->iIndexCount;
-	m->pIndices = realloc( m->pIndices, iIndexCount + nindices );
+	m->pIndices = realloc( m->pIndices, ( iIndexCount + nindices ) * sizeof( m->pIndices[0] ) );
 	uint32_t * pIndices = m->pIndices + iIndexCount;
 	int i;
 	for( i = 0; i < nindices; i++ )
@@ -708,7 +792,7 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 	m->iIndexCount = m->iIndexCount + nindices;
 }
 
-void CNOVRModelMakeCube( cnovr_model * m, float sx, float sy, float sz )
+void CNOVRModelAppendCube( cnovr_model * m, float sx, float sy, float sz )
 {
 	//Bit pattern. 0 means -1, 1 means +1 on position.
 	//n[face] n[+-](inverted)  v1[xyz] v2[xyz] v3[xyz];; TC can be computed from table based on N
@@ -741,7 +825,7 @@ void CNOVRModelMakeCube( cnovr_model * m, float sx, float sy, float sz )
 		uint32_t * indices = m->pIndices;
 		for( i = 0; i < 36; i++ ) 
 		{
-			CNOVRModelTackIndex( m, i + m->iLastVertMark );
+			CNOVRModelTackIndex( m, 1, i + m->iLastVertMark );
 		}
 	}
 
@@ -824,12 +908,13 @@ void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float w, float h )
 		{
 			int i = x + y * w;
 			int k = m->iLastVertMark;
-			CNOVRModelTackIndex( m, k + x + y * (w+1) );
-			CNOVRModelTackIndex( m, k + (x+1) + y * (w+1) );
-			CNOVRModelTackIndex( m, k + (x+1) + (y+1) * (w+1) );
-			CNOVRModelTackIndex( m, k + (x) + (y) * (w+1) );
-			CNOVRModelTackIndex( m, k + (x+1) + (y+1) * (w+1) );
-			CNOVRModelTackIndex( m, k + (x) + (y+1) * (w+1) );
+			CNOVRModelTackIndex( m, 6, 
+				k + x + y * (w+1),
+				k + (x+1) + y * (w+1),
+				k + (x+1) + (y+1) * (w+1),
+				k + (x) + (y) * (w+1),
+				k + (x+1) + (y+1) * (w+1),
+				k + (x) + (y+1) * (w+1) );
 		}
 	}
 
@@ -1097,9 +1182,9 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 				int TNumber = atoi( buffer2[1] ) - 1;
 				int NNumber = atoi( buffer2[2] ) - 1;
 
-				CNOVRModelTackIndex( m, indices++ );
-				CNOVRModelTackIndex( m, indices++ );
-				CNOVRModelTackIndex( m, indices++ );
+				CNOVRModelTackIndex( m, 1, indices++ );
+				CNOVRModelTackIndex( m, 1, indices++ );
+				CNOVRModelTackIndex( m, 1, indices++ );
 
 				if( VNumber < t.CVertCount )
 					CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
@@ -1275,7 +1360,7 @@ void CNOVRNodeDelete( void * ths )
 	for( i = 0; i < n->objectcount; i++ )
 	{
 		cnovr_header * o = objects[i];
-		o->Delete( o );
+		if( o->Delete ) o->Delete( o );
 	}
 	free( ths );
 }
@@ -1288,7 +1373,7 @@ void CNOVRNodePrerender( void * ths )
 	for( i = 0; i < n->objectcount; i++ )
 	{
 		cnovr_header * o = objects[i];
-		o->Prerender( o );
+		if( o->Prerender ) o->Prerender( o );
 	}
 }
 
@@ -1300,7 +1385,7 @@ void CNOVRNodeRender( void * ths )
 	for( i = 0; i < n->objectcount; i++ )
 	{
 		cnovr_header * o = objects[i];
-		o->Render( o );
+		if( o->Render ) o->Render( o );
 	}
 }
 
@@ -1312,7 +1397,7 @@ void CNOVRNodeUpdate( void * ths )
 	for( i = 0; i < n->objectcount; i++ )
 	{
 		cnovr_header * o = objects[i];
-		o->Update( o );
+		if( o->Update ) o->Update( o );
 	}
 }
 

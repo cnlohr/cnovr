@@ -7,10 +7,6 @@
 #include <stdio.h>
 #include <cnovrindexedlist.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-
 char * FileToString( const char * fname, int * length )
 {
 	FILE * f = fopen( fname, "rb" );
@@ -181,6 +177,7 @@ void * thdfiletimechecker( void * v )
 						staged->tag = 0;
 						staged->opaquev = 0;
 						staged->fn = 0;
+						l = l->next;
 					}
 				}
 				while( OGGetSema( semPendinger ) == 0 ) OGUnlockSema( semPendinger ); 
@@ -264,6 +261,15 @@ void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * op
 		ftd->time = 0;
 		CNHashInsert( htFileTimeCacher, strdup( fname ), ftd );
 	}
+
+	//First, see if the element already exists.
+	filetimetagged * tmp = ftd->front;
+	while( tmp )
+	{
+		if( tmp->tag == tag && tmp->opaquev == opaquev && tmp->fn == fn ) goto failthrough;
+		tmp = tmp->next;
+	}
+
 	filetimetagged * t = malloc( sizeof( filetimetagged ) );
 	t->tag = tag;
 	t->opaquev = opaquev;
@@ -277,6 +283,7 @@ void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * op
 	ftd->front = t;
 	t->correspondance = CNOVRIndexedListInsert( ftindexlist, tag, t, ftd );
 
+failthrough:
 	OGUnlockMutex( mutFileTimeCacher );
 }
 
