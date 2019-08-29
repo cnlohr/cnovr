@@ -23,7 +23,7 @@ int StringCompareEndingCase( const char * thing_to_search, const char * check_ex
 
 
 //These must be threadsafe.  Also, need a way to wholesale clear out a class of these guys.
-void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev );
+void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev );  //Warning: This is also slow... We need to figure out a better way.
 void FileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev ); //Warning: this is slow. Avoid its use.
 void FileTimeRemoveTagged( void * tag, int wait_on_pending );
 

@@ -4,7 +4,7 @@ OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cnhash.o
 OBJS+=lib/stb_include_custom.o lib/stb_image.o
 
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
-OBJS+=src/cnovrindexedlist.o src/cnovropenvrutil.o
+OBJS+=src/cnovrindexedlist.o src/cnovropenvr.o
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread

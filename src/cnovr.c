@@ -18,6 +18,8 @@ int __dso_handle;
 
 void HandleKey( int keycode, int bDown )
 {
+	if( (keycode == 27 || keycode == 65307) && bDown ) CNOVRShutdown( );
+	printf( "... %d\n", keycode );
 }
 
 void HandleButton( int x, int y, int button, int bDown )
@@ -146,9 +148,12 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 void CNOVRUpdate()
 {
+//	static struct TrackedDevicePose_t lastframeposes[MAX_POSES_TO_PULL_FROM_OPENVR];
+
 	//Get poses
 	int i;
 
+//	memcpy( cnovrstate->openvr_renderposes, lastframeposes, sizeof( lastframeposes ) );
 	if( cnovrstate->has_ovr )
 	{
 		cnovrstate->oCompositor->WaitGetPoses( 
@@ -177,6 +182,10 @@ void CNOVRUpdate()
 	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
 
 	root->header.Prerender( root );	
+
+	//Waste some time...
+	CNFGHandleInput();
+
 
 	//Possibly update stereo target resolutions.
 	if( cnovrstate->has_ovr )
@@ -211,7 +220,9 @@ void CNOVRUpdate()
 
 	//Probably should do some other stuff while anything from the prerender step is still ticking.
 
-	glDisable(GL_DEPTH_TEST);
+	glCullFace( GL_BACK );
+	glEnable( GL_CULL_FACE );
+	glClearColor( 0, 0, 0, 1 );
 
 	//Scene Graph Render
 	if( cnovrstate->has_ovr )
@@ -219,16 +230,16 @@ void CNOVRUpdate()
 		int i;
 		for( i = 0; i < 2; i++ )
 		{
-			//In case eye-to-head changes, we need to get that
-			HmdMatrix34_t xform = cnovrstate->oSystem->GetEyeToHeadTransform( EVREye_Eye_Left + i );
-			CNOVRPoseFromHMDMatrix( &cnovrstate->pEyeToHead[i], &xform );
-
 			cnovrstate->eyeTarget = i;
 			{
+				//In case eye-to-head changes, we need to get that
+				HmdMatrix34_t xform = cnovrstate->oSystem->GetEyeToHeadTransform( EVREye_Eye_Left + i );
+				CNOVRPoseFromHMDMatrix( &cnovrstate->pEyeToHead[i], &xform );
+
 				struct HmdMatrix44_t pm = cnovrstate->oSystem->GetProjectionMatrix( EVREye_Eye_Left + i, cnovrstate->fNear, cnovrstate->fFar );
 				memcpy( cnovrstate->mPerspective, &pm.m[0][0], sizeof( HmdMatrix44_t ) );
 				cnovr_pose eye_in_worldspace;
-				apply_pose_to_pose( &eye_in_worldspace, &cnovrstate->pEyeToHead[i], &cnovrstate->pTrackedPoses[0] );
+				apply_pose_to_pose( &eye_in_worldspace, &cnovrstate->pRenderPoses[0], &cnovrstate->pEyeToHead[i] );
 				pose_invert( &eye_in_worldspace, &eye_in_worldspace );
 				pose_to_matrix44( cnovrstate->mView, &eye_in_worldspace );
 				matrix44identity( cnovrstate->mModel );
@@ -242,8 +253,8 @@ void CNOVRUpdate()
 			int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
 			glViewport(0, 0, width, height );
 
-			glClearColor( 0, .4, 0, 1 );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 			root->header.Render( root );
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 
@@ -273,17 +284,25 @@ void CNOVRUpdate()
 		//CNOVRFBufferActivate( cnovrstate->previewtarget );
 		glViewport(0, 0, width, height );
 
-		glClearColor( 0, .4, 0, 1 );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		root->header.Render( root );
 		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 
+	CNOVRCheck();
+
 	//XXX Hacky - this disables vsync on Linux (maybe windows?)
 	void   CNFGSetVSync( int vson );
 	CNFGSetVSync( 0 );
 	CNFGSwapBuffers(1);
+}
+
+void CNOVRShutdown()
+{
+	void VR_ShutdownInternal();
+	VR_ShutdownInternal();
+	exit( 0 );
 }
 
 int CNOVRCheck()

@@ -5,7 +5,7 @@
 
 #include <cnovrparts.h>
 #include <stdbool.h>
-#include <cnovropenvrutil.h>
+#include <cnovropenvr.h>
 
 #define MAX_POSES_TO_PULL_FROM_OPENVR 16
 
@@ -23,7 +23,6 @@ void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... );
 #define UNIFORMSLOT_PERSPECTIVE 6
 #define UNIFORMSLOT_RENDERPROPS 7
 
-
 //////////////////////////////////////////////////////////////////////////////
 // Globals (State)
 struct cnovrstate_t
@@ -37,8 +36,6 @@ struct cnovrstate_t
 	float iRTHeight;
 	float fNear;
 	float fFar;
-
-	//XXX What about the view and perspective matricies?
 	float mModel[16];	//Current model matrix, changes per object. (SLOT=4)
 	float mView[16];	//Current view matrix, changes per eye.     (SLOT=5)
 	float mPerspective[16];                                      // (SLOT=6)
@@ -75,6 +72,7 @@ extern struct cnovrstate_t * cnovrstate;
 
 //////////////////////////////////////////////////////////////////////////////
 int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr );
+void CNOVRShutdown();
 void CNOVRUpdate();
 int CNOVRCheck(); //Check for errors.
 
