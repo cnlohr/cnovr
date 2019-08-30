@@ -18,16 +18,14 @@ static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 	if( ths->nResolveTextureId ) glDeleteTextures( 1, &ths->nResolveTextureId );
 	if( ths->nDepthBufferId ) glDeleteRenderbuffers( 1, &ths->nDepthBufferId );
 	if( ths->nRenderTextureId ) glDeleteTextures( 1, &ths->nRenderTextureId );
+	CNOVRListDeleteTag( ths );
 
 	free( ths );
 }
 
 cnovr_header cnovr_rf_buffer_header = {
 	(cnovrfn)CNOVRRenderFrameBufferDelete,
-	0, //Update
-	0, //Prerender
 	0, //Render
-	0, //Collide
 	TYPE_RFBUFFER,
 };
 
@@ -124,6 +122,7 @@ static void CNOVRShaderFileClearWatchlist( cnovr_shader * s )
 static void CNOVRShaderDelete( cnovr_shader * ths )
 {
 	FileTimeRemoveTagged( ths, 1 );
+	CNOVRListDeleteTag( ths );
 	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
 	//CNOVRShaderFileClearWatchlist( ths );
@@ -308,10 +307,7 @@ static void CNOVRShaderRender( cnovr_shader * ths )
 
 cnovr_header cnovr_shader_header = {
 	(cnovrfn)CNOVRShaderDelete, //Delete
-	0, //Update
-	0, //Prerender
 	(cnovrfn)CNOVRShaderRender, //Render
-	0, //Collide
 	TYPE_SHADER,
 };
 
@@ -380,6 +376,7 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 static void CNOVRTextureDelete( cnovr_texture * ths )
 {
 	OGLockMutex( ths->mutProtect );
+	CNOVRListDeleteTag( ths );
 	//In case any file changes are being watched.
 	FileTimeRemoveTagged( ths, 1 );
 	CNOVRJobCancelAllTag( ths, 1 );
@@ -402,10 +399,7 @@ static void CNOVRTextureRender( cnovr_texture * ths )
 
 cnovr_header cnovr_texture_header = {
 	(cnovrfn)CNOVRTextureDelete, //Delete
-	0, //Update
-	0, //Prerender
 	(cnovrfn)CNOVRTextureRender, //Render
-	0, //Collide
 	TYPE_TEXTURE,
 };
 
@@ -593,6 +587,7 @@ void CNOVRVBOTaint( cnovr_vbo * g )
 
 void CNOVRVBODelete( cnovr_vbo * g )
 {
+	//Not a normal object.
 	CNOVRJobCancelAllTag( (void*)g, 1 );
 	OGLockMutex( g->mutData );
 	glDeleteBuffers( 1, &g->nVBO );
@@ -637,6 +632,7 @@ void CNOVRModelTaintIndices( cnovr_model * vm )
 static void CNOVRModelDelete( cnovr_model * m )
 {
 	OGLockMutex( m->model_mutex );
+	CNOVRListDeleteTag( m );
 	CNOVRJobCancelAllTag( (void*)m, 1 );
 	int i;
 	for( i = 0; i < m->iGeos; i++ )
@@ -694,10 +690,7 @@ static void CNOVRModelRender( cnovr_model * m )
 
 cnovr_header cnovr_model_header = {
 	(cnovrfn)CNOVRModelDelete, //Delete
-	0, //Update
-	0, //Prerender
 	(cnovrfn)CNOVRModelRender, //Render
-	0, //Collide
 	TYPE_MODEL,
 };
 
@@ -1386,9 +1379,10 @@ void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void CNOVRNodeDelete( void * ths )
+void CNOVRNodeDelete( void * ths, void * opaque )
 {
 	int i;
+	CNOVRListDeleteTag( ths );
 	cnovr_simple_node * n = (cnovr_simple_node*)ths;
 	cnovr_base ** objects = (n->objects);
 	for( i = 0; i < n->objectcount; i++ )
@@ -1397,18 +1391,6 @@ void CNOVRNodeDelete( void * ths )
 		if( o->Delete ) o->Delete( objects[i] );
 	}
 	free( ths );
-}
-
-void CNOVRNodePrerender( void * ths )
-{
-	int i;
-	cnovr_simple_node * n = (cnovr_simple_node*)ths;
-	cnovr_base ** objects = n->objects;
-	for( i = 0; i < n->objectcount; i++ )
-	{
-		cnovr_header * o = objects[i]->header;
-		if( o->Prerender ) o->Prerender( objects[i] );
-	}
 }
 
 void CNOVRNodeRender( void * ths )
@@ -1423,27 +1405,12 @@ void CNOVRNodeRender( void * ths )
 	}
 }
 
-void CNOVRNodeUpdate( void * ths )
-{
-	int i;
-	cnovr_simple_node * n = (cnovr_simple_node*)ths;
-	cnovr_base ** objects = (n->objects);
-
-	for( i = 0; i < n->objectcount; i++ )
-	{
-		cnovr_header * o = objects[i]->header;
-		if( o->Update ) o->Update( objects[i] );
-	}
-}
-
 cnovr_header cnovr_node_header = {
 	(cnovrfn)CNOVRNodeDelete, //Delete
-	(cnovrfn)CNOVRNodeUpdate, //Update
-	(cnovrfn)CNOVRNodePrerender, //Prerender
 	(cnovrfn)CNOVRNodeRender, //Render
-	0, //Collide
 	TYPE_NODE,
 };
+
 
 
 cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size )

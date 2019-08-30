@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <cnovrparts.h>
 
 #define CNOVR_MAX_PATH 255
 
@@ -53,6 +54,22 @@ void DEBUGDumpQueue( cnovrQueueType qt );
 void CNOVRJobInit(); //Internal
 void CNOVRJobStop(); //Internal
 int CNOVRJobProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still processing.
+
+//////////////////////////////////////////////////////////////////////////////
+
+typedef enum
+{
+	cnovrLUpdate,
+	cnovrLPrerender,
+	cnovrLCollide,
+	cnovrLMAX,
+} cnovrRunList;
+
+void CNOVRListSystemInit(); //internal
+void CNOVRListSystemDestroy(); //internal
+void CNOVRListCall( cnovrRunList l, void * data ); 
+void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
+void CNOVRListDeleteTag( void * base_object );
 
 #endif
 

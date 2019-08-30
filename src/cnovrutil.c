@@ -351,7 +351,7 @@ typedef struct CNOVRJobQueue_t
 	bool quittingnow;
 } CNOVRJobQueue;
 
-static uint32_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
+static intptr_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
 static int      JQcomp( void * key_a, void * key_b, void * opaque )
 {
 	if( !key_a || !key_b ) return 1;
@@ -645,6 +645,76 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+
+static cnhashtable * ListHTs[cnovrLMAX];
+static og_mutex_t    ListMTs[cnovrLMAX];
+
+void CNOVRListSystemInit()
+{
+	int i;
+	for( i = 0; i < cnovrLMAX; i++ )
+	{
+		ListHTs[i] = CNHashGenerate( 0, 0, CNHASH_POINTERS );
+		ListMTs[i] = OGCreateMutex();
+	}
+}
+
+void CNOVRListSystemDestroy()
+{	
+	int i;
+	for( i = 0; i < cnovrLMAX; i++ )
+	{
+		OGLockMutex( ListMTs[i] );
+		CNHashDestroy( ListHTs[i] );
+		OGDeleteMutex( ListMTs[i] );
+	}
+}
+
+void CNOVRListCall( cnovrRunList l, void * data )
+{
+	cnhashtable * t = ListHTs[l];
+	og_mutex_t  m = ListMTs[l];
+	int i;
+	OGLockMutex( m );
+	for( i = 0; i < t->array_size; i++ )
+	{
+		cnhashelement * e = &t->elements[i];
+		cnovr_cb_fn * cb = (cnovr_cb_fn*)e->data;
+		if( cb )
+		{
+			OGUnlockMutex( m );
+			cb( e->key, data );
+			OGLockMutex( m );
+		}
+	}
+	OGUnlockMutex( m );
+}
+
+
+void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
+{
+	og_mutex_t  m = ListMTs[l];
+	cnhashelement * e;
+
+	OGLockMutex( m );
+	e = CNHashInsert( ListHTs[l], b, fn );
+	e->data = fn;	//Overwrite if called again.
+	OGUnlockMutex( m );
+}
+
+void CNOVRListDeleteTag( void * b )
+{
+	int l;
+	for( l = 0; l < cnovrLMAX; l++ )
+	{
+		og_mutex_t  m = ListMTs[l];
+		OGLockMutex( m );
+		CNHashDelete( ListHTs[l], b );
+		OGUnlockMutex( m );
+	}
+}
 
 
 

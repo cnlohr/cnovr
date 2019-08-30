@@ -2,15 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static uint32_t CNILhash( void * key, void * opaque ) { uint32_t ret = (key - (void*)0); return ret?ret:1; }
-static int      CNILcomp( void * key_a, void * key_b, void * opaque ) { return key_a != key_b; }
-
 
 CNOVRIndexedList * CNOVRIndexedListCreate( cnhash_delete_function df )
 {
 	CNOVRIndexedList * ret = malloc( sizeof( CNOVRIndexedList ) );
 	memset( ret, 0, sizeof( CNOVRIndexedList ) );
-	ret->ht_by_tag = CNHashGenerate( 0, ret, CNILhash, CNILcomp, 0 );
+	ret->ht_by_tag = CNHashGenerate( 0, ret, cnhash_ptrhf, cnhash_ptrcf, 0 );
 	ret->df = df;
 	return ret;
 }
@@ -86,7 +83,7 @@ CNOVRIndexedListByTag * CNOVRIndexedListInsert( CNOVRIndexedList * list, void * 
 	newt->byitem = item;
 	newt->thisopaque = thisopaque;
 	newt->tag = tag;
-	cnhashelement * e = CNHashIndex( list->ht_by_tag, tag );
+	cnhashelement * e = CNHashInsert( list->ht_by_tag, tag, 0 );
 	newt->next = e->data;
 	e->data = newt;
 	if( newt->next )

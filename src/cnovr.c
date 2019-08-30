@@ -32,8 +32,7 @@ void HandleMotion( int x, int y, int mask )
 
 void HandleDestroy()
 {
-	ovrprintf( "Window closed.\n" );
-	exit( 0 );
+	CNOVRShutdown();
 }
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const char* message, const void* userParam)
@@ -45,6 +44,8 @@ void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr )
 {
 	int r;
+
+	CNOVRListSystemInit();
 
 	ovrprintf( "Initializing Window.\n" );
 
@@ -177,11 +178,11 @@ void CNOVRUpdate()
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 
 	//Scene Graph Pre-Render
-	root->header->Update( root );
+	CNOVRListCall( cnovrLUpdate, 0 );
 
 	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
 
-	root->header->Prerender( root );
+	CNOVRListCall( cnovrLPrerender, 0 );
 
 	//Waste some time...
 	CNFGHandleInput();
@@ -302,6 +303,7 @@ void CNOVRShutdown()
 {
 	void VR_ShutdownInternal();
 	VR_ShutdownInternal();
+	CNOVRListSystemDestroy();
 	exit( 0 );
 }
 
