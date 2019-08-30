@@ -8,33 +8,49 @@
 #include <cnovrmath.h>
 #include <stdint.h>
 
-//XXX TODO: Check for updates to things.
+typedef struct cnovr_collide_results_t
+{
+	float t;
+	int whichmesh;
+	int whichvert;
+	float collidepos[3];
+	float collidevs[4][4];
+} cnovr_collide_results;
+
+
+struct cnovr_header_t;
+
+typedef struct cnovr_base_t
+{
+	struct cnovr_header_t * header;
+} cnovr_base;
 
 typedef void (*cnovrfn)( void * ths );
 
-struct cnovr_header_t;
 typedef struct cnovr_header_t
 {
 	cnovrfn Delete;
 	cnovrfn Update;
 	cnovrfn Prerender;
 	cnovrfn Render;
+	int  (*Collide)( void * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r );
 	uint8_t Type;
-} cnovr_header; //Also synonymous with "generic object"
+} cnovr_header;
 
-#define CNOVRDelete( x ) { if(x) (x)->header.Delete( x ); }
+
+#define CNOVRDelete( x ) { if(x) (x)->header->Delete( x ); }
 
 #define TYPE_RFBUFFER 1
 #define TYPE_SHADER   2
 #define TYPE_TEXTURE  3
-#define TYPE_GEOMETRY 4
+#define TYPE_MODEL    4
 #define TYPE_NODE     5
 
 //////////////////////////////////////////////////////////////////////////////
 
 typedef struct cnovr_rf_buffer_t
 {
-	cnovr_header header;
+	cnovr_header * header;
 	GLuint nRenderFramebufferId;
 	GLuint nResolveFramebufferId;
 	GLuint nResolveTextureId;
@@ -53,7 +69,7 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
 
 typedef struct cnovr_shader_t
 {
-	cnovr_header header;
+	cnovr_header * header;
 	GLuint nShaderID;
 	char * shaderfilebase;
 
@@ -72,7 +88,7 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase );
 
 typedef struct cnovr_texture_t
 {
-	cnovr_header header;
+	cnovr_header * header;
 	GLuint nTextureId;
 	GLint  nInternalFormat;
 	GLenum nFormat;
@@ -122,20 +138,9 @@ void CNOVRVBODelete( cnovr_vbo * g );
 
 ///////////////////////////////////////////////////////////////////////////////
 
-typedef struct cnovr_collide_results_t
-{
-	float t;
-	int whichmesh;
-	int whichvert;
-	float collidepos[3];
-	float collidevs[4][4];
-} cnovr_collide_results;
-
-///////////////////////////////////////////////////////////////////////////////
-
 typedef struct cnovr_model_t
 {
-	cnovr_header header;
+	cnovr_header * header;
 
 	GLuint nIBO;
 	GLuint * pIndices;
@@ -197,16 +202,16 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
 
 typedef struct cnovr_simple_node_t
 {
-	cnovr_header header;
-	cnovr_header ** objects;
+	cnovr_header * header;
+	cnovr_base  ** objects;	//Actually typecasted from whatever the original type is.
 	int objectcount;
 	int reserved;
 	cnovr_pose     pose;
 } cnovr_simple_node; 
 
 cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size ); //reserved size must be at least 1.
-void CNOVRNodeAddObject( cnovr_simple_node * node, cnovr_header * obj );    //O(1)
-void CNOVRNodeRemoveObject( cnovr_simple_node * node, cnovr_header * obj ); //O(n); does not free() or "Delete"
+void CNOVRNodeAddObject( cnovr_simple_node * node, void * obj );    //O(1)
+void CNOVRNodeRemoveObject( cnovr_simple_node * node, void * obj ); //O(n); does not free() or "Delete"
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -7,3 +7,6 @@
 [submodule "openvr"]
 	path = openvr
 	url = https://github.com/ValveSoftware/openvr
+[submodule "lib/tinycc"]
+	path = lib/tinycc
+	url = git://repo.or.cz/tinycc.git

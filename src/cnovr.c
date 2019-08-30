@@ -177,11 +177,11 @@ void CNOVRUpdate()
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 
 	//Scene Graph Pre-Render
-	root->header.Update( root );
+	root->header->Update( root );
 
 	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
 
-	root->header.Prerender( root );	
+	root->header->Prerender( root );
 
 	//Waste some time...
 	CNFGHandleInput();
@@ -255,7 +255,7 @@ void CNOVRUpdate()
 
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-			root->header.Render( root );
+			root->header->Render( root );
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 
 			Texture_t t;
@@ -285,7 +285,7 @@ void CNOVRUpdate()
 		glViewport(0, 0, width, height );
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		root->header.Render( root );
+		root->header->Render( root );
 		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}

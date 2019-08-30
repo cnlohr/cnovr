@@ -14,8 +14,8 @@ int main()
 	cnovr_model * model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 	CNOVRModelAppendCube( model, 1, 1, 1 );
 	cnovr_shader * shader = CNOVRShaderCreate( "assets/basic" );
-	CNOVRNodeAddObject( root, (cnovr_header*)shader );
-	CNOVRNodeAddObject( root, (cnovr_header*)model );
+	CNOVRNodeAddObject( root, shader );
+	CNOVRNodeAddObject( root, model );
 
 	while(1)
 	{
