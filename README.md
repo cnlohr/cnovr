@@ -10,6 +10,8 @@ sudo apt-get install build-essential libgl1-mesa-dev
 TODO:
  * Rework update/render system to be event oriented.
  * Make event system deletable/addable by tag.
+ * Probably should *only* be hash table with pointer to callbacks.  Jet through hash table.
+ * Will help with cache locality.
 
 
 Considerations:
