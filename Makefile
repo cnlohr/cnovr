@@ -1,7 +1,7 @@
 all : main offlinetests
 
 #slowest, get in queue first for performance in parallel compiles.
-OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o
+OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o lib/cnrbtree.o
 
 OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cnhash.o
 
@@ -10,7 +10,8 @@ OBJS+=src/cnovrindexedlist.o src/cnovropenvr.o
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread
-LDFLAGS+=openvr/lib/linux64/libopenvr_api.so
+LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
+#LDFLAGS+=./libopenvr_api.so
 
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result
 CFLAGS +=-O1
@@ -19,7 +20,7 @@ CFLAGS +=-O1
 #CFLAGS+=-Os -ffunction-sections -fdata-sections
 #LDFLAGS+=-Wl,--gc-sections
 
-#CC=tcc
+CC=gcc
 #CFLAGS+=-DTCC
 
 

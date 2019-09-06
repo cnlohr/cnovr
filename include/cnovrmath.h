@@ -114,7 +114,7 @@ void angleaxisfrom2vect(FLT *angle, FLT *axis, FLT *src, FLT *dest);
 void axisanglefromquat(FLT *angle, FLT *axis, cnovr_quat quat);
 // Quaternion things...
 
-inline void quatidentity( cnovr_quat qout ) { qout[0] = 1; qout[1] = 0; qout[2] = 0; qout[3] = 0; }
+static inline void quatidentity( cnovr_quat qout ) { qout[0] = 1; qout[1] = 0; qout[2] = 0; qout[3] = 0; }
 FLT quatdist(const cnovr_quat q1, const cnovr_quat q2);
 FLT quatdifference(const cnovr_quat q1, const cnovr_quat q2);
 void quatset(cnovr_quat q, FLT w, FLT x, FLT y, FLT z);
