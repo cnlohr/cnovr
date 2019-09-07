@@ -1,9 +1,11 @@
 all : main offlinetests
 
 #slowest, get in queue first for performance in parallel compiles.
-OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o lib/cnrbtree.o
+OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o lib/cnrbtree.o \
+	lib/tccengine_link.o lib/tcccrash_link.o lib/symbol_enumerator_link.o \
+	lib/cnhash_link.o lib/jsmn.o
 
-OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o cntools/cnhash/cnhash.o
+OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o
 
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
 OBJS+=src/cnovrindexedlist.o src/cnovropenvr.o
@@ -14,7 +16,7 @@ LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
 #LDFLAGS+=./libopenvr_api.so
 
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result
-CFLAGS +=-O1
+CFLAGS +=-O1 -Ilib/tinycc -Icntools/cnrbtree
 
 
 #CFLAGS+=-Os -ffunction-sections -fdata-sections

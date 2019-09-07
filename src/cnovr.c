@@ -46,6 +46,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	int r;
 
 	CNOVRListSystemInit();
+	FileSearchAddPath( "assets" ); //Base fallback (also initializes file search system)
 
 	ovrprintf( "Initializing Window.\n" );
 
@@ -304,6 +305,7 @@ void CNOVRShutdown()
 	void VR_ShutdownInternal();
 	VR_ShutdownInternal();
 	CNOVRListSystemDestroy();
+	InternalFileSearchShutdown();
 	exit( 0 );
 }
 

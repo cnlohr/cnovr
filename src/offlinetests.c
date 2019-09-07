@@ -8,6 +8,7 @@ int g;
 void JobTest1( void * opaquev, void * opaquei )
 {
 	g = opaquei - (void*)0;
+	printf( "%d\n", g );
 }
 
 #define FAIL { printf( "Fail at %d\n", __LINE__ ); exit( -5 ); } 
@@ -30,7 +31,7 @@ int main()
 		CNOVRJobCancel( cnovrQLow, JobTest1, 0, (void*)500, 1 );
 		CNOVRJobCancel( cnovrQLow, JobTest1, 0, (void*)600, 1 );
 		OGUSleep(200000); //flush
-		if( g != 999 ) FAIL;
+		if( g != 999 ) { printf( "G: %d\n", g ); FAIL; }
 		printf( "PASS\n" );
 	}
 	

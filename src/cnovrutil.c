@@ -119,6 +119,110 @@ int StringCompareEndingCase( const char * thing_to_search, const char * check_ex
 	return strcasecmp( thing_to_search + tsclen - strlen( check_extension ), check_extension );
 }
 
+
+#define MAX_SEARCH_PATHS 10
+
+static char * search_paths[MAX_SEARCH_PATHS];
+static og_mutex_t search_paths_mutex;
+static og_tls_t   search_path_return;
+
+char * FileSearch( const char * fname )
+{
+	struct stat sbuf;
+	char * cret = OGGetTLS( search_path_return );
+	int fnamelen = strlen( fname );
+	if( fnamelen >= CNOVR_MAX_PATH ) 
+	{
+		return 0;
+	}
+
+	if( !cret )
+	{
+		cret = malloc( CNOVR_MAX_PATH );
+	}
+
+	if( stat( fname, &sbuf ) == 0 )
+	{
+		//File already exists, as-is, is an absolute path, or in our working directory.
+		strcpy( cret, fname );
+		return cret;
+	}
+
+	OGLockMutex( search_paths_mutex );
+	int i;
+
+	//Search in reverse, find from most recent path first.
+	for( i = MAX_SEARCH_PATHS-1; i >= 0; i-- )
+	{
+		if( search_paths[i] == 0 ) continue;
+		int len = snprintf( cret, CNOVR_MAX_PATH, "%s/%s", search_paths[i], fname );
+		if( len >= CNOVR_MAX_PATH-1 ) continue;	//Output path would be too long.
+		if( stat( cret, &sbuf ) == 0 )
+		{
+			break;
+		}
+	}
+	if( i < 0 ) cret[0] = 0;
+	OGUnlockMutex( search_paths_mutex );
+	return cret;
+}
+
+
+void FileSearchAddPath( const char * path )
+{
+	if( search_paths_mutex == 0 )
+	{
+		search_paths_mutex = OGCreateMutex();
+		search_path_return = OGCreateTLS();
+	}
+
+	OGLockMutex( search_paths_mutex );
+	int i;
+	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
+	{
+		if( search_paths[i] == 0 )
+		{
+			search_paths[i] = strdup( path );
+			break;
+		}
+	}
+	OGUnlockMutex( search_paths_mutex );
+}
+
+void FileSearchRemovePath( const char * path )
+{
+	OGLockMutex( search_paths_mutex );
+	int i;
+	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
+	{
+		if( strcmp( search_paths[i], path ) == 0 )
+		{
+			free( search_paths[i] );
+			search_paths[i] = 0;
+		}
+	}
+	OGUnlockMutex( search_paths_mutex );
+}
+
+void InternalFileSearchShutdown()
+{
+	OGLockMutex( search_paths_mutex );
+	int i;
+	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
+	{
+		if( search_paths[i] )
+		{
+			free( search_paths[i] );
+			search_paths[i] = 0;
+		}
+	}
+	OGUnlockMutex( search_paths_mutex );
+	OGDeleteMutex( search_paths_mutex );
+	OGDeleteTLS( search_path_return );
+}
+
+
+
 ///////////////////////////////////////////////////////////////////////////////
 
 static og_thread_t   thdFileTimeCacher;
