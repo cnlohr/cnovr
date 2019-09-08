@@ -125,6 +125,7 @@ typedef struct cnovr_vbo_t
 	uint8_t		bDynamic;
 
 	og_mutex_t  mutData;
+	uint8_t bIsUploaded;
 } cnovr_vbo;
 
 
@@ -167,6 +168,7 @@ typedef struct cnovr_model_t
 	char * geofile;
 
 	uint8_t bIsLoading;
+	uint8_t bIsUploaded;
 } cnovr_model;
 
 //XXX TODO: Reorganize this.

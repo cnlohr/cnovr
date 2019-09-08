@@ -8,6 +8,7 @@
 #include "../cntools/tccengine/tcccrash.h"
 #include <cnovr.h>
 #include <string.h>
+#include <stdio.h>
 
 void InternalPopulateTCC( TCCState * tcc );
 
@@ -179,6 +180,14 @@ TCCSystem cnovrtccsystem;
 
 void CNOVRStartTCCSystem( const char * tccsuitefile )
 {
+	int filelen;
+	char * filestr = FileToString( tccsuitefile, &filelen );
+	jsmn_parser jp;
+	jsmntok_t tokens[1024];
+	jsmn_init( &jp );
+	int l = jsmn_parse( &jp, filestr, filelen, tokens, sizeof( tokens ) / sizeof( tokens[0] ) );
+	printf( "l: %d\n", l );
+
 	//Expect a JSON file for the format
 }
 

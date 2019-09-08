@@ -173,7 +173,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
 	//Re-load shader
 	cnovr_shader * ths = (cnovr_shader*)tag;
-
+printf( "SHFPR\n" );
 	//Careful: Need to re-try in case a program is still writing.
 
 	GLuint nGeoShader  = 0;
@@ -562,6 +562,7 @@ static void CNOVRVBOPerformUpload( void * gv, void * dump )
 	glVertexPointer( g->iStride, GL_FLOAT, 0, 0);
 	//glVertexAttribPointer( 0, g->iStride, GL_FLOAT, 0, g->iStride, g->pVertices );
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	g->bIsUploaded = 1;
 
 #if 0
 	int i;
@@ -606,12 +607,13 @@ void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 static void CNOVRModelUpdateIBO( void * vm, void * dump )
 {
 	cnovr_model * m = (cnovr_model *)vm;
-	//printf( "Starting: %p\n", m );
+	printf( "UPDATE IBO: %p\n", m );
 	OGLockMutex( m->model_mutex );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);	//XXX TODO Make this tunable.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	OGUnlockMutex( m->model_mutex );
+	m->bIsUploaded = 1;
 
 #if 0
 	printf( "### IBO UPATE INDICES: %ld\n", sizeof(m->pIndices[0])*m->iIndexCount );
@@ -653,6 +655,7 @@ static void CNOVRModelRender( cnovr_model * m )
 {
 	static cnovr_model * last_rendered_model = 0;
 
+	if( !m->bIsUploaded ) return;
 	//XXX Tricky: Don't lock model, so if we're loading while rendering, we don't hitch.
 //	if( m != last_rendered_model )
 	{
@@ -672,6 +675,7 @@ static void CNOVRModelRender( cnovr_model * m )
 		count = 1;
 		for( i = 0; i < count; i++ )
 		{
+			if( !m->pGeos[i]->bIsUploaded ) continue;
 			glBindBuffer( GL_ARRAY_BUFFER, m->pGeos[i]->nVBO );
 			glEnableVertexAttribArray( 0 ); //m->pGeos[i]->nVBO);
 			//glVertexPointer( m->pGeos[i]->iStride, GL_FLOAT, m->pGeos[i]->iStride, 0);    // last param is offset, not ptr

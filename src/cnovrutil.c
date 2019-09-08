@@ -784,7 +784,7 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	int is_pending = JQcomp( newe, &jq->staged, 0 ) == 0;
 
 	//Look for duplicates
-	if( ( is_pending && !insert_even_if_pending ) || CNHashInsert( jq->hash, newe, newe ) != 0 )
+	if( ( is_pending && !insert_even_if_pending ) || CNHashInsert( jq->hash, newe, newe ) == 0 )
 	{
 		goto fail;
 	}
@@ -801,7 +801,6 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 			jq->back = jq->front = newe;
 		}
 		newe->correspondance = CNOVRIndexedListInsert( JQELIST, tag, newe, jq );
-
 		OGUnlockSema( jq->sem );
 	}
 	OGUnlockMutex( jq->mut );

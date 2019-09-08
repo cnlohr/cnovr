@@ -11,7 +11,6 @@ void CNOVRJobStop();
 void JobTest1( void * opaquev, void * opaquei )
 {
 	g = opaquei - (void*)0;
-	printf( "%d\n", g );
 }
 
 #define FAIL { printf( "Fail at %d\n", __LINE__ ); exit( -5 ); } 
