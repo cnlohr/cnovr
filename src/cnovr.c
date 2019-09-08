@@ -11,9 +11,18 @@
 
 struct cnovrstate_t  * cnovrstate;
 
-#ifdef TCC
+//If on TCC, anything that linked to something that needs C++, i.e. OpenVR will require this symbol to be defined.
+#ifdef __TINYC__
 int __dso_handle;
 #endif
+
+void InternalFileSearchShutdown();
+void CNOVRInternalStartCacheSystem();
+void CNOVRInternalStopCacheSystem();
+void CNOVRJobInit(); //Internal
+void CNOVRJobStop(); //Internal
+void CNOVRListSystemInit(); //internal
+void CNOVRListSystemDestroy(); //internal
 
 
 void HandleKey( int keycode, int bDown )
@@ -303,9 +312,11 @@ void CNOVRUpdate()
 void CNOVRShutdown()
 {
 	void VR_ShutdownInternal();
-	VR_ShutdownInternal();
+	CNOVRJobStop();
+	CNOVRInternalStopCacheSystem();
 	CNOVRListSystemDestroy();
 	InternalFileSearchShutdown();
+	VR_ShutdownInternal();
 	exit( 0 );
 }
 
@@ -339,6 +350,7 @@ void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... )
 	if( len > 0 && buffer[len-1] == '\n' ) buffer[len-1] = 0;
 	puts( buffer );
 	free( buffer );
+	//XXX Should we be attaching to TCC Scripts instead of models?
 	//XXX TODO: Actually put warning somewhere.
 }
 

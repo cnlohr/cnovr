@@ -121,7 +121,7 @@ static void CNOVRShaderFileClearWatchlist( cnovr_shader * s )
 
 static void CNOVRShaderDelete( cnovr_shader * ths )
 {
-	FileTimeRemoveTagged( ths, 1 );
+	CNOVRFileTimeRemoveTagged( ths, 1 );
 	CNOVRListDeleteTag( ths );
 	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
@@ -162,7 +162,7 @@ static void CNOVRShaderFileTackInclude( void * opaque, const char * filename )
 {
 	cnovr_shader * s = (cnovr_shader*)opaque;
 	//int fnamelen = strlen( filename );
-	FileTimeAddWatch( filename, CNOVRShaderFileChange, s, 0 );
+	CNOVRFileTimeAddWatch( filename, CNOVRShaderFileChange, s, 0 );
 	//struct watchlist * new = malloc( sizeof( struct watchlist*) + fnamelen + 9 );
 	//memcpy( new->watchfile, filename, fnamelen+1 );
 	//new->next = s->tempwl;
@@ -271,14 +271,14 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 		{
 			CNOVRAlert( cnovrstate->pCurrentModel, 3, "Compile OK: %s\n", ths->shaderfilebase );
 			//Note: If we got here, we were successful.
-			FileTimeRemoveTagged( ths, 0 );
+			CNOVRFileTimeRemoveTagged( ths, 0 );
 			char stfb[CNOVR_MAX_PATH];
 			sprintf( stfb, "%s.geo", ths->shaderfilebase );
-			FileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
+			CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
 			sprintf( stfb, "%s.frag", ths->shaderfilebase );
-			FileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
+			CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
 			sprintf( stfb, "%s.vert", ths->shaderfilebase );
-			FileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
+			CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
 
 			glDeleteProgram( ths->nShaderID );
 		}
@@ -323,11 +323,11 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
-	FileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.frag", shaderfilebase );
-	FileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.vert", shaderfilebase );
-	FileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	CNOVRShaderFileChange( ret, 0 );
 
 	return ret;
@@ -378,7 +378,7 @@ static void CNOVRTextureDelete( cnovr_texture * ths )
 	OGLockMutex( ths->mutProtect );
 	CNOVRListDeleteTag( ths );
 	//In case any file changes are being watched.
-	FileTimeRemoveTagged( ths, 1 );
+	CNOVRFileTimeRemoveTagged( ths, 1 );
 	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nTextureId )
 	{

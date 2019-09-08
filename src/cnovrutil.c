@@ -6,6 +6,117 @@
 #include <string.h>
 #include <stdio.h>
 #include <cnovrindexedlist.h>
+#include <stdarg.h>
+
+////////////////////////////////////////////////////////////////////////////////
+
+struct casprintfmt
+{
+	int size;
+	char * buffer;
+};
+static og_tls_t casprintftls;
+
+int tasprintf( char ** dat, const char * fmt, ... )
+{
+	int n;
+	if( !casprintftls ) casprintftls = OGCreateTLS();
+	struct casprintfmt * ca = OGGetTLS( casprintftls );
+	if( !ca )
+	{
+		ca = malloc( sizeof( struct casprintfmt ) );
+		ca->size = 512;
+		ca->buffer = malloc( ca->size );
+		OGSetTLS( casprintftls, ca );
+	}
+	va_list ap;
+	while (1) {
+		va_start(ap, fmt);
+		n = vsnprintf( ca->buffer, ca->size-1, fmt, ap );
+		va_end(ap);
+		if( n < 0 )
+			return n;
+		if( n < ca->size-1 )
+		{
+			*dat = ca->buffer;
+			return n;
+		}
+		ca->size *= 2;
+		ca->buffer = realloc( ca->buffer, ca->size );
+	}
+}
+
+void Internalcasprintffree()
+{
+	if( !casprintftls ) return;
+	struct casprintfmt * ca = OGGetTLS( casprintftls );
+	if( ca )
+	{
+		free( ca->buffer );
+		free( ca );
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+static cnhashtable * namedptrtable;
+static og_mutex_t  namedptrmutex;
+
+struct NamedPtrType
+{
+	char * typename;
+	uint8_t data[1];
+};
+
+void * GetNamedPtr( const char * namedptr, const char * type )
+{
+	struct NamedPtrType * ret;
+	OGLockMutex( namedptrmutex );
+	ret = (struct NamedPtrType *)CNHashGetValue( namedptrtable, namedptr );
+	OGUnlockMutex( namedptrmutex );
+	if( strcmp( type, ret->typename ) == 0 )
+		return ret->data;
+	return 0;
+}
+
+void * NamedPtrFn( const char * namedptr, const char * type, int size )
+{
+	cnhashelement * e;
+	OGLockMutex( namedptrmutex );
+	e = CNHashIndex( namedptrtable, namedptr ); //If get fails, insert... Same as Insert for non-duplicate hashes.
+	if( !e->data )
+	{
+		int typelen = strlen( type );
+		e->data = malloc( sizeof( struct NamedPtrType ) + size + typelen + 1 );
+		struct NamedPtrType * t = (struct NamedPtrType*)e->data;
+		char * typenameptr = (char*)&t->data[size];
+		t->typename = typenameptr;
+		memcpy( typenameptr, type, typelen + 1 );
+		memset( t->data, 0, size );
+		OGUnlockMutex( namedptrmutex );
+		return t->data;	
+	}
+	struct NamedPtrType * t = ((struct NamedPtrType*)e->data);
+	OGUnlockMutex( namedptrmutex );
+	if( strcmp( type, t->typename ) == 0 )
+		return t->data;
+	return 0;
+}
+
+void InternalSetupNamedPtrs()
+{
+	namedptrmutex = OGCreateMutex();
+	namedptrtable = CNHashGenerate( 0, 0, CNHASH_STRINGS );
+}
+
+void InternalShutdownNamedPtrs()
+{
+	OGLockMutex( namedptrmutex );
+	CNHashDestroy( namedptrtable );
+	OGDeleteMutex( namedptrmutex );
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 char * FileToString( const char * fname, int * length )
 {
@@ -204,6 +315,16 @@ void FileSearchRemovePath( const char * path )
 	OGUnlockMutex( search_paths_mutex );
 }
 
+void InternalFileSearchCloseThread()
+{
+	if( search_path_return )
+	{
+		char * cret = OGGetTLS( search_path_return );
+		if( cret )
+			free( cret );
+	}
+}
+
 void InternalFileSearchShutdown()
 {
 	OGLockMutex( search_paths_mutex );
@@ -354,7 +475,7 @@ void CNOVRInternalStopCacheSystem()
 	CNOVRIndexedListDestroy( ftindexlist );
 }
 
-void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
+void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
 	OGLockMutex( mutFileTimeCacher );
 	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
@@ -392,7 +513,7 @@ failthrough:
 }
 
 
-void FileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
+void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
 	OGLockMutex( mutFileTimeCacher );
 	filetimedata * ret = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
@@ -409,7 +530,7 @@ void FileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void *
 	OGUnlockMutex( mutFileTimeCacher );
 }
 
-void FileTimeRemoveTagged( void * tag, int wait_on_pending )
+void CNOVRFileTimeRemoveTagged( void * tag, int wait_on_pending )
 {
 	OGLockMutex( mutFileTimeCacher );
 	CNOVRIndexedListDeleteTag( ftindexlist, tag );
@@ -455,8 +576,8 @@ typedef struct CNOVRJobQueue_t
 	bool quittingnow;
 } CNOVRJobQueue;
 
-static intptr_t JQhash( void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
-static int      JQcomp( void * key_a, void * key_b, void * opaque )
+static intptr_t JQhash( const void * key, void * opaque ) { CNOVRJobElement * he = (CNOVRJobElement*)key; return ( ((uint32_t)(he->fn-((cnovr_cb_fn*)0)) + (uint32_t)(he->tag-((void*)0)) + (uint32_t)(he->opaquev - (void*)0) )) | 1; }
+static int      JQcomp( const void * key_a, const void * key_b, void * opaque )
 {
 	if( !key_a || !key_b ) return 1;
 	CNOVRJobElement * he = (CNOVRJobElement*)key_a;
@@ -575,7 +696,7 @@ void CNOVRJobInit()
 		jq->front = 0;
 		jq->back = 0;
 		jq->is_staged = 0;
-		jq->hash = CNHashGenerate( 0, 0, JQhash, JQcomp, 0 );
+		jq->hash = CNHashGenerate( 0, 0, 0, JQhash, JQcomp, 0 );
 		jq->quittingnow = 0;
 		memset( &CNOVRJEQ[i].staged, 0, sizeof( CNOVRJEQ[i].staged ) );
 	}

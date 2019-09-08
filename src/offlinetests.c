@@ -5,6 +5,9 @@
 
 int g;
 
+void CNOVRJobInit();
+void CNOVRJobStop();
+
 void JobTest1( void * opaquev, void * opaquei )
 {
 	g = opaquei - (void*)0;

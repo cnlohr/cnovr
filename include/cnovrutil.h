@@ -9,34 +9,35 @@
 
 typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 
+//Threadsafe asprintf, DO NOT DELETE RETURN POINTER!  It will automatically be deleted on thread closure.
+int tasprintf( char ** out, const char * format, ... );
 
 //Not sure if we need this feature.
-//void * GetNamedPtr( const char * namedptr, const char * type );
-//void * NamedPtr( const char * namedptr, const char * type, int size );
+void * GetNamedPtr( const char * namedptr, const char * type );
+void * NamedPtrFnInternal( const char * namedptr, const char * type, int size );
+#define NamedPtrInternal( name, type ) ((type*)NamedPtrFn( name, #type, sizeof( type )))
+
+//////////////////////////////////////////////////////////////////////////////
 
 char * FileToString( const char * fname, int * length );
 char ** SplitStrings( const char * line, char * split, char * white, bool merge_fields ); //You can just free(...) the return. it's safe.
 int StringCompareEndingCase( const char * thing_to_search, const char * check_extension );
 
 //////////////////////////////////////////////////////////////////////////////
+
 char * FileSearch( const char * fname ); //Returns a thread-local reference.
 void FileSearchAddPath( const char * path );
 void FileSearchRemovePath( const char * path );
-void InternalFileSearchShutdown();
 
 //////////////////////////////////////////////////////////////////////////////
 
 
 //These must be threadsafe.  Also, need a way to wholesale clear out a class of these guys.
-void FileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev );  //Warning: This is also slow... We need to figure out a better way.
-void FileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev ); //Warning: this is slow. Avoid its use.
-void FileTimeRemoveTagged( void * tag, int wait_on_pending );
+void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev );  //Warning: This is also slow... We need to figure out a better way.
+void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev ); //Warning: this is slow. Avoid its use.
+void CNOVRFileTimeRemoveTagged( void * tag, int wait_on_pending );
 
-double FileTimeCached( const char * fname );
-
-//Internal
-void CNOVRInternalStartCacheSystem();
-void CNOVRInternalStopCacheSystem();
+double CNOVRFileTimeCached( const char * fname );
 
 //////////////////////////////////////////////////////////////////////////////
 typedef enum
@@ -55,12 +56,14 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending );
 
 //Usually internal
 void DEBUGDumpQueue( cnovrQueueType qt );
-void CNOVRJobInit(); //Internal
-void CNOVRJobStop(); //Internal
 int CNOVRJobProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still processing.
 
 //////////////////////////////////////////////////////////////////////////////
+//XXX TODO: Add some sort of "in the future" queue.
 
+//////////////////////////////////////////////////////////////////////////////
+
+//For real-time immediate responses, continuously calling, will not remove upon job completion.
 typedef enum
 {
 	cnovrLUpdate,
@@ -69,8 +72,6 @@ typedef enum
 	cnovrLMAX,
 } cnovrRunList;
 
-void CNOVRListSystemInit(); //internal
-void CNOVRListSystemDestroy(); //internal
 void CNOVRListCall( cnovrRunList l, void * data ); 
 void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
 void CNOVRListDeleteTag( void * base_object );

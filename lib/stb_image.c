@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 
-#ifdef TinyCC
+#ifdef __TINYC__
 #define STBI_NO_SIMD
 #endif
 

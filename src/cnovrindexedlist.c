@@ -7,7 +7,7 @@ CNOVRIndexedList * CNOVRIndexedListCreate( cnhash_delete_function df )
 {
 	CNOVRIndexedList * ret = malloc( sizeof( CNOVRIndexedList ) );
 	memset( ret, 0, sizeof( CNOVRIndexedList ) );
-	ret->ht_by_tag = CNHashGenerate( 0, ret, cnhash_ptrhf, cnhash_ptrcf, 0 );
+	ret->ht_by_tag = CNHashGenerate( 0, ret, CNHASH_POINTERS);
 	ret->df = df;
 	return ret;
 }
