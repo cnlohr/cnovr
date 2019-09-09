@@ -10,7 +10,9 @@
 typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 
 //Threadsafe asprintf, DO NOT DELETE RETURN POINTER!  It will automatically be deleted on thread closure.
+//Both of these functions share the same heap data.
 int tasprintf( char ** out, const char * format, ... );
+char * jsmnstrdup( const char * data, int start, int end );
 
 //Not sure if we need this feature.
 void * GetNamedPtr( const char * namedptr, const char * type );
@@ -26,7 +28,7 @@ int StringCompareEndingCase( const char * thing_to_search, const char * check_ex
 //////////////////////////////////////////////////////////////////////////////
 
 char * FileSearch( const char * fname ); //Returns a thread-local reference.
-void FileSearchAddPath( const char * path );
+void FileSearchAddPath( const char * path ); //This function dups your string.
 void FileSearchRemovePath( const char * path );
 
 //////////////////////////////////////////////////////////////////////////////

@@ -5,9 +5,9 @@
 #include <os_generic.h>
 #include <string.h>
 #include <stdio.h>
-#include <cnovrindexedlist.h>
+#include "cnovrindexedlist.h"
 #include <stdarg.h>
-
+#include "cnovrtccinterface.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 struct casprintfmt
@@ -25,7 +25,7 @@ int tasprintf( char ** dat, const char * fmt, ... )
 	if( !ca )
 	{
 		ca = malloc( sizeof( struct casprintfmt ) );
-		ca->size = 512;
+		ca->size = 256;
 		ca->buffer = malloc( ca->size );
 		OGSetTLS( casprintftls, ca );
 	}
@@ -45,6 +45,31 @@ int tasprintf( char ** dat, const char * fmt, ... )
 		ca->buffer = realloc( ca->buffer, ca->size );
 	}
 }
+
+char * jsmnstrdup( const char * data, int start, int end )
+{
+	if( !casprintftls ) casprintftls = OGCreateTLS();
+	struct casprintfmt * ca = OGGetTLS( casprintftls );
+	if( !ca )
+	{
+		ca = malloc( sizeof( struct casprintfmt ) );
+		ca->size = 256;
+		ca->buffer = malloc( ca->size );
+		OGSetTLS( casprintftls, ca );
+	}
+	int len = end - start;
+	if( ca->size <= len + 1 )
+	{
+		ca->size *= 2;
+		ca->buffer = realloc( ca->buffer, ca->size );
+	}
+	memcpy( ca->buffer, data + start, len );
+	ca->buffer[len] = 0;
+	return ca->buffer;
+}
+
+
+
 
 void Internalcasprintffree()
 {
@@ -397,7 +422,7 @@ void * thdfiletimechecker( void * v )
 						staged->opaquev = l->opaquev;
 						staged->fn = l->fn;
 						OGUnlockMutex( mutFileTimeCacher );
-						l->fn( l->tag, l->opaquev );
+						if( l->fn ) TCCEntry( l->tag, l->fn( l->tag, l->opaquev ) );
 						OGLockMutex( mutFileTimeCacher );
 						staged->tag = 0;
 						staged->opaquev = 0;
@@ -662,7 +687,7 @@ static void * CNOVRJobProcessor( void * v )
 
 		if( front )
 		{
-			staged->fn( staged->tag, staged->opaquev );
+			TCCEntry( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
 
 			//If you were to cancel the job, spinlock until e->staged == 0.
 			staged->tag = 0;
@@ -745,7 +770,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
 
-		staged->fn( staged->tag, staged->opaquev );
+		TCCEntry( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
 
 		jq->is_staged = 0;
 		staged->tag = 0;
@@ -909,7 +934,7 @@ void CNOVRListCall( cnovrRunList l, void * data )
 		if( cb )
 		{
 			OGUnlockMutex( m );
-			cb( e->key, data );
+			TCCEntry( e->key, cb( e->key, data ) );
 			OGLockMutex( m );
 		}
 	}

@@ -7,10 +7,14 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
+
+NEW:
+ * Make there be a backup mechanism for the crash handler to abort.
+
+
 TODO:
  * Make event system deletable/addable by tag. :: Make it fast
  * CONSIDER: Should we be able to instance TCC instances? Do we want another 'opaque' for Update/Render/etc.?
-
 
 Considerations:
  * The cnovr_header base.

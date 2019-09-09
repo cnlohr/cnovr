@@ -13,7 +13,6 @@ int main()
 
 	CNOVRStartTCCSystem( "example_setup/example.json" );
 
-
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	cnovr_model * model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 	CNOVRModelAppendCube( model, 1, 1, 1 );

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "cnovrutil.h"
 #include "cnovrparts.h"
+#include "cnovrtcc.h"
 
 struct cnovrstate_t  * cnovrstate;
 
@@ -338,20 +339,25 @@ int CNOVRCheck()
 }
 
 
-void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... )
+int CNOVRAlert( void * tag, int priority, const char * format, ... )
 {
 	va_list args;
 	va_start(args, format);
-	//char buffer[BUFSIZ];
-	//int len = vsnprintf(buffer, sizeof buffer, format, args);
+	int r = CNOVRAlertv( tag, priority, format, args );
+	va_end( args );
+	return r;
+}
+
+
+int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap )
+{
 	char * buffer = 0;
-	int len = vasprintf( &buffer, format, args );
-	va_end(args);
+	int len = vasprintf( &buffer, format, ap );
 	if( len > 0 && buffer[len-1] == '\n' ) buffer[len-1] = 0;
 	puts( buffer );
+	CNOVRTCCLog( tag, buffer );
 	free( buffer );
-	//XXX Should we be attaching to TCC Scripts instead of models?
-	//XXX TODO: Actually put warning somewhere.
+	return len;
 }
 
 void CNOVRShaderLoadedSetUniformsInternal()

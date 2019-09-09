@@ -1,0 +1,28 @@
+{
+	"searchfolders" : [
+		"example_setup"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "example.c",
+			"identifier" : "example1",
+			"additionalfiles" : [
+				"another1.h",
+				"another2.h"
+			]
+		},
+		{
+			"cfile" : "example.c",
+			"identifier" : "example2"
+		},
+		{
+			"cfile" : "example.c",
+			"identifier" : "example3"
+		},
+		{
+			"cfile" : "example.c",
+			"identifier" : "example4"
+		}
+	]
+}
+

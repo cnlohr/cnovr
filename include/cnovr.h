@@ -6,6 +6,7 @@
 #include <cnovrparts.h>
 #include <stdbool.h>
 #include <cnovropenvr.h>
+#include <stdarg.h>
 
 #define MAX_POSES_TO_PULL_FROM_OPENVR 16
 
@@ -13,7 +14,8 @@
 //1 = critical error.
 //2 = serious error (missing files, etc.)
 //5 = debug.
-void CNOVRAlert( cnovr_model * obj, int priority, const char * format, ... );
+int CNOVRAlert( void * tag, int priority, const char * format, ... );
+int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap );
 #define ovrprintf(x...) CNOVRAlert( 0, 5, x)
 
 //////////////////////////////////////////////////////////////////////////////

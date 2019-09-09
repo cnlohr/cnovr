@@ -173,7 +173,6 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
 	//Re-load shader
 	cnovr_shader * ths = (cnovr_shader*)tag;
-printf( "SHFPR\n" );
 	//Careful: Need to re-try in case a program is still writing.
 
 	GLuint nGeoShader  = 0;
@@ -313,8 +312,6 @@ cnovr_header cnovr_shader_header = {
 
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 {
-	printf( "Create\n" );
-
 	cnovr_shader * ret = malloc( sizeof( cnovr_shader ) );
 	memset( ret, 0, sizeof( *ret ) );
 	ret->header = &cnovr_shader_header;
@@ -607,7 +604,6 @@ void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 static void CNOVRModelUpdateIBO( void * vm, void * dump )
 {
 	cnovr_model * m = (cnovr_model *)vm;
-	printf( "UPDATE IBO: %p\n", m );
 	OGLockMutex( m->model_mutex );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);	//XXX TODO Make this tunable.
