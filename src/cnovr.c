@@ -24,6 +24,7 @@ void CNOVRJobInit(); //Internal
 void CNOVRJobStop(); //Internal
 void CNOVRListSystemInit(); //internal
 void CNOVRListSystemDestroy(); //internal
+void InternalSetupTCCInterface();
 
 
 void HandleKey( int keycode, int bDown )
@@ -55,6 +56,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 {
 	int r;
 
+	InternalSetupTCCInterface();
 	CNOVRListSystemInit();
 	FileSearchAddPath( "assets" ); //Base fallback (also initializes file search system)
 

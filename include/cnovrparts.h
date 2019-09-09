@@ -30,10 +30,7 @@ typedef void (*cnovrfn)( void * ths );
 typedef struct cnovr_header_t
 {
 	cnovrfn Delete;
-//	cnovrfn Update;
-//	cnovrfn Prerender;
 	cnovrfn Render;
-//	int  (*Collide)( void * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r );
 	uint8_t Type;
 } cnovr_header;
 
