@@ -286,8 +286,6 @@ static void CNOVRTCCSystemFileChange( void * tag, void * opaquev )
 							if( t->type == JSMN_STRING && identifier == 0 )
 							{
 								char * tmp = jsmnstrdup( filestr, t->start, t->end );
-								tmp = FileSearch( tmp );
-								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
 								identifier = strdup( tmp );
 							}
 							else goto failout;
@@ -326,6 +324,7 @@ static void CNOVRTCCSystemFileChange( void * tag, void * opaquev )
 						goto failout;
 					}
 
+					printf( "Pushing: %s %s\n", cfile, identifier );
 					sb_push( cnovrtccsystem.instances, 
 						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, 0 ) );
 
@@ -337,10 +336,10 @@ static void CNOVRTCCSystemFileChange( void * tag, void * opaquev )
 		}
 	}
 failout:
-	if( i != l )
+	if( i < l-1 ) //Ignore last token.
 	{
 		if( t )
-			printf( "Error parsing JSON around %s\n", jsmnstrdup( filestr, t->start, t->end ) );
+			printf( "Error parsing JSON around %s [%d != %d]\n", jsmnstrdup( filestr, t->start, t->end ), i, l );
 		else
 			printf( "Couldn't begin JSON parsing\n" );
 	}

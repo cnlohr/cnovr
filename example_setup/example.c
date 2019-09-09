@@ -7,8 +7,8 @@ void init( const char * identifier )
 
 void caller()
 {
-	char * c = 0;
-	*c = 5;
+	//char * c = 0;
+	//*c = 5;
 }
 
 void start( const char * identifier )
