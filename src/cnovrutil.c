@@ -8,6 +8,11 @@
 #include "cnovrindexedlist.h"
 #include <stdarg.h>
 #include "cnovrtccinterface.h"
+
+#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
+#include <windows.h>
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 
 struct casprintfmt
@@ -264,7 +269,13 @@ static og_tls_t   search_path_return;
 
 char * FileSearch( const char * fname )
 {
+	#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
+	#define CheckFileExists(x) PathFileExistsA( x ) == TRUE
+	#else
 	struct stat sbuf;
+	#define CheckFileExists(x) ( stat( x, &sbuf ) == 0 )
+	#endif
+
 	char * cret = OGGetTLS( search_path_return );
 	int fnamelen = strlen( fname );
 	if( fnamelen >= CNOVR_MAX_PATH ) 
@@ -277,7 +288,7 @@ char * FileSearch( const char * fname )
 		cret = malloc( CNOVR_MAX_PATH );
 	}
 
-	if( stat( fname, &sbuf ) == 0 )
+	if( CheckFileExists( fname ) )
 	{
 		//File already exists, as-is, is an absolute path, or in our working directory.
 		strcpy( cret, fname );
@@ -293,7 +304,7 @@ char * FileSearch( const char * fname )
 		if( search_paths[i] == 0 ) continue;
 		int len = snprintf( cret, CNOVR_MAX_PATH, "%s/%s", search_paths[i], fname );
 		if( len >= CNOVR_MAX_PATH-1 ) continue;	//Output path would be too long.
-		if( stat( cret, &sbuf ) == 0 )
+		if( CheckFileExists( cret ) )
 		{
 			break;
 		}
@@ -422,7 +433,7 @@ void * thdfiletimechecker( void * v )
 						staged->opaquev = l->opaquev;
 						staged->fn = l->fn;
 						OGUnlockMutex( mutFileTimeCacher );
-						if( l->fn ) TCCEntry( l->tag, l->fn( l->tag, l->opaquev ) );
+						if( l->fn ) TCCInvocation( l->tag, l->fn( l->tag, l->opaquev ) );
 						OGLockMutex( mutFileTimeCacher );
 						staged->tag = 0;
 						staged->opaquev = 0;
@@ -687,7 +698,7 @@ static void * CNOVRJobProcessor( void * v )
 
 		if( front )
 		{
-			TCCEntry( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
+			if( staged->fn ) TCCInvocation( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
 
 			//If you were to cancel the job, spinlock until e->staged == 0.
 			staged->tag = 0;
@@ -770,7 +781,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
 
-		TCCEntry( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
+		if( staged->fn ) TCCInvocation( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
 
 		jq->is_staged = 0;
 		staged->tag = 0;
@@ -934,7 +945,7 @@ void CNOVRListCall( cnovrRunList l, void * data )
 		if( cb )
 		{
 			OGUnlockMutex( m );
-			TCCEntry( e->key, cb( e->key, data ) );
+			TCCInvocation( e->key, cb( e->key, data ) );
 			OGLockMutex( m );
 		}
 	}

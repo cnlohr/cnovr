@@ -44,9 +44,6 @@ struct cnovrstate_t
 
 	int   eyeTarget;
 
-
-
-	cnovr_model * pCurrentModel;  //Will this change to a context?
 	cnovr_simple_node * pRootNode;
 
 	struct VR_IVRSystem_FnTable * oSystem;

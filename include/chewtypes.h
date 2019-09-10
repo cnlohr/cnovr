@@ -62,6 +62,17 @@ typedef void (APIENTRY *GLDEBUGPROC)(
 #define GL_SAMPLE_ALPHA_TO_COVERAGE			0x809E
 
 
+
+
+#define GL_INVALID_FRAMEBUFFER_OPERATION 0x0506
+#define GL_R32F 0x822E
+#define GL_RG32F 0x8230
+#define GL_RGB32F 0x8815
+#define GL_RGBA32F 0x8814
+#define GL_R8 0x8229
+#define GL_RG8 0x822B
+#define GL_RG 0x8227
+
 #endif
 
 

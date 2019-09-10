@@ -11,30 +11,11 @@
 #include <stdio.h>
 #include <stretchy_buffer.h>
 
-void InternalPopulateTCC( TCCState * tcc );
 void CNOVRStopTCCSystem();
 
 //TCC Makes use of a lot of global variables which are not TLS.
 //We have to lock around any use of the compiler, itself.
 static og_mutex_t tccmutex;
-
-typedef void (*tcccbfn)( const char * id );
-
-typedef struct TCCInstance_t
-{
-	tcccbfn init;
-	tcccbfn start;
-	tcccbfn stop;
-	TCCState * state;
-	char * tccfilename;
-	void * image;
-	char * identifier;
-	char ** additionalfiles; //sb_buffer.
-	uint8_t bActive;
-	uint8_t bDynamicGen;
-	uint8_t bFirst;
-	uint8_t bDontCompile;
-} TCCInstance;
 
 static void StopTCCInstance( TCCInstance * tcc );
 
@@ -44,20 +25,25 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	TCCInstance * tce = (TCCInstance *)tag;
 	int retryno = (intptr_t)opaquev;
 
+	printf( "Reloading %s\n", tce->tccfilename );
 	OGLockMutex( tccmutex );
 	if( tce->bDontCompile )
 	{
+		printf( "Failed\n" );
 		OGUnlockMutex( tccmutex );
 		return;
 	}
+	printf( "MARK A\n" );
 	tce->bDontCompile = 1;
 
 	TCCState * backup_state = tce->state;
 
 	tce->state = tcc_new();
 	tcc_set_output_type(tce->state, TCC_OUTPUT_MEMORY);
+	printf( "MARK B\n" );
 
-	InternalPopulateTCC( tce->state );
+	InternalPopulateTCC( tce );
+	printf( "MARK C\n" );
 
 	char * cts;
 	tasprintf( &cts, "0x%p", tce );
@@ -111,7 +97,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	if( tce->bFirst && tce->init)
 	{
-		TCCEntry( tce, tce->init( tce->identifier ) );
+		TCCInvocation( tce, tce->init( tce->identifier ) );
 		tce->bFirst = 0;
 	}
 
@@ -123,10 +109,12 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	}
 	else
 	{
-		TCCEntry( tce, tce->start( tce->identifier ) );
+		TCCInvocation( tce, tce->start( tce->identifier ) );
 	}
 
 	tce->bDontCompile = 0;
+	printf( "ReloadingOK %s\n", tce->tccfilename );
+
 
 	return;
 
@@ -134,17 +122,19 @@ failure:
 	tcc_delete( tce->state );
 	tce->state = backup_state;
 	OGUnlockMutex( tccmutex );
+	printf( "ReloadingFAILED %s\n", tce->tccfilename );
 }
 
 static void StopTCCInstance( TCCInstance * tcc )
 {
+	printf( "STOP INSTANCE!\n" );
 	if( !tcc ) return;
 	tcc->bDontCompile = 1;
 	if( tcc->stop )
 	{
-		TCCEntry( tcc, tcc->stop( tcc->identifier ) );
+		TCCInvocation( tcc, tcc->stop( tcc->identifier ) );
 	}
-	InternalShutdownTCC( tcc->state );
+	InternalShutdownTCC( tcc );
 	tcccrash_deltag( (intptr_t)(void*)tcc->state );
 }
 

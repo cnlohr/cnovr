@@ -2,7 +2,21 @@
 #define _CHEW_H
 
 #ifndef TABLEONLY
-//OpenGL Include?
+
+#if defined( WINDOWS ) || defined( _WINDOWS ) || defined( WIN32 ) || defined( WIN64 )
+#ifdef __TINYC__
+typedef intptr_t GLsizeiptr;
+typedef intptr_t GLintptr;
+#endif
+#include <windows.h>
+#include <stdint.h>
+#else
+//Include OpenGL or something maybe?
+#endif
+#endif
+
+#ifndef APIENTRY
+#define APIENTRY
 #endif
 
 #ifdef WIN32

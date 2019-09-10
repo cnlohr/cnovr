@@ -10,6 +10,8 @@
 #include <stdarg.h>
 #include <stb_image.h>
 #include <stb_include_custom.h>
+#include <cnovrtccinterface.h>
+#include <stretchy_buffer.h>
 
 static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 {
@@ -33,7 +35,8 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 {
 	cnovr_rf_buffer * ret = malloc( sizeof( cnovr_rf_buffer ) );
 	memset( ret, 0, sizeof( *ret ) );
-	ret->header = &cnovr_rf_buffer_header;
+	ret->base.header = &cnovr_rf_buffer_header;
+	ret->base.tccctx = TCCGetTag();
 
 	glGenFramebuffers(1, &ret->nRenderFramebufferId );
 	glBindFramebuffer(GL_FRAMEBUFFER, ret->nRenderFramebufferId);
@@ -130,7 +133,7 @@ static void CNOVRShaderDelete( cnovr_shader * ths )
 	free( ths );
 }
 
-static GLuint CNOVRShaderCompilePart( GLuint shader_type, const char * shadername, const char * compstr )
+static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, const char * shadername, const char * compstr )
 {
 	GLuint nShader = glCreateShader( shader_type );
 	glShaderSource( nShader, 1, &compstr, NULL );
@@ -140,13 +143,13 @@ static GLuint CNOVRShaderCompilePart( GLuint shader_type, const char * shadernam
 	glGetShaderiv( nShader, GL_COMPILE_STATUS, &vShaderCompiled );
 	if ( vShaderCompiled != GL_TRUE )
 	{
-		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Unable to compile shader: %s\n", shadername );
+		CNOVRAlert( ths->base.tccctx, 1, "Unable to compile shader: %s\n", shadername );
 		int retval;
 		glGetShaderiv( nShader, GL_INFO_LOG_LENGTH, &retval );
 		if ( retval > 1 ) {
 			char * log = (char*)malloc( retval );
 			glGetShaderInfoLog( nShader, retval, NULL, log );
-			CNOVRAlert( cnovrstate->pCurrentModel, 1, "%s\n", log );
+			CNOVRAlert( ths->base.tccctx, 1, "%s\n", log );
 			free( log );
 		}
 
@@ -201,22 +204,22 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 
 	if( includeerrors2[0] )
 	{
-		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader preprocessor errors: %s\n", includeerrors2 );
+		CNOVRAlert( ths->base.tccctx, 1, "Shader preprocessor errors: %s\n", includeerrors2 );
 		return;		
 	}
 
 	if( !filedataFrag || !filedataVert )
 	{
-		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
+		CNOVRAlert( ths->base.tccctx, 1, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
 		return;
 	}
 
 	if( filedataGeo )
 	{
-		nGeoShader = CNOVRShaderCompilePart( GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
+		nGeoShader = CNOVRShaderCompilePart( ths, GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
 	}
-	nFragShader = CNOVRShaderCompilePart( GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
-	nVertShader = CNOVRShaderCompilePart( GL_VERTEX_SHADER, stfbVert, filedataVert );
+	nFragShader = CNOVRShaderCompilePart( ths, GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
+	nVertShader = CNOVRShaderCompilePart( ths, GL_VERTEX_SHADER, stfbVert, filedataVert );
 
 	bool compfail = false;
 	if( filedataGeo )
@@ -246,13 +249,13 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 		glGetProgramiv( unProgramID, GL_LINK_STATUS, &programSuccess );
 		if ( programSuccess != GL_TRUE )
 		{
-			CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
+			CNOVRAlert( ths->base.tccctx, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
 			int retval;
 			glGetShaderiv( unProgramID, GL_INFO_LOG_LENGTH, &retval );
 			if ( retval > 1 ) {
 				char * log = (char*)malloc( retval );
 				glGetProgramInfoLog( unProgramID, retval, NULL, log );
-				CNOVRAlert( cnovrstate->pCurrentModel, 1, "%s\n", log );
+				CNOVRAlert( ths->base.tccctx, 1, "%s\n", log );
 				free( log );
 			}
 			glDeleteProgram( unProgramID );
@@ -261,14 +264,14 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	}
 	else
 	{
-		CNOVRAlert( cnovrstate->pCurrentModel, 1, "Shader compilation failed: %s\n", ths->shaderfilebase );
+		CNOVRAlert( ths->base.tccctx, 1, "Shader compilation failed: %s\n", ths->shaderfilebase );
 	}
 
 	if ( unProgramID )
 	{
 		if ( ths->nShaderID )
 		{
-			CNOVRAlert( cnovrstate->pCurrentModel, 3, "Compile OK: %s\n", ths->shaderfilebase );
+			CNOVRAlert( ths->base.tccctx, 3, "Compile OK: %s\n", ths->shaderfilebase );
 			//Note: If we got here, we were successful.
 			CNOVRFileTimeRemoveTagged( ths, 0 );
 			char stfb[CNOVR_MAX_PATH];
@@ -314,7 +317,8 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 {
 	cnovr_shader * ret = malloc( sizeof( cnovr_shader ) );
 	memset( ret, 0, sizeof( *ret ) );
-	ret->header = &cnovr_shader_header;
+	ret->base.header = &cnovr_shader_header;
+	ret->base.tccctx = TCCGetTag();
 	ret->shaderfilebase = strdup( shaderfilebase );
 
 
@@ -405,7 +409,8 @@ cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan )
 {
 	cnovr_texture * ret = malloc( sizeof( cnovr_texture ) );
 	memset( ret, 0, sizeof( cnovr_texture ) );
-	ret->header = &cnovr_texture_header;
+	ret->base.header = &cnovr_texture_header;
+	ret->base.tccctx = TCCGetTag();
 	ret->texfile = 0;
 
 	ret->mutProtect = OGCreateMutex();
@@ -662,7 +667,7 @@ static void CNOVRModelRender( cnovr_model * m )
 		for( i = 0; i < count; i++ )
 		{
 			glActiveTexture( GL_TEXTURE0 + i );
-			ts[i]->header->Render( (cnovr_base*)ts[i] );
+			ts[i]->base.header->Render( (cnovr_base*)ts[i] );
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO );
@@ -699,7 +704,8 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 {
 	cnovr_model * ret = malloc( sizeof( cnovr_model ) );
 	memset( ret, 0, sizeof( cnovr_model ) );
-	ret->header = &cnovr_model_header;
+	ret->base.header = &cnovr_model_header;
+	ret->base.tccctx = TCCGetTag();
 
 	glGenBuffers( 1, &ret->nIBO );
 	ret->iIndexCount = initial_indices;
@@ -997,7 +1003,7 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 {
 	pose_to_matrix44( cnovrstate->mModel, pose );
 	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 0, cnovrstate->mModel );
-	m->header->Render( (cnovr_base*)m );
+	m->base.header->Render( (cnovr_base*)m );
 }
 
 int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r )
@@ -1152,7 +1158,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 					t.CTexCount++;
 				else
 				{
-					CNOVRAlert( m, 1, "Error: Invalid Tex Coords (%d) (%s)\n", r, line + 3 );
+					CNOVRAlert( m->base.tccctx, 1, "Error: Invalid Tex Coords (%d) (%s)\n", r, line + 3 );
 				}
 			}
 			else
@@ -1280,7 +1286,7 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	if( cnovrstate->oRenderModels->LoadRenderModel_Async( pchRenderModelName, &pModel ) || pModel == NULL )
 	{
-		CNOVRAlert( m, 1, "Unable to load render model %s\n", pchRenderModelName );
+		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s\n", pchRenderModelName );
 		return;
 	}
 
@@ -1294,7 +1300,7 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	if( cnovrstate->oRenderModels->LoadTexture_Async(pModel->diffuseTextureId, &pTexture) || pTexture == NULL )
 	{
-		CNOVRAlert( m, 1, "Unable to load render model %s\n", pchRenderModelName );
+		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s\n", pchRenderModelName );
 		cnovrstate->oRenderModels->FreeRenderModel( pModel );
 		return;
 	}
@@ -1355,7 +1361,7 @@ void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump )
 	}
 	else
 	{
-		CNOVRAlert( m, 1, "Error: Could not open model file: \"%s\".\n", filename );
+		CNOVRAlert( m->base.tccctx, 1, "Error: Could not open model file: \"%s\".\n", filename );
 	}
 	OGUnlockMutex( m->model_mutex );
 
@@ -1385,7 +1391,8 @@ void CNOVRNodeDelete( void * ths, void * opaque )
 	CNOVRListDeleteTag( ths );
 	cnovr_simple_node * n = (cnovr_simple_node*)ths;
 	cnovr_base ** objects = (n->objects);
-	for( i = 0; i < n->objectcount; i++ )
+	int count = sb_count( objects );
+	for( i = 0; i < count; i++ )
 	{
 		cnovr_header * o = objects[i]->header;
 		if( o->Delete ) o->Delete( objects[i] );
@@ -1398,7 +1405,8 @@ void CNOVRNodeRender( void * ths )
 	int i;
 	cnovr_simple_node * n = (cnovr_simple_node*)ths;
 	cnovr_base ** objects = (n->objects);
-	for( i = 0; i < n->objectcount; i++ )
+	int count = sb_count( objects );
+	for( i = 0; i < count; i++ )
 	{
 		cnovr_header * o = objects[i]->header;
 		if( o->Render ) o->Render( objects[i] );
@@ -1417,30 +1425,23 @@ cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size )
 {
 	cnovr_simple_node * ret = malloc( sizeof( cnovr_simple_node ) );
 	memset( ret, 0, sizeof( cnovr_simple_node ) );
-	ret->header = &cnovr_node_header;
-	ret->reserved = reserved_size;
-	ret->objects = malloc( sizeof( cnovr_header * ) * ret->reserved );
-	ret->objectcount = 0;
+	ret->base.header = &cnovr_node_header;
+	ret->base.tccctx = TCCGetTag();
+	ret->objects = 0;
 	return ret;
 }
 
 void CNOVRNodeAddObject( cnovr_simple_node * node, void * o )
 {
-	cnovr_base * obj = (cnovr_base *)o;
-
-	if( node->reserved == node->objectcount )
-	{
-		node->reserved = node->reserved * 2 + 1;
-		node->objects = realloc( node->objects, sizeof( cnovr_header * ) * node->reserved );
-	}
-	node->objects[node->objectcount++] = obj;
+	sb_push( node->objects, (cnovr_base *)o );
 }
 
 void CNOVRNodeRemoveObject( cnovr_simple_node * node, void * o )
 {
 	cnovr_base * obj = (cnovr_base *)o;
 	int i;
-	for( i = 0; i < node->objectcount; i++ )
+	int count = sb_count( node->objects );
+	for( i = 0; i < count; i++ )
 	{
 		if( obj == node->objects[i] )
 		{
@@ -1449,12 +1450,6 @@ void CNOVRNodeRemoveObject( cnovr_simple_node * node, void * o )
 		}
 	}
 
-	//Found one.
-	if( i != node->objectcount ) node->objectcount--;
-
-	for( ; i < node->objectcount; i++ )
-	{
-		node->objects[i] = node->objects[i+1];
-	}
+	stb_sb_remove( node->objects, i );
 }
 

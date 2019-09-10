@@ -1,11 +1,11 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <CNFGFunctions.h>
-#include <chew.h>
 #include <cnovr.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include "chew.h"
 #include "cnovrutil.h"
 #include "cnovrparts.h"
 #include "cnovrtcc.h"
@@ -269,7 +269,7 @@ void CNOVRUpdate()
 
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-			root->header->Render( root );
+			root->base.header->Render( root );
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 
 			Texture_t t;
@@ -299,7 +299,7 @@ void CNOVRUpdate()
 		glViewport(0, 0, width, height );
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		root->header->Render( root );
+		root->base.header->Render( root );
 		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}

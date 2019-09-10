@@ -1,4 +1,4 @@
-#ifdef WIN32
+#if defined( WIN32 ) || defined( WINDOWS ) || defined( WIN64 )
 #include <windows.h>
 #else
 #include <dlfcn.h>
@@ -32,7 +32,7 @@ void ** syms[] = {
 	#include "chew.h"
 };
 
-#ifdef WIN32
+#if defined( WIN32 ) || defined( WINDOWS ) || defined( WIN64 )
 
 //From https://www.khronos.org/opengl/wiki/Load_OpenGL_Functions
 void * chewGetProcAddress(const char *name)

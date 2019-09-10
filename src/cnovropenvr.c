@@ -1,5 +1,6 @@
 #include "cnovropenvr.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 void * CNOVRGetOpenVRFunctionTable( const char * interface )
 {

@@ -23,6 +23,7 @@ struct cnovr_header_t;
 typedef struct cnovr_base_t
 {
 	struct cnovr_header_t * header;
+	void * tccctx; //If there was a TCC context involved in the creation of this object (this is used to direct printf)
 } cnovr_base;
 
 typedef void (*cnovrfn)( void * ths );
@@ -35,7 +36,8 @@ typedef struct cnovr_header_t
 } cnovr_header;
 
 
-#define CNOVRDelete( x ) { if(x) (x)->header->Delete( x ); }
+#define CNOVRDelete( x ) { if(x) (x)->base.header->Delete( x ); }
+#define CNOVRDeleteBase( x ) { if(x) (x)->header->Delete( x ); }
 
 #define TYPE_RFBUFFER 1
 #define TYPE_SHADER   2
@@ -47,7 +49,7 @@ typedef struct cnovr_header_t
 
 typedef struct cnovr_rf_buffer_t
 {
-	cnovr_header * header;
+	cnovr_base base;
 	GLuint nRenderFramebufferId;
 	GLuint nResolveFramebufferId;
 	GLuint nResolveTextureId;
@@ -66,7 +68,7 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
 
 typedef struct cnovr_shader_t
 {
-	cnovr_header * header;
+	cnovr_base base;
 	GLuint nShaderID;
 	char * shaderfilebase;
 
@@ -85,7 +87,7 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase );
 
 typedef struct cnovr_texture_t
 {
-	cnovr_header * header;
+	cnovr_base base;
 	GLuint nTextureId;
 	GLint  nInternalFormat;
 	GLenum nFormat;
@@ -138,7 +140,7 @@ void CNOVRVBODelete( cnovr_vbo * g );
 
 typedef struct cnovr_model_t
 {
-	cnovr_header * header;
+	cnovr_base base;
 
 	GLuint nIBO;
 	GLuint * pIndices;
@@ -201,10 +203,8 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
 
 typedef struct cnovr_simple_node_t
 {
-	cnovr_header * header;
-	cnovr_base  ** objects;	//Actually typecasted from whatever the original type is.
-	int objectcount;
-	int reserved;
+	cnovr_base base;
+	cnovr_base ** objects;	//Actually typecasted from whatever the original type is.
 	cnovr_pose     pose;
 } cnovr_simple_node; 
 

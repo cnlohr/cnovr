@@ -1,10 +1,11 @@
 #ifndef _CNOVROPENVR_UTIL_H
 #define _CNOVROPENVR_UTIL_H
 
-#include <openvr_capi.h>
 #include <cnovrmath.h>
 #include <cnovr.h>
 
+#undef EXTERN_C
+#include <openvr_capi.h>
 
 
 S_API int VR_InitInternal( EVRInitError *peError, EVRApplicationType eType );
