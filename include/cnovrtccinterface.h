@@ -7,7 +7,7 @@
 
 extern og_tls_t tcctlstag;
 
-#define TCCInvocation( v, code ) { OGSetTLS( tcctlstag, v ); if( tcccrash_checkpoint() == 0 ) { code; } OGSetTLS( tcctlstag, 0 ); }
+#define TCCInvocation( v, code ) { OGSetTLS( tcctlstag, v ); if( !v || tcccrash_checkpoint() == 0 ) { code; } OGSetTLS( tcctlstag, 0 ); tcccrash_nullifycheckpoint(); OGSetTLS( tcctlstag, 0 ); tcccrash_nullifycheckpoint(); }
 #define TCCGetTag() ((TCCInstance*)OGGetTLS( tcctlstag ))
 
 

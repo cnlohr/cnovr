@@ -3,11 +3,11 @@
 
 void * my_thread( void * v )
 {
-//	while(1)
-//	{
-//		printf( "THREADS!\n" );
-//		OGUSleep(100000);
-//	}
+	while(1)
+	{
+		printf( "THREADS!\n" );
+		OGUSleep(100000);
+	}
 	return 0;
 }
 
@@ -20,7 +20,7 @@ void caller()
 {
 	//char * c = 0;
 	//*c = 5;
-//	OGCreateThread( my_thread, 0 );
+	OGCreateThread( my_thread, 0 );
 }
 
 void start( const char * identifier )

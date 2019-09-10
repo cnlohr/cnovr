@@ -403,6 +403,7 @@ typedef struct filetimedata_t
 {
 	double time;
 	filetimetagged * front;
+	int list_changed;
 } filetimedata;
 
 static CNOVRIndexedList * ftindexlist;
@@ -421,7 +422,8 @@ void * thdfiletimechecker( void * v )
 			if( e->data )
 			{
 				double ft = OGGetFileTime( e->key );
-				filetimedata * k = ((filetimedata*)e->data);
+				filetimedata * front = ((filetimedata*)e->data);
+				filetimedata * k = front;
 				if( k->time != ft )
 				{
 					k->time = ft;
@@ -432,9 +434,15 @@ void * thdfiletimechecker( void * v )
 						staged->tag = l->tag;
 						staged->opaquev = l->opaquev;
 						staged->fn = l->fn;
+						front->list_changed = 0; //Would not be possible to trigger in callback.
 						OGUnlockMutex( mutFileTimeCacher );
 						if( l->fn ) TCCInvocation( l->tag, l->fn( l->tag, l->opaquev ) );
 						OGLockMutex( mutFileTimeCacher );
+						if( front->list_changed )
+						{
+							front->list_changed = 0;
+							break;
+						}
 						staged->tag = 0;
 						staged->opaquev = 0;
 						staged->fn = 0;
@@ -563,6 +571,7 @@ void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, v
 	{
 		CNOVRIndexedListDeleteItemHandle( ftindexlist, (*t)->correspondance );
 	}
+	ret->list_changed = 1;
 	OGUnlockMutex( mutFileTimeCacher );
 }
 
@@ -699,7 +708,7 @@ static void * CNOVRJobProcessor( void * v )
 		if( front )
 		{
 			if( staged->fn ) TCCInvocation( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
-
+			
 			//If you were to cancel the job, spinlock until e->staged == 0.
 			staged->tag = 0;
 			staged->opaquev = 0;
@@ -893,6 +902,7 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 	{
 		CNOVRJobQueue * jq = &CNOVRJEQ[list];
 		OGUnlockSema( jq->pendingsem );
+		//XXX TRICKY: this seems to sometimes fail, locked open.
 		while( wait_on_pending && jq->is_staged && jq->staged.tag == tag )
 		{
 			OGLockSema( jq->pendingsem );

@@ -46,9 +46,10 @@ void InternalSetupTCCInterface()
 void InternalShutdownTCC( TCCInstance * tce )
 {
 	printf( "LOCK\n" );
-	OGLockMutex( tccinterfacemutex );
 	printf( "LOCKIN\n" );
-	CNOVRJobCancelAllTag( tce, 1 );
+	OGLockMutex( tccinterfacemutex );
+	CNOVRJobCancelAllTag( tce, 0 );
+	//XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
 	printf( "LOCKINGOINGA\n" );
 	CNOVRListDeleteTag( tce );
 	printf( "LOCKINGOING\n" );
@@ -76,14 +77,47 @@ void InternalShutdownTCC( TCCInstance * tce )
 }
 
 
-
 ///////////////////////////////////////////////////////////////////////////
+
+struct cnovr_internal_thread_starter_t
+{
+	void * (*routine)( void * );
+	void * parameter;
+	void * tag;
+};
+
+static void * cnovr_internal_thread_starter( void * v )
+{
+	struct cnovr_internal_thread_starter_t tp;
+	memcpy( &tp, v, sizeof( tp ) );
+	free( v );
+
+	TCCInvocation( tp.tag, 
+	{
+		if( tcccrash_checkpoint() )
+		{
+			printf( "Warning: thread failed.\n" );
+			//Don't worry threads will be cleaned up later.
+			return 0;
+		}
+		else
+		{
+			return tp.routine( tp.parameter );
+		}
+	} )
+	return 0;
+}
 
 og_thread_t TCCOGCreateThread( void * (routine)( void * ), void * parameter )
 {
-	og_thread_t ret = OGCreateThread( routine, parameter );
+	struct cnovr_internal_thread_starter_t * m = malloc( sizeof( struct cnovr_internal_thread_starter_t ) );
+	m->tag = TCCGetTag();
+	m->parameter = parameter;
+	m->routine = routine;
+
+	og_thread_t ret = OGCreateThread( cnovr_internal_thread_starter, m );
 	OGLockMutex( tccinterfacemutex );
-	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->threads, ret );
 	OGUnlockMutex( tccinterfacemutex );
 	return ret;

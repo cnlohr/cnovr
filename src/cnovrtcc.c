@@ -21,6 +21,7 @@ static void StopTCCInstance( TCCInstance * tcc );
 
 static void ReloadTCCInstance( void * tag, void * opaquev )
 {
+	if( !tccmutex ) tccmutex = OGCreateMutex();
 	int r;
 	TCCInstance * tce = (TCCInstance *)tag;
 	int retryno = (intptr_t)opaquev;
@@ -29,7 +30,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	OGLockMutex( tccmutex );
 	if( tce->bDontCompile )
 	{
-		printf( "Failed\n" );
+		printf( "Failed; Marked as don't compile.\n" );
 		OGUnlockMutex( tccmutex );
 		return;
 	}
@@ -59,9 +60,9 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	tcc_define_symbol( tce->state, "WIN32", "1" );
 	tcc_define_symbol( tce->state, "WINDOWS", "1" );
 #endif
-
+	printf( "CMidpoint\n" );
 	tcc_define_symbol( tce->state, "TCCINSTANCE", "1" );
-
+	printf( "Adding\n" );
 	r = tcc_add_file( tce->state, tce->tccfilename );
 	if( r )
 	{
@@ -69,6 +70,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 		goto failure;
 	}
 
+	printf( "Relocating\n" );
 	r = tcc_relocate(tce->state, NULL);
 	if (r == -1)
 	{
@@ -78,22 +80,26 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	//At this point, we're committed.
 
-	OGUnlockMutex( tccmutex );
-	StopTCCInstance( tce );
-	OGLockMutex( tccmutex );
-
+	printf( "Finishing up\n" );
 	void * backupimage = tce->image;
 	tce->image = malloc(r);
 	tcc_relocate( tce->state, tce->image );
-	if( backup_state ) tcc_delete( backup_state );
-	if( backupimage ) free( backupimage );
-	backupimage = 0;
-
+	printf( "Symming in\n" );
 	tcccrash_symtcc( tce->tccfilename, tce->state );
 
 	tce->init =  (tcccbfn)tcc_get_symbol( tce->state, "init" );
 	tce->start = (tcccbfn)tcc_get_symbol( tce->state, "start" );
 	tce->stop =  (tcccbfn)tcc_get_symbol( tce->state, "stop" );
+
+	printf( "Ok... Unlocking\n" );
+
+
+
+
+
+
+
+	OGUnlockMutex( tccmutex );
 
 	if( tce->bFirst && tce->init)
 	{
@@ -101,7 +107,11 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 		tce->bFirst = 0;
 	}
 
-	OGUnlockMutex( tccmutex );
+	StopTCCInstance( tce );
+
+	if( backup_state ) tcc_delete( backup_state );
+	if( backupimage ) free( backupimage );
+	backupimage = 0;
 
 	if( !tce->start )
 	{
@@ -119,6 +129,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	return;
 
 failure:
+	tce->bDontCompile = 0;
 	tcc_delete( tce->state );
 	tce->state = backup_state;
 	OGUnlockMutex( tccmutex );
@@ -169,6 +180,8 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 
 void DestroyTCCInstance( TCCInstance * tcc )
 {
+	if( !tccmutex ) tccmutex = OGCreateMutex();
+
 	CNOVRFileTimeRemoveTagged( tcc, 1 );
 	StopTCCInstance( tcc );
 
