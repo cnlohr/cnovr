@@ -1,6 +1,6 @@
 #include <cnovrtccinterface.h>
 #include <cnovrutil.h>
-#include <libtcc.h>
+#include <tinycc/libtcc.h>
 #include <stdarg.h>
 #include <cnovr.h>
 #include <stdio.h>

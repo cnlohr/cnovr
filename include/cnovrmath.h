@@ -5,6 +5,7 @@
 #define _CNOVRMATH_H
 
 #include <stdbool.h>
+#include <math.h>
 
 #ifdef __cplusplus
 extern "C" {
