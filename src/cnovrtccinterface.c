@@ -9,6 +9,7 @@
 #include <string.h>
 #include <cnrbtree.h>
 
+
 ////////////////////////////////////////////////////////////////////////////////
 
 og_tls_t ogsafelocktls;
@@ -119,6 +120,7 @@ void InternalShutdownTCC( TCCInstance * tce )
 		free( o );
 		printf( "ERASING {%p}\n", tce );
 		CNHashDelete( objects_to_delete, tce );
+		printf( "TCC interfaces shutdown\n" );
 	}
 	OGUnlockMutex( tccinterfacemutex );
 }
@@ -255,6 +257,15 @@ static int TCCprintf( const char * format, ... )
 	return n;
 }
 
+
+static void TCCCNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool insert_even_if_pending )
+{
+	//We just have to override the tag.
+	printf( "TAcking: %d %p %p %p %d\n", q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
+	CNOVRJobTack( q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
+}
+
+
 #define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
 #define TCCExportS( x ) tcc_add_symbol( tce->state, #x, &x );
 
@@ -284,6 +295,96 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( OGDeleteTLS );
 	TCCExportS( OGGetTLS );
 	TCCExportS( OGSetTLS );
+
+	TCCExportS( cnovrstate );
+	TCCExportS( CNOVRModelCreate );
+	TCCExportS( CNOVRModelAppendCube );
+	TCCExportS( CNOVRShaderCreate );
+	TCCExportS( CNOVRNodeAddObject );
+	TCCExportS( CNOVRNodeRemoveObject );
+	TCCExportS( CNOVRDeleteBase );
+	TCCExportS( CNOVRNodeCreateSimple );
+
+	TCCExport( CNOVRJobTack );
+
+	TCCExportS( cnovr_interpolate );
+	TCCExportS( cross3d );
+	TCCExportS( sub3d );
+	TCCExportS( add3d );
+	TCCExportS( scale3d );
+	TCCExportS( invert3d );
+	TCCExportS( mag3d );
+	TCCExportS( normalize3d );
+	TCCExportS( center3d );
+	TCCExportS( mean3d );
+	TCCExportS( dot3d );
+	TCCExportS( compare3d );
+	TCCExportS( copy3d );
+	TCCExportS( magnitude3d );
+	TCCExportS( dist3d );
+	TCCExportS( anglebetween3d );
+	TCCExportS( rotatearoundaxis );
+	TCCExportS( angleaxisfrom2vect );
+	TCCExportS( axisanglefromquat );
+	TCCExportS( quatdist );
+	TCCExportS( quatdifference );
+	TCCExportS( quatset );
+	TCCExportS( quatiszero );
+	TCCExportS( quatsetnone );
+	TCCExportS( quatcopy );
+	TCCExportS( quatfromeuler );
+	TCCExportS( quattoeuler );
+	TCCExportS( quatfromaxisangle );
+	TCCExportS( quatfromaxisanglemag );
+	TCCExportS( quattoaxisanglemag );
+	TCCExportS( quatmagnitude );
+	TCCExportS( quatinvsqmagnitude );
+	TCCExportS( quatnormalize );
+	TCCExportS( quattomatrix );
+	TCCExportS( quatfrommatrix );
+	TCCExportS( quatgetconjugate );
+	TCCExportS( findnearestaxisanglemag );
+	TCCExportS( quatconjugateby );
+	TCCExportS( quatgetreciprocal );
+	TCCExportS( quatfind );
+	TCCExportS( quatrotateabout );
+	TCCExportS( quatmultiplyrotation );
+	TCCExportS( quatscale );
+	TCCExportS( quatdivs );
+	TCCExportS( quatsub );
+	TCCExportS( quatadd );
+	TCCExportS( quatinnerproduct );
+	TCCExportS( quatouterproduct );
+	TCCExportS( quatevenproduct );
+	TCCExportS( quatoddproduct );
+	TCCExportS( quatslerp );
+	TCCExportS( quatrotatevector );
+	TCCExportS( eulerrotatevector );
+	TCCExportS( quatfrom2vectors );
+	TCCExportS( eulerfrom2vectors );
+	TCCExportS( apply_pose_to_point );
+	TCCExportS( apply_pose_to_pose );
+	TCCExportS( pose_invert );
+	TCCExportS( pose_to_matrix44 );
+	TCCExportS( matrix44_to_pose );
+	TCCExportS( matrix44copy );
+	TCCExportS( matrix44transpose );
+	TCCExportS( matrix44identity );
+	TCCExportS( matrix44zero );
+	TCCExportS( matrix44translate );
+	TCCExportS( matrix44scale );
+	TCCExportS( matrix44rotateaa );
+	TCCExportS( matrix44rotatequat );
+	TCCExportS( matrix44rotateea );
+	TCCExportS( matrix44multiply );
+	TCCExportS( matrix44print );
+	TCCExportS( matrix44perspective );
+	TCCExportS( matrix44lookat );
+	TCCExportS( matrix44ptransform );
+	TCCExportS( matrix44vtransform );
+	TCCExportS( matrix444transform );
+
+
 
 	OGUnlockMutex( tccinterfacemutex );
 }

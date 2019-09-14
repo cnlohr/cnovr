@@ -131,9 +131,7 @@ FLT quatmagnitude(const cnovr_quat q);
 FLT quatinvsqmagnitude(const cnovr_quat q);
 void quatnormalize(cnovr_quat qout, const cnovr_quat qin); // Safe for in to be same as out.
 void quattomatrix(FLT *matrix44, const cnovr_quat q);
-void quattomatrix33(FLT *matrix33, const cnovr_quat qin);
 void quatfrommatrix(cnovr_quat q, const FLT *matrix44);
-void quatfrommatrix33(cnovr_quat q, const FLT *matrix33);
 void quatgetconjugate(cnovr_quat qout, const cnovr_quat qin);
 
 /***

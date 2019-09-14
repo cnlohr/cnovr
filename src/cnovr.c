@@ -165,6 +165,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	}
 
 	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
+	printf( "Malloced State: %p;;; %p = %p\n", cnovrstate, &cnovrstate->pRootNode, cnovrstate->pRootNode );
 
 	CNOVRInternalStartCacheSystem();
 	CNOVRJobInit();

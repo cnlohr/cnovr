@@ -49,6 +49,9 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	tcc_add_library( tce->state, "m" );
 	tcc_add_include_path( tce->state, "include" );
+	tcc_add_include_path( tce->state, "lib/tinycc/include" );
+	tcc_add_include_path( tce->state, "rawdraw" );
+	tcc_add_include_path( tce->state, "openvr/headers" );
 	tcc_add_include_path( tce->state, "." );
 	tcc_define_symbol( tce->state, "TCC", "1" );
 	tcc_set_options( tce->state, "-nostdlib -rdynamic" );

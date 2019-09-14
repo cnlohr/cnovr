@@ -7,5 +7,5 @@ varying vec3 localpos;
 
 void main()
 {
-	colorOut = vec4( abs(localpos), 1.0);
+	colorOut = vec4( abs(localpos)*1.0, 1.0);
 }

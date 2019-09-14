@@ -35,9 +35,8 @@ typedef struct cnovr_header_t
 	uint8_t Type;
 } cnovr_header;
 
-
-#define CNOVRDelete( x ) { if(x) (x)->base.header->Delete( x ); }
-#define CNOVRDeleteBase( x ) { if(x) (x)->header->Delete( x ); }
+#define CNOVRDelete( x )  CNOVRDeleteBase( &(x->base) )
+void CNOVRDeleteBase( cnovr_base * b );
 
 #define TYPE_RFBUFFER 1
 #define TYPE_SHADER   2
@@ -186,7 +185,7 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices );
 void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices );
 void CNOVRModelResetMarks( cnovr_model * m );
 
-void CNOVRModelAppendCube( cnovr_model * m, float sx, float sy, float sz );
+void CNOVRModelAppendCube( cnovr_model * m, cnovr_pose * poseofs_optional );
 void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float sx, float sy );
 
 //If before first index, names first section.

@@ -13,6 +13,20 @@
 #include <cnovrtccinterface.h>
 #include <stretchy_buffer.h>
 
+static void parts_delete_callback( void * tag, void * opaquev )
+{
+	cnovr_base * b = (cnovr_base*)opaquev;
+	b->header->Delete( b );
+}
+
+void CNOVRDeleteBase( cnovr_base * b )
+{
+	if( !b ) return;
+	printf( "+++++++++++++ DELETE: %p\n", b );
+	CNOVRJobTack( cnovrQPrerender, parts_delete_callback, 0, b, 0 );
+}
+
+
 static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 {
 	if( ths->nRenderFramebufferId ) glDeleteFramebuffers( 1, &ths->nRenderFramebufferId );
@@ -831,8 +845,10 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 	m->iIndexCount = m->iIndexCount + nindices;
 }
 
-void CNOVRModelAppendCube( cnovr_model * m, float sx, float sy, float sz )
+void CNOVRModelAppendCube( cnovr_model * m, cnovr_pose * poseofs_optional )
 {
+	cnovr_pose * pose = poseofs_optional?poseofs_optional:&cnovr_pose_identity;
+
 	//Bit pattern. 0 means -1, 1 means +1 on position.
 	//n[face] n[+-](inverted)  v1[xyz] v2[xyz] v3[xyz];; TC can be computed from table based on N
 	//XXX TODO: Check texture coord correctness.
@@ -889,9 +905,10 @@ void CNOVRModelAppendCube( cnovr_model * m, float sx, float sy, float sz )
 			{
 				float stage[4];
 				float staget[4];
-				stage[0] = (vkeys[j]&4)?1:-1;
-				stage[1] = (vkeys[j]&2)?1:-1;
-				stage[2] = (vkeys[j]&1)?1:-1;
+				{
+					float xyzin[3] = { (vkeys[j]&4)?1:-1, (vkeys[j]&2)?1:-1, (vkeys[j]&1)?1:-1 };
+					apply_pose_to_point( stage, pose, xyzin );
+				}
 				stage[3] = 1;
 				CNOVRVBOTackv( m->pGeos[0], 3, stage );
 
@@ -1002,7 +1019,7 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 {
 	pose_to_matrix44( cnovrstate->mModel, pose );
-	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 0, cnovrstate->mModel );
+	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
 	m->base.header->Render( (cnovr_base*)m );
 }
 
@@ -1408,8 +1425,16 @@ void CNOVRNodeRender( void * ths )
 	int count = sb_count( objects );
 	for( i = 0; i < count; i++ )
 	{
-		cnovr_header * o = objects[i]->header;
-		if( o->Render ) o->Render( objects[i] );
+		cnovr_base * b = objects[i];
+		cnovr_header * o = b->header;
+		if( o->Type == TYPE_MODEL )
+		{
+			CNOVRModelRenderWithPose( (cnovr_model*)b, &n->pose );
+		}
+		else
+		{
+			if( o->Render ) o->Render( objects[i] );
+		}
 	}
 }
 
@@ -1428,11 +1453,13 @@ cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size )
 	ret->base.header = &cnovr_node_header;
 	ret->base.tccctx = TCCGetTag();
 	ret->objects = 0;
+	pose_make_identity( &ret->pose );
 	return ret;
 }
 
 void CNOVRNodeAddObject( cnovr_simple_node * node, void * o )
 {
+	printf( "NAO %p %p\n", node ,o );
 	sb_push( node->objects, (cnovr_base *)o );
 }
 

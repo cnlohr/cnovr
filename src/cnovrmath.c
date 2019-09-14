@@ -364,6 +364,7 @@ void quattomatrix(FLT *matrix44, const cnovr_quat qin) {
 	matrix44[15] = 1;
 }
 
+
 void quatfrommatrix(cnovr_quat q, const FLT *matrix44) {
 	// Algorithm from http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
 	FLT tr = matrix44[0] + matrix44[5] + matrix44[10];

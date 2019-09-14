@@ -42,8 +42,6 @@ struct cnovrstate_t
 	float mView[16];	//Current view matrix, changes per eye.     (SLOT=5)
 	float mPerspective[16];                                      // (SLOT=6)
 
-	int   eyeTarget;
-
 	cnovr_simple_node * pRootNode;
 
 	struct VR_IVRSystem_FnTable * oSystem;
@@ -61,10 +59,13 @@ struct cnovrstate_t
 	cnovr_pose pPreviewPose;
 	float fPreviewFOV;
 
-	bool has_ovr;
-	bool has_preview;
 	short    iPreviewWidth, iPreviewHeight;
 	short    iEyeRenderWidth, iEyeRenderHeight;
+
+	uint8_t  eyeTarget;
+	uint8_t  has_ovr;
+	uint8_t  has_preview;
+
 } __attribute__((packed));
 
 extern struct cnovrstate_t * cnovrstate;
