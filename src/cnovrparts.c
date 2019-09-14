@@ -680,7 +680,7 @@ static void CNOVRModelRender( cnovr_model * m )
 		cnovr_texture ** ts = m->pTextures;
 		for( i = 0; i < count; i++ )
 		{
-			glActiveTexture( GL_TEXTURE0 + i );
+			glActiveTextureCHEW( GL_TEXTURE0 + i );
 			ts[i]->base.header->Render( (cnovr_base*)ts[i] );
 		}
 

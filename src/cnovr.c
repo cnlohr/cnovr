@@ -124,6 +124,9 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	cnovrstate->fPreviewFOV = 95;
 	pose_make_identity( &cnovrstate->pPreviewPose );
 
+
+	ovrprintf( "Continuing state update.\n" );
+
 	if( has_vr )
 	{
 		cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)CNOVRGetOpenVRFunctionTable( IVRSystem_Version );
@@ -321,9 +324,12 @@ void CNOVRUpdate()
 
 	CNOVRCheck();
 
-	//XXX Hacky - this disables vsync on Linux (maybe windows?)
+#if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
+#else
+	//XXX Hacky - this disables vsync on Linux only
 	void   CNFGSetVSync( int vson );
 	CNFGSetVSync( 0 );
+#endif
 	CNFGSwapBuffers(1);
 }
 
@@ -365,11 +371,10 @@ int CNOVRAlert( void * tag, int priority, const char * format, ... )
 	return r;
 }
 
-
 int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap )
 {
 	char * buffer = 0;
-	int len = vasprintf( &buffer, format, ap );
+	int len = tasprintf( &buffer, format, ap );
 	if( len > 0 && buffer[len-1] == '\n' ) buffer[len-1] = 0;
 	puts( buffer );
 	CNOVRTCCLog( tag, buffer );

@@ -7,6 +7,9 @@
 #undef EXTERN_C
 #include <openvr_capi.h>
 
+#undef S_API
+#define S_API __declspec(dllimport)
+
 
 S_API int VR_InitInternal( EVRInitError *peError, EVRApplicationType eType );
 S_API const char * VR_GetVRInitErrorAsEnglishDescription( EVRInitError error );

@@ -267,12 +267,21 @@ static char * search_paths[MAX_SEARCH_PATHS];
 static og_mutex_t search_paths_mutex;
 static og_tls_t   search_path_return;
 
+#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
+#include <windows.h>
+int CheckFileExists(const char * szPath)
+{
+  DWORD dwAttrib = GetFileAttributesA(szPath);
+
+  return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+}
+#endif
+
 char * FileSearch( const char * fname )
 {
 	#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
-	#define CheckFileExists(x) PathFileExistsA( x ) == TRUE
 	#else
-	struct stat sbuf;
 	#define CheckFileExists(x) ( stat( x, &sbuf ) == 0 )
 	#endif
 

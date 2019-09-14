@@ -36,7 +36,11 @@ extern "C" {
 #define FLT_ACOS acosf
 #define FLT_ASIN asinf
 #define FLT_ATAN2 atan2f
+#ifdef __TINYC__
+#define FLT_FABS__(x) (((x)<0)?(-(x)):(x))
+#else
 #define FLT_FABS__ fabsf
+#endif
 #define FLT_STRTO strtof
 
 #else
