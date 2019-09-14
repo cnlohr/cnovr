@@ -19,14 +19,13 @@ static og_mutex_t tccmutex;
 
 static void StopTCCInstance( TCCInstance * tcc );
 
-static void ReloadTCCInstance( void * fname, void * opaquev )
+static void ReloadTCCInstance( void * tag, void * opaquev )
 {
-	void * tag = TCCGetTag();
 	if( !tccmutex ) tccmutex = OGCreateMutex();
 	int r;
 	TCCInstance * tce = (TCCInstance *)tag;
 	int retryno = (intptr_t)opaquev;
-
+	printf( "Reloading: %p %p\n", tag, tce );
 	printf( "Reloading;%s\n", tce->tccfilename );
 	OGLockMutex( tccmutex );
 	if( tce->bDontCompile )

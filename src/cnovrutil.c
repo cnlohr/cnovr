@@ -394,6 +394,7 @@ typedef struct filetimetagged_t
 {
 	void * tag;
 	void * opaquev;
+	void * tcctag;
 	cnovr_cb_fn * fn;
 	struct filetimetagged_t * next;
 	struct filetimetagged_t * prev;
@@ -438,10 +439,11 @@ void * thdfiletimechecker( void * v )
 							staged->tag = l->tag;
 							staged->opaquev = l->opaquev;
 							staged->fn = l->fn;
+							staged->tcctag = l->tcctag;
 							front->list_changed = 0; //Would not be possible to trigger in callback.
 							OGTSUnlockMutex( mutFileTimeCacher );
 							printf( "calling %p with *%p* %p in %p\n", l->fn, e->key, l->opaquev, l->tag );
-							if( l->fn ) TCCInvocation( l->tag, l->fn( l->tag, l->opaquev ) );
+							if( l->fn ) TCCInvocation( l->tcctag, l->fn( l->tag, l->opaquev ) );
 							OGTSLockMutex( mutFileTimeCacher );
 							if( front->list_changed )
 							{
@@ -451,6 +453,7 @@ void * thdfiletimechecker( void * v )
 							staged->tag = 0;
 							staged->opaquev = 0;
 							staged->fn = 0;
+							staged->tcctag = 0;
 							l = l->next;
 						}
 					}
@@ -551,6 +554,7 @@ void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void
 	t->tag = tag;
 	t->opaquev = opaquev;
 	t->fn = fn;
+	t->tcctag = TCCGetTag();
 	t->prev = 0;
 	t->next = ftd->front;
 	if( t->next )
@@ -604,6 +608,7 @@ struct CNOVRJobQueue_t;
 typedef struct CNOVRJobElement_t
 {
 	cnovr_cb_fn * fn;
+	void * tcctag;
 	void * tag;
 	void * opaquev;
 	struct CNOVRJobElement_t * next;
@@ -715,10 +720,11 @@ static void * CNOVRJobProcessor( void * v )
 
 		if( front )
 		{
-			if( staged->fn ) TCCInvocation( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
+			if( staged->fn ) TCCInvocation( staged->tcctag, staged->fn( staged->tag, staged->opaquev ) );
 			
 			//If you were to cancel the job, spinlock until e->staged == 0.
 			staged->tag = 0;
+			staged->tcctag = 0;
 			staged->opaquev = 0;
 			staged->fn = 0;
 			jq->is_staged = 0;
@@ -798,10 +804,11 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
 
-		if( staged->fn ) TCCInvocation( staged->tag, staged->fn( staged->tag, staged->opaquev ) );
+		if( staged->fn ) TCCInvocation( staged->tcctag, staged->fn( staged->tag, staged->opaquev ) );
 
 		jq->is_staged = 0;
 		staged->tag = 0;
+		staged->tcctag = 0;
 		staged->opaquev = 0;
 		staged->fn = 0;
 
@@ -823,6 +830,7 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	CNOVRJobElement * newe = malloc( sizeof( CNOVRJobElement ) );
 	newe->fn = fn;
 	newe->tag = tag;
+	newe->tcctag = TCCGetTag();
 	newe->opaquev = opaquev;
 	newe->next = 0;
 	newe->prev = 0;
@@ -925,16 +933,27 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 
 ///////////////////////////////////////////////////////////////////////////////
 
+typedef struct JobListItem_t
+{
+	cnovr_cb_fn * fn;
+	void * tcctag;
+} JobListItem;
 
 static cnhashtable * ListHTs[cnovrLMAX];
 static og_mutex_t    ListMTs[cnovrLMAX];
+
+void DeleteJLE( void * key, void * data, void * opaque )
+{
+	free( data );
+}
 
 void CNOVRListSystemInit()
 {
 	int i;
 	for( i = 0; i < cnovrLMAX; i++ )
 	{
-		ListHTs[i] = CNHashGenerate( 0, 0, CNHASH_POINTERS );
+		ListHTs[i] = CNHashGenerate( 0, 0, 0, cnhash_ptrhf, cnhash_ptrcf, DeleteJLE );
+ 
 		ListMTs[i] = OGCreateMutex();
 	}
 }
@@ -959,11 +978,11 @@ void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 	for( i = 0; i < t->array_size; i++ )
 	{
 		cnhashelement * e = &t->elements[i];
-		cnovr_cb_fn * cb = (cnovr_cb_fn*)e->data;
-		if( cb )
+		JobListItem * jle = (JobListItem*)e->data;
+		if( jle && jle->fn )
 		{
 			OGTSUnlockMutex( m );
-			TCCInvocation( e->key, cb( e->key, data ) );
+			TCCInvocation( jle->tcctag, jle->fn( e->key, data ) );
 			OGTSLockMutex( m );
 			CNHashDelete( t, e->key );
 		}
@@ -979,7 +998,11 @@ void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
 
 	OGTSLockMutex( m );
 	e = CNHashInsert( ListHTs[l], b, fn );
-	e->data = fn;	//Overwrite if called again.
+	JobListItem * jli = e->data;
+	if( !jli ) jli = malloc( sizeof( JobListItem ) );
+	jli->fn = fn;
+	jli->tcctag = TCCGetTag();
+	e->data = jli;	//Overwrite if called again.
 	OGTSUnlockMutex( m );
 }
 

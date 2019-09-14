@@ -25,7 +25,7 @@ void start( const char * identifier )
 
 void stop( const char * identifier )
 {
-//	OGCancelThread( thdmax );
+	//OGCancelThread( thdmax );
 	printf( "Example stop %s                   ---------------------%p %p\n", identifier, thdmax, &thdmax );
 }
 
