@@ -51,6 +51,35 @@ int tasprintf( char ** dat, const char * fmt, ... )
 	}
 }
 
+
+int tvasprintf( char ** dat, const char * fmt, va_list ap )
+{
+	int n;
+	if( !casprintftls ) casprintftls = OGCreateTLS();
+	struct casprintfmt * ca = OGGetTLS( casprintftls );
+	if( !ca )
+	{
+		ca = malloc( sizeof( struct casprintfmt ) );
+		ca->size = 256;
+		ca->buffer = malloc( ca->size );
+		OGSetTLS( casprintftls, ca );
+	}
+	
+	while (1) {
+		va_list aq;
+		va_copy(aq, ap); //XXX TODO: review if this behavior is correct.
+		n = vsnprintf( ca->buffer, ca->size-1, fmt, aq );
+		va_end( aq );
+		if( n < ca->size-1 && n != -1 )
+		{
+			*dat = ca->buffer;
+			return n;
+		}
+		ca->size *= 2;
+		ca->buffer = realloc( ca->buffer, ca->size );
+	}
+}
+
 char * jsmnstrdup( const char * data, int start, int end )
 {
 	if( !casprintftls ) casprintftls = OGCreateTLS();
@@ -557,7 +586,7 @@ void CNOVRInternalStopCacheSystem()
 
 void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
-	printf( "Adding FileTimeWatch %s %p\n", fname, fn );
+	printf( "Adding FileTimeWatch %s [%p] %p\n", fname, tag, fn );
 	OGTSLockMutex( mutFileTimeCacher );
 	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	if( !ftd )

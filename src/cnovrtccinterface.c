@@ -261,10 +261,81 @@ static int TCCprintf( const char * format, ... )
 static void TCCCNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool insert_even_if_pending )
 {
 	//We just have to override the tag.
-	printf( "TAcking: %d %p %p %p %d\n", q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
+	//printf( "TAcking: %d %p %p %p %d\n", q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
 	CNOVRJobTack( q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
 }
 
+static void *TCCmalloc(size_t size)
+{
+	void * ret = malloc( size );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
+static void TCCfree(void *ptr)
+{	
+	free( ptr );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_remove( c->mallocedram, ptr );
+}
+
+static void * TCCcalloc(size_t nmemb, size_t size)
+{
+	void * ret = calloc( nmemb, size );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
+static void * TCCrealloc(void *ptr, size_t size)
+{
+	void * ret = realloc( ptr, size );
+	if( ptr != ret )
+	{
+		object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+		if( c )
+		{
+			cnptrset_remove( c->mallocedram, ptr );
+			cnptrset_insert( c->mallocedram, ret );
+		}
+	}
+	return ret;
+}
+
+static char * TCCstrndup(const char * str, size_t size)
+{
+	if( str == 0 ) return 0;
+	int asize;
+	for( asize = 0; asize < size; asize++ )
+	{
+		if( str[asize] == 0 ) break;
+	}
+	char * ret = malloc( asize );
+	memcpy( ret, str, asize+1 );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
+static char * TCCstrdup(const char * str )
+{
+	char * ret = strdup( str );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
+
+#if defined( WINDOWS  ) || defined ( WIN32 ) || defined( WIN64 )
+//XXX TODO: I think we'll need these maybe?
+static void TCC_InterlockedExchangeAdd( ) { ovrprintf( "Unsupported function\n" );  }
+static void TCC_InterlockedExchangeAdd64( ) { ovrprintf( "Unsupported function\n" ); }
+static void TCC_mul128( ) { ovrprintf( "Unsupported function\n" ); }
+static void TCC__shiftright128( ) { ovrprintf( "Unsupported function\n" ); }
+static void TCC_umul128( ) { ovrprintf( "Unsupported function\n" ); }
+static void TCC__stosb( ) { ovrprintf( "Unsupported function\n" ); }
+#endif
 
 #define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
 #define TCCExportS( x ) tcc_add_symbol( tce->state, #x, &x );
@@ -274,7 +345,19 @@ void InternalPopulateTCC( TCCInstance * tce )
 	printf( "InternalPopulateTCC { %p }\n", tce );
 	OGLockMutex( tccinterfacemutex );
 
+	TCCExport( realloc );
+	TCCExport( malloc );
+	TCCExport( calloc );
+	TCCExport( free );
+	TCCExport( strdup );
+	TCCExport( strndup );
+
+	TCCExportS( CNOVRAlertv );
+	TCCExportS( CNOVRAlert );
+	
+	TCCExportS( puts );
 	TCCExport( printf );
+
 	TCCExportS( OGSleep );
 	TCCExportS( OGUSleep );
 	TCCExportS( OGGetAbsoluteTime );
@@ -384,7 +467,35 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( matrix44vtransform );
 	TCCExportS( matrix444transform );
 
+#if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
 
+	TCCExportS( _stricmp );
+	TCCExportS( _strnicmp );
+	
+	TCCExport( _InterlockedExchangeAdd );
+	TCCExport( _InterlockedExchangeAdd64 );
+	TCCExport( _mul128 );
+	TCCExport( __shiftright128 );
+	TCCExport( _umul128 );
+	TCCExport( __stosb );
+	
+	TCCExportS( _exit );
+	TCCExportS( _atoi64 );
+	TCCExportS( _ui64toa );
+	TCCExportS( _i64toa );
+	TCCExportS( _wtoi64 );
+	TCCExportS( _i64tow );
+	TCCExportS( _ui64tow );
+
+	TCCExportS( _chgsign );
+	TCCExportS( _copysign );
+
+	TCCExportS( frexp );
+	TCCExportS( ldexp );
+	TCCExportS( hypot );
+	TCCExportS( rand );
+
+#endif
 
 	OGUnlockMutex( tccinterfacemutex );
 }

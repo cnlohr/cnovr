@@ -2,6 +2,7 @@
 #include <cnovrparts.h>
 #include <cnovr.h>
 #include <cnovrutil.h>
+#include <stdlib.h>
 
 og_thread_t thdmax;
 
@@ -13,7 +14,7 @@ void * my_thread( void * v )
 {
 	while(1)
 	{
-		printf( "THREADS 8 %s %p\n", v, thdmax );
+		//printf( "THREADS 9 %s %p\n", v, thdmax );
 		OGUSleep(500000);
 		if( 1 )
 		{
@@ -27,9 +28,8 @@ void * my_thread( void * v )
 
 void init( const char * identifier )
 {
-	printf( "Example init %s\n", identifier );
+	ovrprintf( "Example init %s\n", identifier );
 }
-
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
@@ -46,8 +46,8 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 void start( const char * identifier )
 {
-	thdmax = OGCreateThread( my_thread, (void*)identifier );
-	printf( "Example start %s                   ++++++++++++++++++++%p %p\n", identifier, thdmax, &thdmax );
+	thdmax = OGCreateThread( my_thread, (void*)strdup(identifier) );
+	printf( "Example start %s(%p)                   ++++++++++++++++++++%p %p\n", identifier, identifier, thdmax, &thdmax );
 
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
 

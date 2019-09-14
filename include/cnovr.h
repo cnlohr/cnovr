@@ -68,7 +68,11 @@ struct cnovrstate_t
 
 } __attribute__((packed));
 
+#if defined( TCCINSTANCE ) && defined( WINDOWS )
+__declspec( dllimport ) struct cnovrstate_t * cnovrstate;
+#else
 extern struct cnovrstate_t * cnovrstate;
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr );

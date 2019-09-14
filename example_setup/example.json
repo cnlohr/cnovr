@@ -12,15 +12,15 @@
 			]
 		},
 		{
-			"cfile" : "example.c",
+			"_cfile" : "example.c",
 			"identifier" : "example2"
 		},
 		{
-			"cfile" : "example.c",
+			"_cfile" : "example.c",
 			"identifier" : "example3"
 		},
 		{
-			"cfile" : "example.c",
+			"_cfile" : "example.c",
 			"identifier" : "example4"
 		}
 	]

@@ -286,16 +286,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 		if ( ths->nShaderID )
 		{
 			CNOVRAlert( ths->base.tccctx, 3, "Compile OK: %s\n", ths->shaderfilebase );
-			//Note: If we got here, we were successful.
-			CNOVRFileTimeRemoveTagged( ths, 0 );
-			char stfb[CNOVR_MAX_PATH];
-			sprintf( stfb, "%s.geo", ths->shaderfilebase );
-			CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
-			sprintf( stfb, "%s.frag", ths->shaderfilebase );
-			CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
-			sprintf( stfb, "%s.vert", ths->shaderfilebase );
-			CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ths, 0 );
-
+			//Note: If we got here, we were successful. 
 			glDeleteProgram( ths->nShaderID );
 		}
 		ths->nShaderID = unProgramID;

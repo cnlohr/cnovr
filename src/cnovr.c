@@ -49,7 +49,6 @@ void HandleDestroy()
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const char* message, const void* userParam)
 {
-	printf( "GL Error: %s\n", message );
 	ovrprintf( "GL Error: %s\n", message );
 }
 
@@ -78,7 +77,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	if( allow_init_without_vr_mode != 2 )
 	{
 		EVRInitError e;
-		uint32_t vrtoken = VR_InitInternal( &e, EVRApplicationType_VRApplication_Scene );
+		uint32_t vrtoken;
+		vrtoken = VR_InitInternal( &e, EVRApplicationType_VRApplication_Scene );
 		if( !vrtoken )
 		{
 			ovrprintf( "Error calling VR_InitInternal: %d (%s)\n", e, VR_GetVRInitErrorAsEnglishDescription( e ) );
@@ -108,39 +108,43 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	}
 
 	//OK, OpenVR is set up.  Now, set up rendering system.
-	cnovrstate = malloc( sizeof( *cnovrstate ) );
-	memset( cnovrstate, 0, sizeof( *cnovrstate ) );
-	cnovrstate->fNear = 0.01;
-	cnovrstate->fFar = 100.0;
-	cnovrstate->has_ovr = has_vr;
-	cnovrstate->has_preview = 1;
-	cnovrstate->iEyeRenderWidth = -1;
-	cnovrstate->iEyeRenderHeight = -1;
-	cnovrstate->iPreviewWidth = -1;
-	cnovrstate->iPreviewHeight = -1;
-	cnovrstate->sterotargets[0] = 0;
-	cnovrstate->sterotargets[1] = 0;
-	cnovrstate->previewtarget = 0;
-	cnovrstate->fPreviewFOV = 95;
-	pose_make_identity( &cnovrstate->pPreviewPose );
-
-
-	ovrprintf( "Continuing state update.\n" );
-
-	if( has_vr )
 	{
-		cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)CNOVRGetOpenVRFunctionTable( IVRSystem_Version );
-		cnovrstate->oRenderModels = (struct VR_IVRRenderModels_FnTable *)CNOVRGetOpenVRFunctionTable( IVRRenderModels_Version );
-		cnovrstate->oCompositor = (struct VR_IVRCompositor_FnTable *)CNOVRGetOpenVRFunctionTable( IVRCompositor_Version );
-	}
+		cnovrstate = malloc( sizeof( *cnovrstate ) );
+		
+		ovrprintf( "CNOVR State Location: %p\n", cnovrstate );
+		
+		memset( cnovrstate, 0, sizeof( *cnovrstate ) );
+		cnovrstate->fNear = 0.01;
+		cnovrstate->fFar = 100.0;
+		cnovrstate->has_ovr = has_vr;
+		cnovrstate->has_preview = 1;
+		cnovrstate->iEyeRenderWidth = -1;
+		cnovrstate->iEyeRenderHeight = -1;
+		cnovrstate->iPreviewWidth = -1;
+		cnovrstate->iPreviewHeight = -1;
+		cnovrstate->sterotargets[0] = 0;
+		cnovrstate->sterotargets[1] = 0;
+		cnovrstate->previewtarget = 0;
+		cnovrstate->fPreviewFOV = 95;
+		pose_make_identity( &cnovrstate->pPreviewPose );
 
-	cnovrstate->openvr_renderposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
-	cnovrstate->openvr_trackedposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
-	cnovrstate->pRenderPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
-	cnovrstate->pTrackedPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
-	cnovrstate->bRenderPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
-	cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
-	cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
+		ovrprintf( "Continuing state update.\n" );
+
+		if( has_vr )
+		{
+			cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)CNOVRGetOpenVRFunctionTable( IVRSystem_Version );
+			cnovrstate->oRenderModels = (struct VR_IVRRenderModels_FnTable *)CNOVRGetOpenVRFunctionTable( IVRRenderModels_Version );
+			cnovrstate->oCompositor = (struct VR_IVRCompositor_FnTable *)CNOVRGetOpenVRFunctionTable( IVRCompositor_Version );
+		}
+
+		cnovrstate->openvr_renderposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->openvr_trackedposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->pRenderPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->pTrackedPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->bRenderPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
+	}
 
 	ovrprintf( "Initializing Extensions.\n" );
 
@@ -374,11 +378,10 @@ int CNOVRAlert( void * tag, int priority, const char * format, ... )
 int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap )
 {
 	char * buffer = 0;
-	int len = tasprintf( &buffer, format, ap );
-	if( len > 0 && buffer[len-1] == '\n' ) buffer[len-1] = 0;
+	int len = tvasprintf( &buffer, format, ap );
+	if( len > 0 && buffer[len-1] == '\n' ) buffer[len-1] = 0; //Strip off extra newlines.
 	puts( buffer );
 	CNOVRTCCLog( tag, buffer );
-	free( buffer );
 	return len;
 }
 

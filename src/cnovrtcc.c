@@ -50,19 +50,28 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	tcc_add_library( tce->state, "m" );
 	tcc_add_include_path( tce->state, "include" );
 	tcc_add_include_path( tce->state, "lib/tinycc/include" );
+	tcc_add_include_path( tce->state, "lib/systemheaders" );
 	tcc_add_include_path( tce->state, "rawdraw" );
 	tcc_add_include_path( tce->state, "openvr/headers" );
 	tcc_add_include_path( tce->state, "." );
+#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
+	tcc_add_include_path( tce->state, "C:/tcc/include/winapi" );
+	tcc_add_include_path( tce->state, "C:/tcc/include" );
+#ifdef WIN32
+	tcc_define_symbol( tce->state, "WIN32", "1" );
+#endif
+#ifdef WIN64
+	tcc_define_symbol( tce->state, "WIN64", "1" );
+#endif
+	tcc_define_symbol( tce->state, "WINDOWS", "1" );
+#endif
+	tcc_define_symbol( tce->state, "OSG_NOSTATIC", "1" );
 	tcc_define_symbol( tce->state, "TCC", "1" );
 	tcc_set_options( tce->state, "-nostdlib -rdynamic" );
 
-#ifdef WIN32
-	tcc_define_symbol( tce->state, "WIN32", "1" );
-	tcc_define_symbol( tce->state, "WINDOWS", "1" );
-#endif
-	printf( "CMidpoint\n" );
 	tcc_define_symbol( tce->state, "TCCINSTANCE", "1" );
-	printf( "Adding\n" );
+	tcc_define_symbol( tce->state, "OSG_NO_IMPLEMENTATION", "1" );
+	
 	r = tcc_add_file( tce->state, tce->tccfilename );
 	if( r )
 	{
@@ -100,6 +109,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	if( tce->bFirst && tce->init)
 	{
 		InternalInterfaceCreationDone( tce );
+		printf( "%p->%s %p\n", tce->init, tce->identifier, tce->identifier );
 		TCCInvocation( tce, tce->init( tce->identifier ) );
 		tce->bFirst = 0;
 	}
@@ -176,7 +186,7 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->bFirst = 1;
 	//CNOVRListAdd( cnovrLFTCheck, ret, ReloadTCCInstance  );
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
-	printf( "!!!!!!!!!!!!! Marking on %s\n", tccfilename );
+	printf( "!!!!!!!!!!!!! Marking on %s (%s/%p)\n", tccfilename, identifier, identifier );
 	return 0;
 }
 
