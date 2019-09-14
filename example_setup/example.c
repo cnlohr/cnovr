@@ -14,7 +14,7 @@ void * my_thread( void * v )
 	while(1)
 	{
 		printf( "THREADS 8 %s %p\n", v, thdmax );
-		OGUSleep(1000000);
+		OGUSleep(500000);
 		if( 1 )
 		{
 			node->pose.Pos[0] = rand()%10 - 5;

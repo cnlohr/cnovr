@@ -399,6 +399,7 @@ typedef struct filetimetagged_t
 	struct filetimetagged_t * next;
 	struct filetimetagged_t * prev;
 	CNOVRIndexedListByTag * correspondance;
+	int called_this_set;
 } filetimetagged;
 
 typedef struct filetimedata_t
@@ -430,16 +431,30 @@ void * thdfiletimechecker( void * v )
 				{
 					double origtime = k->time;
 					k->time = ft;
+
 					if( k->time > 1 ) //Make sure this isn't a first-time catch.
 					{
-						filetimetagged * l = k->front;
-						filetimetagged * staged = &ftstaged;
+						filetimetagged * l;
+						filetimetagged * staged;
+
+						l = k->front;
+						while( l )
+						{
+							l->called_this_set = 0;
+							l = l->next;
+						}
+refresh_set:
+						front = ((filetimedata*)e->data);
+						staged = &ftstaged;
+						l = k->front;
 						while( l )
 						{
 							staged->tag = l->tag;
 							staged->opaquev = l->opaquev;
 							staged->fn = l->fn;
 							staged->tcctag = l->tcctag;
+							if( l->called_this_set ) { l = l->next; continue; }
+							l->called_this_set = 1;
 							front->list_changed = 0; //Would not be possible to trigger in callback.
 							OGTSUnlockMutex( mutFileTimeCacher );
 							printf( "calling %p with *%p* %p in %p\n", l->fn, e->key, l->opaquev, l->tag );
@@ -448,7 +463,7 @@ void * thdfiletimechecker( void * v )
 							if( front->list_changed )
 							{
 								front->list_changed = 0;
-								break;
+								goto refresh_set;
 							}
 							staged->tag = 0;
 							staged->opaquev = 0;
@@ -493,6 +508,8 @@ static void ftremovefn( void * tag, void * item, void * opaque )
 {
 	filetimetagged * t = (filetimetagged*)item;
 	filetimedata * d = (filetimedata*)opaque;
+
+	d->list_changed = 1;
 
 	if( d->front == t )
 	{
