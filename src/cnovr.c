@@ -31,7 +31,7 @@ void InternalSetupTCCInterface();
 void HandleKey( int keycode, int bDown )
 {
 	if( (keycode == 27 || keycode == 65307) && bDown ) CNOVRShutdown( );
-	printf( "... %d\n", keycode );
+	printf( "!.. %d\n", keycode );
 }
 
 void HandleButton( int x, int y, int button, int bDown )
@@ -166,8 +166,10 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
 
-	CNOVRJobInit();
 	CNOVRInternalStartCacheSystem();
+	CNOVRJobInit();
+
+	ovrprintf( "Init complete.\n" );
 
 	return 0;
 }
@@ -203,11 +205,11 @@ void CNOVRUpdate()
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 
 	//Scene Graph Pre-Render
-	CNOVRListCall( cnovrLUpdate, 0 );
+	CNOVRListCall( cnovrLUpdate, 0, 0 );
 
 	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
 
-	CNOVRListCall( cnovrLPrerender, 0 );
+	CNOVRListCall( cnovrLPrerender, 0, 0 );
 
 	//Waste some time...
 	CNFGHandleInput();

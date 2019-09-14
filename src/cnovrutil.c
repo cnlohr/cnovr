@@ -342,6 +342,7 @@ void FileSearchRemovePath( const char * path )
 	int i;
 	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
 	{
+		if( search_paths[i] == 0 ) continue;
 		if( strcmp( search_paths[i], path ) == 0 )
 		{
 			free( search_paths[i] );
@@ -426,32 +427,38 @@ void * thdfiletimechecker( void * v )
 				filetimedata * k = front;
 				if( k->time != ft )
 				{
+					double origtime = k->time;
 					k->time = ft;
-					filetimetagged * l = k->front;
-					filetimetagged * staged = &ftstaged;
-					while( l )
+					if( k->time > 1 ) //Make sure this isn't a first-time catch.
 					{
-						staged->tag = l->tag;
-						staged->opaquev = l->opaquev;
-						staged->fn = l->fn;
-						front->list_changed = 0; //Would not be possible to trigger in callback.
-						OGTSUnlockMutex( mutFileTimeCacher );
-						if( l->fn ) TCCInvocation( l->tag, l->fn( l->tag, l->opaquev ) );
-						OGTSLockMutex( mutFileTimeCacher );
-						if( front->list_changed )
+						filetimetagged * l = k->front;
+						filetimetagged * staged = &ftstaged;
+						while( l )
 						{
-							front->list_changed = 0;
-							break;
+							staged->tag = l->tag;
+							staged->opaquev = l->opaquev;
+							staged->fn = l->fn;
+							front->list_changed = 0; //Would not be possible to trigger in callback.
+							OGTSUnlockMutex( mutFileTimeCacher );
+							printf( "calling %p with *%p* %p in %p\n", l->fn, e->key, l->opaquev, l->tag );
+							if( l->fn ) TCCInvocation( l->tag, l->fn( l->tag, l->opaquev ) );
+							OGTSLockMutex( mutFileTimeCacher );
+							if( front->list_changed )
+							{
+								front->list_changed = 0;
+								break;
+							}
+							staged->tag = 0;
+							staged->opaquev = 0;
+							staged->fn = 0;
+							l = l->next;
 						}
-						staged->tag = 0;
-						staged->opaquev = 0;
-						staged->fn = 0;
-						l = l->next;
 					}
 				}
 				while( OGGetSema( semPendinger ) == 0 ) OGUnlockSema( semPendinger ); 
 				OGTSUnlockMutex( mutFileTimeCacher );
 				OGUSleep( 1000 );
+				//CNOVRListCall( cnovrLFTCheck, 0, 0 );
 				OGTSLockMutex( mutFileTimeCacher );
 			}
 		}
@@ -521,6 +528,7 @@ void CNOVRInternalStopCacheSystem()
 
 void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
+	printf( "Adding FileTimeWatch %s %p\n", fname, fn );
 	OGTSLockMutex( mutFileTimeCacher );
 	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	if( !ftd )
@@ -942,7 +950,7 @@ void CNOVRListSystemDestroy()
 	}
 }
 
-void CNOVRListCall( cnovrRunList l, void * data )
+void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 {
 	cnhashtable * t = ListHTs[l];
 	og_mutex_t  m = ListMTs[l];
@@ -957,6 +965,7 @@ void CNOVRListCall( cnovrRunList l, void * data )
 			OGTSUnlockMutex( m );
 			TCCInvocation( e->key, cb( e->key, data ) );
 			OGTSLockMutex( m );
+			CNHashDelete( t, e->key );
 		}
 	}
 	OGTSUnlockMutex( m );

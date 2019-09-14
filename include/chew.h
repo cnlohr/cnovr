@@ -60,10 +60,6 @@ void * chewGetProcAddress( const char *name );
 
 // Add the things you want here; DO NOT put ; at end of line.
 
-#if !defined(WIN32) && !defined(WIN64) && !defined(WINDOWS)
-CHEWTYPEDEF( void, glXCreateContextAttribs, GLuint array )
-#endif
-
 CHEWTYPEDEF( void, glGenVertexArrays, GLsizei n, GLuint *arrays )
 CHEWTYPEDEF( void, glBindVertexArray, GLuint array )
 CHEWTYPEDEF( void, glGenBuffers, GLsizei n, GLuint * buffers )

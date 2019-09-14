@@ -37,8 +37,8 @@ void FileSearchRemovePath( const char * path );
 
 
 //These must be threadsafe.  Also, need a way to wholesale clear out a class of these guys.
-void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev );  //Warning: This is also slow... We need to figure out a better way.
-void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev ); //Warning: this is slow. Avoid its use.
+void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev );  //XXX: This is also slow... We need to figure out a better way.
+void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev ); //XXX: this is slow. Avoid its use.
 void CNOVRFileTimeRemoveTagged( void * tag, int wait_on_pending );
 
 double CNOVRFileTimeCached( const char * fname );
@@ -76,7 +76,7 @@ typedef enum
 	cnovrLMAX,
 } cnovrRunList;
 
-void CNOVRListCall( cnovrRunList l, void * data ); 
+void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call ); 
 void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
 void CNOVRListDeleteTag( void * base_object );
 

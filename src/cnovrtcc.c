@@ -19,14 +19,15 @@ static og_mutex_t tccmutex;
 
 static void StopTCCInstance( TCCInstance * tcc );
 
-static void ReloadTCCInstance( void * tag, void * opaquev )
+static void ReloadTCCInstance( void * fname, void * opaquev )
 {
+	void * tag = TCCGetTag();
 	if( !tccmutex ) tccmutex = OGCreateMutex();
 	int r;
 	TCCInstance * tce = (TCCInstance *)tag;
 	int retryno = (intptr_t)opaquev;
 
-	printf( "Reloading %s\n", tce->tccfilename );
+	printf( "Reloading;%s\n", tce->tccfilename );
 	OGLockMutex( tccmutex );
 	if( tce->bDontCompile )
 	{
@@ -34,17 +35,14 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 		OGUnlockMutex( tccmutex );
 		return;
 	}
-	printf( "MARK A\n" );
 	tce->bDontCompile = 1;
 
 	TCCState * backup_state = tce->state;
 
 	tce->state = tcc_new();
 	tcc_set_output_type(tce->state, TCC_OUTPUT_MEMORY);
-	printf( "MARK B\n" );
 
 	InternalPopulateTCC( tce );
-	printf( "MARK C\n" );
 
 	char * cts;
 	tasprintf( &cts, "0x%p", tce );
@@ -89,12 +87,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	tce->init =  (tcccbfn)tcc_get_symbol( tce->state, "init" );
 	tce->start = (tcccbfn)tcc_get_symbol( tce->state, "start" );
-	tce->stop =  (tcccbfn)tcc_get_symbol( tce->state, "stop" );
 
 	printf( "Ok... Unlocking\n" );
-
-
-
 
 
 
@@ -103,11 +97,17 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	if( tce->bFirst && tce->init)
 	{
+		InternalInterfaceCreationDone( tce );
 		TCCInvocation( tce, tce->init( tce->identifier ) );
 		tce->bFirst = 0;
 	}
+	else
+	{
+		StopTCCInstance( tce );
+		InternalInterfaceCreationDone( tce );
+	}
 
-	StopTCCInstance( tce );
+	tce->stop =  (tcccbfn)tcc_get_symbol( tce->state, "stop" );
 
 	if( backup_state ) tcc_delete( backup_state );
 	if( backupimage ) free( backupimage );
@@ -172,9 +172,9 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->additionalfiles = additionalfiles;
 	ret->bDynamicGen = bDynamicGen;
 	ret->bFirst = 1;
-	CNOVRJobTack( cnovrQLow, ReloadTCCInstance, ret, 0, 0 );
+	//CNOVRListAdd( cnovrLFTCheck, ret, ReloadTCCInstance  );
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
-	printf( "Marking on %s\n", tccfilename );
+	printf( "!!!!!!!!!!!!! Marking on %s\n", tccfilename );
 	return 0;
 }
 
@@ -198,6 +198,7 @@ void DestroyTCCInstance( TCCInstance * tcc )
 
 typedef struct TCCSystem_t
 {
+	char *  suitefile;
 	char ** searchfolders;
 	TCCInstance ** instances; //sb_'d
 } TCCSystem;
@@ -211,12 +212,13 @@ void CNOVRTCCLog( void * data, const char * tolog )
 	//XXX TODO
 }
 
-static void CNOVRTCCSystemFileChange( void * tag, void * opaquev )
+static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 {
-	const char * tccsuitefile = (const char*)opaquev;
-	
+	printf( "File change event\n" );
+	const char * tccsuitefile = cnovrtccsystem.suitefile;
+
 	CNOVRStopTCCSystem();
-	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, (void*)tccsuitefile );
+	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 
 	int filelen;
 	char * filestr = FileToString( tccsuitefile, &filelen );
@@ -248,6 +250,7 @@ static void CNOVRTCCSystemFileChange( void * tag, void * opaquev )
 					t = tokens + i++;
 					char * st = jsmnstrdup( filestr, t->start, t->end );
 					FileSearchAddPath( st );
+					printf( "%p %p\n", cnovrtccsystem.searchfolders, st );
 					sb_push( cnovrtccsystem.searchfolders, strdup( st ) );
 				}
 				printf( "%d %d\n", i, l );
@@ -332,6 +335,7 @@ static void CNOVRTCCSystemFileChange( void * tag, void * opaquev )
 						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, 0 ) );
 
 					if( additionalfiles ) sb_free( additionalfiles );
+					additionalfiles = 0;
 				}
 			}
 			t = tokens + i++;
@@ -353,7 +357,11 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 {
 	tcccrash_install();
 	CNOVRStopTCCSystem();
-	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, (void*)tccsuitefile );
+	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
+	cnovrtccsystem.suitefile = strdup( tccsuitefile );
+	printf( "STARTING (and adding list) %s %p\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
+	//CNOVRListAdd( cnovrLFTCheck, &cnovrtccsystem, CNOVRTCCSystemFileChange );
+	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 }
 
 void CNOVRStopTCCSystem()
@@ -370,6 +378,7 @@ void CNOVRStopTCCSystem()
 		}
 	
 		sb_free( cnovrtccsystem.instances );
+		cnovrtccsystem.instances = 0;
 	}
 
 	if( cnovrtccsystem.searchfolders )
@@ -381,6 +390,7 @@ void CNOVRStopTCCSystem()
 			free( cnovrtccsystem.searchfolders[i] );
 		}
 		sb_free( cnovrtccsystem.searchfolders );
+		cnovrtccsystem.searchfolders = 0;
 	}
 
 }

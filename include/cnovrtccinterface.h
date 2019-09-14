@@ -42,6 +42,7 @@ void OGUnlockSafeMutices();
 
 void InternalShutdownTCC( TCCInstance * tcc );
 void InternalPopulateTCC( TCCInstance * tcc );
+void InternalInterfaceCreationDone( TCCInstance * tce );
 
 #endif
 

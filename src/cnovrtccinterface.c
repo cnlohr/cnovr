@@ -92,19 +92,19 @@ void InternalSetupTCCInterface()
 
 void InternalShutdownTCC( TCCInstance * tce )
 {
-	printf( "LOCK\n" );
-	printf( "LOCKIN\n" );
 	OGLockMutex( tccinterfacemutex );
-	CNOVRJobCancelAllTag( tce, 0 );
-	//XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
-	printf( "LOCKINGOINGA\n" );
+	CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
 	CNOVRListDeleteTag( tce );
-	printf( "LOCKINGOING\n" );
 	object_cleanup * o = CNHashGetValue( objects_to_delete, tce );
+	printf( "Cleanup: %p\n", o );
 	if( o )
 	{
 		void * i;
-		cnptrset_foreach( o->threads, i ) OGCancelThread( (og_thread_t)i );
+		cnptrset_foreach( o->threads, i )
+		{
+			printf( "Cancelling thread: %p in %p\n", i, o->threads );
+			OGCancelThread( (og_thread_t)i );
+		}
 		cnptrset_destroy( o->threads );
 		cnptrset_foreach( o->tccobjects, i ) CNOVRDeleteBase( ((cnovr_base*)i) );
 		cnptrset_destroy( o->tccobjects );
@@ -117,9 +117,9 @@ void InternalShutdownTCC( TCCInstance * tce )
 		cnptrset_foreach( o->mallocedram, i ) free( i );
 		cnptrset_destroy( o->mallocedram );
 		free( o );
+		printf( "ERASING {%p}\n", tce );
 		CNHashDelete( objects_to_delete, tce );
 	}
-	printf( "LOCKEND\n" );
 	OGUnlockMutex( tccinterfacemutex );
 }
 
@@ -260,22 +260,8 @@ static int TCCprintf( const char * format, ... )
 
 void InternalPopulateTCC( TCCInstance * tce )
 {
-	printf( "++1\n" );
+	printf( "InternalPopulateTCC { %p }\n", tce );
 	OGLockMutex( tccinterfacemutex );
-	printf( "++1B\n" );
-
-	object_cleanup * o = malloc( sizeof( object_cleanup ) );
-	memset( o, 0, sizeof( *o ) );
-	CNHashInsert( objects_to_delete, tce, o );
-
-	printf( "++2\n" );
-	o->mallocedram  = cnptrset_create();
-	o->tccobjects = cnptrset_create();
-	o->mutices = cnptrset_create();
-	o->threads = cnptrset_create();
-	o->semaphores = cnptrset_create();
-	o->tlses = cnptrset_create();
-
 
 	TCCExport( printf );
 	TCCExportS( OGSleep );
@@ -298,9 +284,20 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( OGDeleteTLS );
 	TCCExportS( OGGetTLS );
 	TCCExportS( OGSetTLS );
-	printf( "++3\n" );
 
 	OGUnlockMutex( tccinterfacemutex );
-	printf( "++4\n" );
+}
+
+void InternalInterfaceCreationDone( TCCInstance * tce )
+{
+	object_cleanup * o = malloc( sizeof( object_cleanup ) );
+	memset( o, 0, sizeof( *o ) );
+	CNHashInsert( objects_to_delete, tce, o );
+	o->mallocedram  = cnptrset_create();
+	o->tccobjects = cnptrset_create();
+	o->mutices = cnptrset_create();
+	o->threads = cnptrset_create();
+	o->semaphores = cnptrset_create();
+	o->tlses = cnptrset_create();
 }
 
