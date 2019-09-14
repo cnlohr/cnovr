@@ -9,6 +9,7 @@
 #include "cnovrutil.h"
 #include "cnovrparts.h"
 #include "cnovrtcc.h"
+#include "cnovrtccinterface.h"
 
 struct cnovrstate_t  * cnovrstate;
 
@@ -48,13 +49,16 @@ void HandleDestroy()
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const char* message, const void* userParam)
 {
+	printf( "GL Error: %s\n", message );
 	ovrprintf( "GL Error: %s\n", message );
 }
 
 
-int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr )
+int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr_mode )
 {
 	int r;
+
+	OGResetSafeMutices();
 
 	InternalSetupTCCInterface();
 	CNOVRListSystemInit();
@@ -71,32 +75,37 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	ovrprintf( "Initializing OpenVR.\n" );
 
 	int has_vr = 0;
-
-	EVRInitError e;
-	uint32_t vrtoken = VR_InitInternal( &e, EVRApplicationType_VRApplication_Scene );
-	if( !vrtoken )
+	if( allow_init_without_vr_mode != 2 )
 	{
-		ovrprintf( "Error calling VR_InitInternal: %d (%s)\n", e, VR_GetVRInitErrorAsEnglishDescription( e ) );
-		if( !allow_init_without_vr )
-			return -e;
+		EVRInitError e;
+		uint32_t vrtoken = VR_InitInternal( &e, EVRApplicationType_VRApplication_Scene );
+		if( !vrtoken )
+		{
+			ovrprintf( "Error calling VR_InitInternal: %d (%s)\n", e, VR_GetVRInitErrorAsEnglishDescription( e ) );
+			if( !allow_init_without_vr_mode )
+				return -e;
+		}
+		else
+		{
+			has_vr = 1;
+		}
+
+
+		if( has_vr )
+		{
+			if ( ! VR_IsInterfaceVersionValid(IVRSystem_Version) )
+			{
+				ovrprintf( "OpenVR Interface Invalid.\n" );
+				if( !allow_init_without_vr_mode )
+					return -1;
+				has_vr = 0;
+			}
+		}
 	}
 	else
 	{
-		has_vr = 1;
+		ovrprintf( "Mode shows OpenVR Disabled.\n" );
 	}
-
-
-	if( has_vr )
-	{
-		if ( ! VR_IsInterfaceVersionValid(IVRSystem_Version) )
-		{
-			ovrprintf( "OpenVR Interface Invalid.\n" );
-			if( !allow_init_without_vr )
-				return -1;
-			has_vr = 0;
-		}
-	}
-
 
 	//OK, OpenVR is set up.  Now, set up rendering system.
 	cnovrstate = malloc( sizeof( *cnovrstate ) );
@@ -144,12 +153,15 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		ovrprintf( "Using HMD: %s\n", strbuf );
 	}
 
+	ovrprintf( "OpenGL %s\n", glGetString(GL_VERSION) );
 
 	if( 1 )
 	{
-		glDebugMessageCallback( (GLDEBUGPROC)DebugCallback, 0 );
-		glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE );
+		ovrprintf( "Setting debug callback\n" );
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE );
+		glDebugMessageCallback( (GLDEBUGPROC)DebugCallback, 0 );
+		ovrprintf( "Debug installed\n" );
 	}
 
 	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );

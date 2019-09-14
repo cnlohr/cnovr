@@ -9,6 +9,8 @@
 
 typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 
+//////////////////////////////////////////////////////////////////////////////
+
 //Threadsafe asprintf, DO NOT DELETE RETURN POINTER!  It will automatically be deleted on thread closure.
 //Both of these functions share the same heap data.
 int tasprintf( char ** out, const char * format, ... );

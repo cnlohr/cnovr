@@ -5,7 +5,7 @@
 
 int main()
 {
-	if( CNOVRInit( "test", 640, 480, 1 ) )
+	if( CNOVRInit( "test", 640, 480, 2 ) )
 	{
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;

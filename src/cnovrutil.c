@@ -101,9 +101,9 @@ struct NamedPtrType
 void * GetNamedPtr( const char * namedptr, const char * type )
 {
 	struct NamedPtrType * ret;
-	OGLockMutex( namedptrmutex );
+	OGTSLockMutex( namedptrmutex );
 	ret = (struct NamedPtrType *)CNHashGetValue( namedptrtable, namedptr );
-	OGUnlockMutex( namedptrmutex );
+	OGTSUnlockMutex( namedptrmutex );
 	if( strcmp( type, ret->typename ) == 0 )
 		return ret->data;
 	return 0;
@@ -112,7 +112,7 @@ void * GetNamedPtr( const char * namedptr, const char * type )
 void * NamedPtrFn( const char * namedptr, const char * type, int size )
 {
 	cnhashelement * e;
-	OGLockMutex( namedptrmutex );
+	OGTSLockMutex( namedptrmutex );
 	e = CNHashIndex( namedptrtable, namedptr ); //If get fails, insert... Same as Insert for non-duplicate hashes.
 	if( !e->data )
 	{
@@ -295,7 +295,7 @@ char * FileSearch( const char * fname )
 		return cret;
 	}
 
-	OGLockMutex( search_paths_mutex );
+	OGTSLockMutex( search_paths_mutex );
 	int i;
 
 	//Search in reverse, find from most recent path first.
@@ -310,7 +310,7 @@ char * FileSearch( const char * fname )
 		}
 	}
 	if( i < 0 ) cret[0] = 0;
-	OGUnlockMutex( search_paths_mutex );
+	OGTSUnlockMutex( search_paths_mutex );
 	return cret;
 }
 
@@ -323,7 +323,7 @@ void FileSearchAddPath( const char * path )
 		search_path_return = OGCreateTLS();
 	}
 
-	OGLockMutex( search_paths_mutex );
+	OGTSLockMutex( search_paths_mutex );
 	int i;
 	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
 	{
@@ -333,12 +333,12 @@ void FileSearchAddPath( const char * path )
 			break;
 		}
 	}
-	OGUnlockMutex( search_paths_mutex );
+	OGTSUnlockMutex( search_paths_mutex );
 }
 
 void FileSearchRemovePath( const char * path )
 {
-	OGLockMutex( search_paths_mutex );
+	OGTSLockMutex( search_paths_mutex );
 	int i;
 	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
 	{
@@ -363,7 +363,7 @@ void InternalFileSearchCloseThread()
 
 void InternalFileSearchShutdown()
 {
-	OGLockMutex( search_paths_mutex );
+	OGTSLockMutex( search_paths_mutex );
 	int i;
 	for( i = 0; i < MAX_SEARCH_PATHS; i++ )
 	{
@@ -373,7 +373,7 @@ void InternalFileSearchShutdown()
 			search_paths[i] = 0;
 		}
 	}
-	OGUnlockMutex( search_paths_mutex );
+	OGTSUnlockMutex( search_paths_mutex );
 	OGDeleteMutex( search_paths_mutex );
 	OGDeleteTLS( search_path_return );
 }
@@ -415,7 +415,7 @@ void * thdfiletimechecker( void * v )
 	while( !intStopFileTimeCacher )
 	{
 		//Tricky: This is safe because array_size only increases.
-		OGLockMutex( mutFileTimeCacher );
+		OGTSLockMutex( mutFileTimeCacher );
 		for( i = 0; i < htFileTimeCacher->array_size; i++ )
 		{
 			cnhashelement * e = htFileTimeCacher->elements + i;
@@ -435,9 +435,9 @@ void * thdfiletimechecker( void * v )
 						staged->opaquev = l->opaquev;
 						staged->fn = l->fn;
 						front->list_changed = 0; //Would not be possible to trigger in callback.
-						OGUnlockMutex( mutFileTimeCacher );
+						OGTSUnlockMutex( mutFileTimeCacher );
 						if( l->fn ) TCCInvocation( l->tag, l->fn( l->tag, l->opaquev ) );
-						OGLockMutex( mutFileTimeCacher );
+						OGTSLockMutex( mutFileTimeCacher );
 						if( front->list_changed )
 						{
 							front->list_changed = 0;
@@ -450,12 +450,12 @@ void * thdfiletimechecker( void * v )
 					}
 				}
 				while( OGGetSema( semPendinger ) == 0 ) OGUnlockSema( semPendinger ); 
-				OGUnlockMutex( mutFileTimeCacher );
+				OGTSUnlockMutex( mutFileTimeCacher );
 				OGUSleep( 1000 );
-				OGLockMutex( mutFileTimeCacher );
+				OGTSLockMutex( mutFileTimeCacher );
 			}
 		}
-		OGUnlockMutex( mutFileTimeCacher );
+		OGTSUnlockMutex( mutFileTimeCacher );
 		OGUSleep( 1000 );
 	}
 	return 0;
@@ -463,7 +463,7 @@ void * thdfiletimechecker( void * v )
 
 double FileTimeCached( const char * fname )
 {
-	OGLockMutex( mutFileTimeCacher );
+	OGTSLockMutex( mutFileTimeCacher );
 	filetimedata * ret = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	if( ret )
 	{
@@ -475,7 +475,7 @@ double FileTimeCached( const char * fname )
 	in->front = 0;
 	in->time = 0;
 	CNHashInsert( htFileTimeCacher, strdup( fname ), in );
-	OGUnlockMutex( mutFileTimeCacher );
+	OGTSUnlockMutex( mutFileTimeCacher );
 	return 0;
 }
 
@@ -521,7 +521,7 @@ void CNOVRInternalStopCacheSystem()
 
 void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
-	OGLockMutex( mutFileTimeCacher );
+	OGTSLockMutex( mutFileTimeCacher );
 	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	if( !ftd )
 	{
@@ -559,7 +559,7 @@ failthrough:
 
 void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
-	OGLockMutex( mutFileTimeCacher );
+	OGTSLockMutex( mutFileTimeCacher );
 	filetimedata * ret = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	filetimetagged ** t = &ret->front;
 	while( *t )
@@ -572,12 +572,12 @@ void CNOVRFileTimeRemoveWatch( const char * fname, cnovr_cb_fn fn, void * tag, v
 		CNOVRIndexedListDeleteItemHandle( ftindexlist, (*t)->correspondance );
 	}
 	ret->list_changed = 1;
-	OGUnlockMutex( mutFileTimeCacher );
+	OGTSUnlockMutex( mutFileTimeCacher );
 }
 
 void CNOVRFileTimeRemoveTagged( void * tag, int wait_on_pending )
 {
-	OGLockMutex( mutFileTimeCacher );
+	OGTSLockMutex( mutFileTimeCacher );
 	CNOVRIndexedListDeleteTag( ftindexlist, tag );
 	OGUnlockMutex( mutFileTimeCacher );
 
@@ -694,7 +694,7 @@ static void * CNOVRJobProcessor( void * v )
 	while( !jq->quittingnow )
 	{
 		OGLockSema( jq->sem );
-		OGLockMutex( jq->mut );
+		OGTSLockMutex( jq->mut );
 		CNOVRJobElement * front = jq->front;
 		CNOVRJobElement * staged = &(jq->staged);
 		if( front )
@@ -703,7 +703,7 @@ static void * CNOVRJobProcessor( void * v )
 			jq->is_staged = 1;
 			BackendDeleteJob( jq, front );
 		}
-		OGUnlockMutex( jq->mut );
+		OGTSUnlockMutex( jq->mut );
 
 		if( front )
 		{
@@ -715,9 +715,9 @@ static void * CNOVRJobProcessor( void * v )
 			staged->fn = 0;
 			jq->is_staged = 0;
 			//In case any close-outs were pending.
-			OGLockMutex( jq->mut );
+			OGTSLockMutex( jq->mut );
 			while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
-			OGUnlockMutex( jq->mut );
+			OGTSUnlockMutex( jq->mut );
 		}
 	}
 	return 0;
@@ -779,7 +779,7 @@ void CNOVRJobStop()
 int CNOVRJobProcessQueueElement( cnovrQueueType q )
 {
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
-	OGLockMutex( jq->mut );
+	OGTSLockMutex( jq->mut );
 	CNOVRJobElement * front = jq->front;
 	if( front )
 	{
@@ -800,7 +800,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		//In case any close-outs were pending.
 		//This is probably a place worth peeking if there's a problem found with this code
 		//verify no race condition in your particular application/fitness
-		OGLockMutex( jq->mut );
+		OGTSLockMutex( jq->mut );
 		while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
 		OGUnlockMutex( jq->mut );
 		return 1;
@@ -821,7 +821,7 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
-	OGLockMutex( jq->mut );
+	OGTSLockMutex( jq->mut );
 
 	//Make sure we don't permit addition of a delete-in-progress, in case the user has chained events.
 	if( jq->deletingnow && jq->deletingtag == tag ) goto fail;
@@ -865,7 +865,7 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaque
 
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
-	OGLockMutex( jq->mut );
+	OGTSLockMutex( jq->mut );
 	//Look for job tdelete
 	CNOVRJobElement * dupat = (CNOVRJobElement*)CNHashGetValue( jq->hash, &compe );
 	if( dupat )
@@ -887,15 +887,15 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 	int list;
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
-		OGLockMutex( CNOVRJEQ[list].mut );
-		OGLockMutex( CNOVRJEQ[list].deletingmut );
+		OGTSLockMutex( CNOVRJEQ[list].mut );
+		OGTSLockMutex( CNOVRJEQ[list].deletingmut );
 		CNOVRJEQ[list].deletingtag = tag;
 		CNOVRJEQ[list].deletingnow = 1;
 	}
 	CNOVRIndexedListDeleteTag( JQELIST, tag );
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
-		OGUnlockMutex( CNOVRJEQ[list].mut );
+		OGTSUnlockMutex( CNOVRJEQ[list].mut );
 	}
 
 	for( list = 0; list < cnovrQMAX; list++ )
@@ -911,7 +911,7 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
 		CNOVRJEQ[list].deletingtag = 0;
-		OGUnlockMutex( CNOVRJEQ[list].deletingmut );
+		OGTSUnlockMutex( CNOVRJEQ[list].deletingmut );
 	}
 }
 
@@ -947,19 +947,19 @@ void CNOVRListCall( cnovrRunList l, void * data )
 	cnhashtable * t = ListHTs[l];
 	og_mutex_t  m = ListMTs[l];
 	int i;
-	OGLockMutex( m );
+	OGTSLockMutex( m );
 	for( i = 0; i < t->array_size; i++ )
 	{
 		cnhashelement * e = &t->elements[i];
 		cnovr_cb_fn * cb = (cnovr_cb_fn*)e->data;
 		if( cb )
 		{
-			OGUnlockMutex( m );
+			OGTSUnlockMutex( m );
 			TCCInvocation( e->key, cb( e->key, data ) );
-			OGLockMutex( m );
+			OGTSLockMutex( m );
 		}
 	}
-	OGUnlockMutex( m );
+	OGTSUnlockMutex( m );
 }
 
 
@@ -968,10 +968,10 @@ void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
 	og_mutex_t  m = ListMTs[l];
 	cnhashelement * e;
 
-	OGLockMutex( m );
+	OGTSLockMutex( m );
 	e = CNHashInsert( ListHTs[l], b, fn );
 	e->data = fn;	//Overwrite if called again.
-	OGUnlockMutex( m );
+	OGTSUnlockMutex( m );
 }
 
 void CNOVRListDeleteTag( void * b )
@@ -980,9 +980,9 @@ void CNOVRListDeleteTag( void * b )
 	for( l = 0; l < cnovrLMAX; l++ )
 	{
 		og_mutex_t  m = ListMTs[l];
-		OGLockMutex( m );
+		OGTSLockMutex( m );
 		CNHashDelete( ListHTs[l], b );
-		OGUnlockMutex( m );
+		OGTSUnlockMutex( m );
 	}
 }
 

@@ -66,6 +66,7 @@ void chewInit() {
 	{
 		void * v = *syms[i] = (void*)chewGetProcAddress( symnames[i] );
 		if( !v ) fprintf( stderr, "Warning: Can't find \"gl%s\"\n", symnames[i] );
+		else printf( "%p = %s\n", v, symnames[i] );
 	}
 }
 

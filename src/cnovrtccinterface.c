@@ -9,12 +9,59 @@
 #include <string.h>
 #include <cnrbtree.h>
 
-//XXX TODO:
-// Consider: What if we've called back into some core system which is currently locked.
-//  if we cancel the thread, it will remain locked.
-//
-//TODO: We need to make this thing a set.
+////////////////////////////////////////////////////////////////////////////////
 
+og_tls_t ogsafelocktls;
+
+CNRBTREETEMPLATE( og_mutex_t, int, RBptrcmp, RBptrcpy, RBnullop );
+
+void OGTSLockMutex( og_mutex_t m )
+{
+	cnrbtree_og_mutex_tint * tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
+	if( !tree ) return;
+	RBA( tree, m )++;
+}
+
+void OGTSUnlockMutex( og_mutex_t m )
+{
+	cnrbtree_og_mutex_tint * tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
+	if( !tree ) return;
+	RBA( tree, m )--;
+}
+
+void OGResetSafeMutices()
+{
+	cnrbtree_og_mutex_tint * tree;
+	if( !ogsafelocktls )
+	{
+		ogsafelocktls = OGCreateTLS();
+	}
+	tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
+	if( !tree )
+	{
+		tree = cnrbtree_og_mutex_tint_create();
+	}
+}
+
+void OGUnlockSafeMutices()
+{
+	cnrbtree_og_mutex_tint * tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
+	RBFOREACH( og_mutex_tint, tree, i )
+	{
+		if( i->data < 0 )
+		{
+			fprintf( stderr, "Serious fault: Safe lock has been unlocked more times than it should have.\n" );
+			continue;
+		}
+		while( i->data )
+		{
+			OGUnlockMutex( i->key );
+			i->data--;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 og_tls_t tcctlstag;
 og_mutex_t tccinterfacemutex;

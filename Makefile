@@ -18,7 +18,7 @@ LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
 #LDFLAGS+=./libopenvr_api.so
 
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
-CFLAGS +=-O1 -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
+CFLAGS +=-O1 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
 
 
 #CFLAGS+=-Os -ffunction-sections -fdata-sections
