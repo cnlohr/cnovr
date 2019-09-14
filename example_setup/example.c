@@ -14,7 +14,7 @@ void * my_thread( void * v )
 {
 	while(1)
 	{
-		//printf( "THREADS 9 %s %p\n", v, thdmax );
+		printf( "THREADS 9 %p %p\n", v, thdmax );
 		OGUSleep(500000);
 		if( 1 )
 		{
@@ -46,7 +46,11 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 void start( const char * identifier )
 {
-	thdmax = OGCreateThread( my_thread, (void*)strdup(identifier) );
+	uint64_t stdr = (uint64_t)strdup(identifier);
+	printf( "%p\n", stdr );
+	printf( "MARRRR %p\n", stdr );
+	printf( "MARRRR %s\n", stdr );
+	thdmax = OGCreateThread( my_thread, (void*)stdr );
 	printf( "Example start %s(%p)                   ++++++++++++++++++++%p %p\n", identifier, identifier, thdmax, &thdmax );
 
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );

@@ -318,11 +318,14 @@ static char * TCCstrndup(const char * str, size_t size)
 	return ret;
 }
 
-static char * TCCstrdup(const char * str )
+char * TCCstrdup(const char * str )
 {
-	char * ret = strdup( str );
+	char * ret = (uint64_t)strdup( str );
+	printf( "DUPPING: %p %p\n", ret, str );
+	printf( "DUPPING: %s %s\n", ret, str );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->mallocedram, ret );
+	printf( "RETURNING: %p\n", ret );
 	return ret;
 }
 

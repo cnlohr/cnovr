@@ -309,8 +309,8 @@ int CheckFileExists(const char * szPath)
 
 char * FileSearch( const char * fname )
 {
-	#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
-	#else
+	#if !(defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 ))
+	struct stat sbuf;
 	#define CheckFileExists(x) ( stat( x, &sbuf ) == 0 )
 	#endif
 

@@ -2,6 +2,7 @@
 #define _CNOVRUTIL_H
 
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <cnovrparts.h>
 
