@@ -14,7 +14,7 @@ void * my_thread( void * v )
 {
 	while(1)
 	{
-		printf( "THREADS 9 %p %p\n", v, thdmax );
+		printf( "THREADS 9 %s %p\n", v, thdmax );
 		OGUSleep(500000);
 		if( 1 )
 		{
@@ -43,13 +43,11 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( root, node );
 }
 
+char * strdup( char * identifier);
 
 void start( const char * identifier )
 {
-	uint64_t stdr = (uint64_t)strdup(identifier);
-	printf( "%p\n", stdr );
-	printf( "MARRRR %p\n", stdr );
-	printf( "MARRRR %s\n", stdr );
+	uint64_t stdr = strdup(identifier);
 	thdmax = OGCreateThread( my_thread, (void*)stdr );
 	printf( "Example start %s(%p)                   ++++++++++++++++++++%p %p\n", identifier, identifier, thdmax, &thdmax );
 
@@ -62,8 +60,8 @@ void stop( const char * identifier )
 {
 	printf( "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Start stop\n" );
 	CNOVRNodeRemoveObject( cnovrstate->pRootNode, node );
-	CNOVRDelete( shader );
-	CNOVRDelete( model );
+	//CNOVRDelete( shader );
+	//CNOVRDelete( model );
 	CNOVRDelete( node );
 
 	//OGCancelThread( thdmax );
