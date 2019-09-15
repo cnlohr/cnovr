@@ -300,10 +300,10 @@ static og_tls_t   search_path_return;
 #include <windows.h>
 int CheckFileExists(const char * szPath)
 {
-  DWORD dwAttrib = GetFileAttributesA(szPath);
+	DWORD dwAttrib = GetFileAttributesA(szPath);
 
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
-         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+	return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
+		!(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 #endif
 
@@ -447,6 +447,9 @@ typedef struct filetimedata_t
 	int list_changed;
 } filetimedata;
 
+static filetimedata * ftopscurrent; //Mechanism to make new adds from in-process adds not get run.
+
+
 static CNOVRIndexedList * ftindexlist;
 static filetimetagged ftstaged; //Current callback, used to make sure we don't delete something ongoing.
 
@@ -469,7 +472,7 @@ void * thdfiletimechecker( void * v )
 				{
 					double origtime = k->time;
 					k->time = ft;
-
+					ftopscurrent = k;
 					if( k->time > 1 ) //Make sure this isn't a first-time catch.
 					{
 						filetimetagged * l;
@@ -510,6 +513,7 @@ refresh_set:
 							l = l->next;
 						}
 					}
+					ftopscurrent = 0;
 				}
 				while( OGGetSema( semPendinger ) == 0 ) OGUnlockSema( semPendinger ); 
 				OGTSUnlockMutex( mutFileTimeCacher );
@@ -608,6 +612,15 @@ void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void
 	filetimetagged * t = malloc( sizeof( filetimetagged ) );
 	t->tag = tag;
 	t->opaquev = opaquev;
+	if( ftd == ftopscurrent )
+	{
+		t->called_this_set = 1;
+	}
+	else
+	{
+		t->called_this_set = 0;
+	}
+
 	t->fn = fn;
 	t->tcctag = TCCGetTag();
 	t->prev = 0;
@@ -1037,6 +1050,7 @@ void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 		if( jle && jle->fn )
 		{
 			OGTSUnlockMutex( m );
+			printf( "INVOKE: Tag: %p  / %p(%p,%p)\n", jle->tcctag, jle->fn, e->key, data );
 			TCCInvocation( jle->tcctag, jle->fn( e->key, data ) );
 			OGTSLockMutex( m );
 			CNHashDelete( t, e->key );
@@ -1073,6 +1087,30 @@ void CNOVRListDeleteTag( void * b )
 	}
 }
 
-
-
+//XXX TODO: FIXME: This is very slow.  Re-architect to make this part fast.
+void CNOVRListDeleteTCCTag( void * tcctag )
+{
+	int l;
+	for( l = 0; l < cnovrLMAX; l++ )
+	{
+		og_mutex_t  m = ListMTs[l];
+		OGTSLockMutex( m );
+		int i;
+		int len = ListHTs[l]->array_size;
+		cnhashelement * e = ListHTs[l]->elements;
+		for( i = 0; i < len; i++ )
+		{
+			JobListItem * t = (JobListItem*)e->data;
+			if( t->tcctag == tcctag )
+			{
+				e->data = 0;
+				e->key = 0;
+				e->hashvalue = 0;
+				free( t );
+			}
+			e++;
+		}
+		OGTSUnlockMutex( m );
+	}
+}
 

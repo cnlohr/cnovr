@@ -7,6 +7,11 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
+NEWER:
+ * Make newly added watches not apply?!?!
+ * Remove from list by tcctag
+
+
 
 NEW:
  * Make there be a backup mechanism for the crash handler to abort.

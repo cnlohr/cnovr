@@ -208,7 +208,6 @@ void CNOVRUpdate()
 			}
 		}
 	}
-
 	//Update + prerender
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 
@@ -327,7 +326,6 @@ void CNOVRUpdate()
 	}
 
 	CNOVRCheck();
-
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
 #else
 	//XXX Hacky - this disables vsync on Linux only

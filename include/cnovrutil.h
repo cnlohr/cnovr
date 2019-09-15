@@ -81,6 +81,7 @@ typedef enum
 void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call ); 
 void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
 void CNOVRListDeleteTag( void * base_object );
+void CNOVRListDeleteTCCTag( void * tcctag );
 
 #endif
 

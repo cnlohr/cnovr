@@ -95,15 +95,13 @@ void InternalShutdownTCC( TCCInstance * tce )
 {
 	OGLockMutex( tccinterfacemutex );
 	CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
-	CNOVRListDeleteTag( tce );
+	CNOVRListDeleteTCCTag( tce );
 	object_cleanup * o = CNHashGetValue( objects_to_delete, tce );
-	printf( "Cleanup: %p\n", o );
 	if( o )
 	{
 		void * i;
 		cnptrset_foreach( o->threads, i )
 		{
-			printf( "Cancelling thread: %p in %p\n", i, o->threads );
 			OGCancelThread( (og_thread_t)i );
 		}
 		cnptrset_destroy( o->threads );
@@ -118,9 +116,7 @@ void InternalShutdownTCC( TCCInstance * tce )
 		cnptrset_foreach( o->mallocedram, i ) free( i );
 		cnptrset_destroy( o->mallocedram );
 		free( o );
-		printf( "ERASING {%p}\n", tce );
 		CNHashDelete( objects_to_delete, tce );
-		printf( "TCC interfaces shutdown\n" );
 	}
 	OGUnlockMutex( tccinterfacemutex );
 }
@@ -260,10 +256,15 @@ static int TCCprintf( const char * format, ... )
 
 static void TCCCNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev, bool insert_even_if_pending )
 {
-	//We just have to override the tag.
-	//printf( "TAcking: %d %p %p %p %d\n", q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
 	CNOVRJobTack( q, fn, TCCGetTag(), opaquev, insert_even_if_pending );
 }
+
+static void TCCCNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn )
+{
+	CNOVRListAdd( l, TCCGetTag(), fn );
+}
+
+
 
 static void *TCCmalloc(size_t size)
 {
@@ -320,12 +321,9 @@ static char * TCCstrndup(const char * str, size_t size)
 
 char * TCCstrdup(const char * str )
 {
-	char * ret = (uint64_t)strdup( str );
-	printf( "DUPPING: %p %p\n", ret, str );
-	printf( "DUPPING: %s %s\n", ret, str );
+	char * ret = strdup( str );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->mallocedram, ret );
-	printf( "RETURNING: %p\n", ret );
 	return ret;
 }
 
@@ -392,6 +390,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRNodeCreateSimple );
 
 	TCCExport( CNOVRJobTack );
+	TCCExport( CNOVRListAdd );
 
 	TCCExportS( cnovr_interpolate );
 	TCCExportS( cross3d );
