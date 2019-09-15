@@ -233,8 +233,8 @@ void CNOVRUpdate()
 			CNOVRDelete( cnovrstate->sterotargets[1] );
 	 
 			//Resize the render targets.
-			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 4 );
-			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 4 );
+			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 0 );
+			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 0 );
 			cnovrstate->iEyeRenderWidth = iEyeRenderWidth;
 			cnovrstate->iEyeRenderHeight = iEyeRenderHeight;
 		}
@@ -247,7 +247,7 @@ void CNOVRUpdate()
 		if( iPreviewWidth != cnovrstate->iPreviewWidth || iPreviewHeight != cnovrstate->iPreviewHeight )
 		{
 			CNOVRDelete( cnovrstate->previewtarget );
-			cnovrstate->previewtarget = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, 4 );
+			cnovrstate->previewtarget = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, 0 );
 			cnovrstate->iPreviewWidth  = iPreviewWidth;
 			cnovrstate->iPreviewHeight = iPreviewHeight;
 		}
@@ -291,9 +291,7 @@ void CNOVRUpdate()
 			int width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
 			int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
 			glViewport(0, 0, width, height );
-
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-			glEnable(GL_DEPTH_TEST);
 			root->base.header->Render( root );
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 

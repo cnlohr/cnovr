@@ -55,21 +55,15 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glGenFramebuffers(1, &ret->nRenderFramebufferId );
 	glBindFramebuffer(GL_FRAMEBUFFER, ret->nRenderFramebufferId);
 
-
-	glGenRenderbuffers(1, &ret->nDepthBufferId);
-	glBindRenderbuffer(GL_RENDERBUFFER, ret->nDepthBufferId);
-	if( multisample )
-		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_DEPTH_COMPONENT, nWidth, nHeight );
-	else
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight );
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	ret->nDepthBufferId );
-
+	//XXX TODO: Figure out why we can't use depth buffers with multisamples.
 
 	glGenTextures(1, &ret->nRenderTextureId );
-	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId );
 	if( multisample )
+	{
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId );
 		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample, GL_RGBA8, nWidth, nHeight, 1);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId, 0);
+	}
 
 	glGenFramebuffers(1, &ret->nResolveFramebufferId );
 	glBindFramebuffer(GL_FRAMEBUFFER, ret->nResolveFramebufferId);
@@ -80,6 +74,17 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId, 0);
+
+	//XXX TODO: this is wrong - we should be attaching the render buffer to the render framebuffer not here.
+	glGenRenderbuffers(1, &ret->nDepthBufferId);
+	glBindRenderbuffer(GL_RENDERBUFFER, ret->nDepthBufferId);
+	if( multisample )
+		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_DEPTH_COMPONENT, nWidth, nHeight );
+	else
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight );
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	ret->nDepthBufferId );
+
+
 
 	// check FBO status
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);

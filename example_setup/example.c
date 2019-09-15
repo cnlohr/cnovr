@@ -11,7 +11,7 @@ cnovr_shader * shader;
 cnovr_model * model;
 cnovr_simple_node * node;
 
-#define MAX_SPINNERS 100
+#define MAX_SPINNERS 200
 cnovr_simple_node * spinner_n[MAX_SPINNERS];
 
 

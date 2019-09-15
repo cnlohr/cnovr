@@ -8,8 +8,8 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 NEWER:
- * Clean up nodes created by dead TCCs
-
+ * Fix multisample?
+ * Get intended frame time.
 
 NEW:
  * Make there be a backup mechanism for the crash handler to abort.
