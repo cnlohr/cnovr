@@ -1047,13 +1047,12 @@ void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 	{
 		cnhashelement * e = &t->elements[i];
 		JobListItem * jle = (JobListItem*)e->data;
+		//printf( "Update CALL %p %p\n", e, jle );
 		if( jle && jle->fn )
 		{
 			OGTSUnlockMutex( m );
-			printf( "INVOKE: Tag: %p  / %p(%p,%p)\n", jle->tcctag, jle->fn, e->key, data );
-			TCCInvocation( jle->tcctag, jle->fn( e->key, data ) );
+			if( jle->fn ) TCCInvocation( jle->tcctag, jle->fn( e->key, data ) );
 			OGTSLockMutex( m );
-			CNHashDelete( t, e->key );
 		}
 	}
 	OGTSUnlockMutex( m );
@@ -1064,9 +1063,8 @@ void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
 {
 	og_mutex_t  m = ListMTs[l];
 	cnhashelement * e;
-
 	OGTSLockMutex( m );
-	e = CNHashInsert( ListHTs[l], b, fn );
+	e = CNHashIndex( ListHTs[l], b );
 	JobListItem * jli = e->data;
 	if( !jli ) jli = malloc( sizeof( JobListItem ) );
 	jli->fn = fn;
@@ -1101,7 +1099,7 @@ void CNOVRListDeleteTCCTag( void * tcctag )
 		for( i = 0; i < len; i++ )
 		{
 			JobListItem * t = (JobListItem*)e->data;
-			if( t->tcctag == tcctag )
+			if( t && t->tcctag == tcctag )
 			{
 				e->data = 0;
 				e->key = 0;

@@ -8,9 +8,7 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 NEWER:
- * Make newly added watches not apply?!?!
- * Remove from list by tcctag
-
+ * Clean up nodes created by dead TCCs
 
 
 NEW:

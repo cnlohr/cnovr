@@ -184,7 +184,6 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->additionalfiles = additionalfiles;
 	ret->bDynamicGen = bDynamicGen;
 	ret->bFirst = 1;
-	//CNOVRListAdd( cnovrLFTCheck, ret, ReloadTCCInstance  );
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
 	printf( "!!!!!!!!!!!!! Marking on %s (%s/%p)\n", tccfilename, identifier, identifier );
 	return 0;
@@ -372,7 +371,6 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
 	cnovrtccsystem.suitefile = strdup( tccsuitefile );
 	printf( "STARTING (and adding list) %s %p\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
-	//CNOVRListAdd( cnovrLFTCheck, &cnovrtccsystem, CNOVRTCCSystemFileChange );
 	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 }
 

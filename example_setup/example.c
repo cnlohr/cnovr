@@ -16,12 +16,6 @@ cnovr_model * spinner_m;
 cnovr_simple_node * spinner_n;
 
 
-static void UpdateFunction( void * tag, void * opaquev )
-{
-	//printf( "Update\n" );
-	return;
-}
-
 void * my_thread( void * v )
 {
 	while(1)
@@ -45,6 +39,24 @@ void init( const char * identifier )
 	ovrprintf( "Example init %s\n", identifier );
 }
 
+void UpdateFunction( void * tag, void * opaquev )
+{
+	static double start;
+	double now = OGGetAbsoluteTime();
+	if( start < 1 ) start = now;
+
+	spinner_n->pose.Scale = .1;
+	spinner_n->pose.Pos[0] = sin( now - start );
+	spinner_n->pose.Pos[2] = cos( now - start );
+	cnovr_euler_angle e;
+	e[0] = 0;
+	e[1] = now-start;
+	e[0] = 0;
+	quatfromeuler( spinner_n->pose.Rot, e );
+
+	return;
+}
+
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
@@ -64,9 +76,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( spinner_n, spinner_s );
 	CNOVRNodeAddObject( spinner_n, spinner_m );
 	CNOVRNodeAddObject( root, spinner_n );
-	printf( "Pre-adding-list\n" );
-	UpdateFunction( 0, 0 );
-	printf( "Adding list: %p\n", UpdateFunction );
+
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 
 	thdmax = OGCreateThread( my_thread, (void*)identifier );
@@ -89,7 +99,9 @@ void stop( const char * identifier )
 	if( node )
 	{
 		CNOVRNodeRemoveObject( cnovrstate->pRootNode, node );
+		CNOVRNodeRemoveObject( cnovrstate->pRootNode, spinner_n );
 		CNOVRDelete( node );
+		CNOVRDelete( spinner_n );
 	}
 
 	//OGCancelThread( thdmax );
