@@ -259,6 +259,10 @@ void CNOVRUpdate()
 	glEnable( GL_CULL_FACE );
 	glClearColor( 0, 0, 0, 1 );
 
+	glEnable( GL_DEPTH_TEST );
+	glDepthMask(GL_TRUE);
+	glDepthFunc(GL_LESS);
+
 	//Scene Graph Render
 	if( cnovrstate->has_ovr )
 	{
@@ -289,7 +293,7 @@ void CNOVRUpdate()
 			glViewport(0, 0, width, height );
 
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
+			glEnable(GL_DEPTH_TEST);
 			root->base.header->Render( root );
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 
@@ -313,7 +317,7 @@ void CNOVRUpdate()
 
 		cnovrstate->pPreviewPose.Pos[0] = 0;
 		cnovrstate->pPreviewPose.Pos[1] = 0;
-		cnovrstate->pPreviewPose.Pos[2] = -10;
+		cnovrstate->pPreviewPose.Pos[2] = -3;
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 
 		//CNOVRFBufferActivate( cnovrstate->previewtarget );

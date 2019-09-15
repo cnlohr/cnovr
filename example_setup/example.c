@@ -11,9 +11,8 @@ cnovr_shader * shader;
 cnovr_model * model;
 cnovr_simple_node * node;
 
-cnovr_shader * spinner_s;
-cnovr_model * spinner_m;
-cnovr_simple_node * spinner_n;
+#define MAX_SPINNERS 100
+cnovr_simple_node * spinner_n[MAX_SPINNERS];
 
 
 void * my_thread( void * v )
@@ -45,14 +44,21 @@ void UpdateFunction( void * tag, void * opaquev )
 	double now = OGGetAbsoluteTime();
 	if( start < 1 ) start = now;
 
-	spinner_n->pose.Scale = .1;
-	spinner_n->pose.Pos[0] = sin( now - start );
-	spinner_n->pose.Pos[2] = cos( now - start );
-	cnovr_euler_angle e;
-	e[0] = 0;
-	e[1] = now-start;
-	e[0] = 0;
-	quatfromeuler( spinner_n->pose.Rot, e );
+	int i;
+	for (i = 0; i < MAX_SPINNERS; i++ )
+	{
+		double dt =  (now - start)*.1 - i * .04;
+		double ang = i * .04;
+		spinner_n[i]->pose.Scale = .1;
+		spinner_n[i]->pose.Pos[0] = sin( ang );
+		spinner_n[i]->pose.Pos[1] = sin(dt*4.0);
+		spinner_n[i]->pose.Pos[2] = cos( ang );
+		cnovr_euler_angle e;
+		e[0] = 0;
+		e[1] = ang;
+		e[0] = 0;
+		quatfromeuler( spinner_n[i]->pose.Rot, e );
+	}
 
 	return;
 }
@@ -60,6 +66,7 @@ void UpdateFunction( void * tag, void * opaquev )
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
+
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
@@ -69,13 +76,20 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 
-	spinner_n = CNOVRNodeCreateSimple( 1 );
-	spinner_m = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-	CNOVRModelAppendCube( spinner_m, 0 );
-	spinner_s = CNOVRShaderCreate( "assets/basic" );
-	CNOVRNodeAddObject( spinner_n, spinner_s );
-	CNOVRNodeAddObject( spinner_n, spinner_m );
-	CNOVRNodeAddObject( root, spinner_n );
+	cnovr_shader * spinner_s;
+
+	int i;
+	for( i = 0; i < MAX_SPINNERS; i++ )
+	{
+		spinner_n[i] = CNOVRNodeCreateSimple( 1 );
+		cnovr_model * spinner_m;
+		spinner_m = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
+		CNOVRModelAppendCube( spinner_m, 0 );
+		spinner_s = CNOVRShaderCreate( "assets/basic" );
+		CNOVRNodeAddObject( spinner_n[i], spinner_s );
+		CNOVRNodeAddObject( spinner_n[i], spinner_m );
+		CNOVRNodeAddObject( root, spinner_n[i] );
+	}
 
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 
@@ -99,9 +113,13 @@ void stop( const char * identifier )
 	if( node )
 	{
 		CNOVRNodeRemoveObject( cnovrstate->pRootNode, node );
-		CNOVRNodeRemoveObject( cnovrstate->pRootNode, spinner_n );
-		CNOVRDelete( node );
-		CNOVRDelete( spinner_n );
+		//CNOVRDelete( node );
+		int i;
+		for( i = 0; i < MAX_SPINNERS; i++ )
+		{
+			CNOVRNodeRemoveObject( cnovrstate->pRootNode, spinner_n[i] );
+			//CNOVRDelete( spinner_n[i] );
+		}
 	}
 
 	//OGCancelThread( thdmax );

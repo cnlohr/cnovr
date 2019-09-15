@@ -55,11 +55,15 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glGenFramebuffers(1, &ret->nRenderFramebufferId );
 	glBindFramebuffer(GL_FRAMEBUFFER, ret->nRenderFramebufferId);
 
+
 	glGenRenderbuffers(1, &ret->nDepthBufferId);
 	glBindRenderbuffer(GL_RENDERBUFFER, ret->nDepthBufferId);
 	if( multisample )
 		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_DEPTH_COMPONENT, nWidth, nHeight );
+	else
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight );
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	ret->nDepthBufferId );
+
 
 	glGenTextures(1, &ret->nRenderTextureId );
 	glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId );
@@ -1397,6 +1401,9 @@ void CNOVRNodeDelete( void * ths, void * opaque )
 {
 	int i;
 	CNOVRListDeleteTag( ths );
+
+#if 0
+	//I think the behavior we desire is to not auto delete.
 	cnovr_simple_node * n = (cnovr_simple_node*)ths;
 	cnovr_base ** objects = (n->objects);
 	int count = sb_count( objects );
@@ -1405,6 +1412,7 @@ void CNOVRNodeDelete( void * ths, void * opaque )
 		cnovr_header * o = objects[i]->header;
 		if( o->Delete ) o->Delete( objects[i] );
 	}
+#endif
 	free( ths );
 }
 
@@ -1450,7 +1458,6 @@ cnovr_simple_node * CNOVRNodeCreateSimple( int reserved_size )
 
 void CNOVRNodeAddObject( cnovr_simple_node * node, void * o )
 {
-	printf( "NAO %p %p\n", node ,o );
 	sb_push( node->objects, (cnovr_base *)o );
 }
 

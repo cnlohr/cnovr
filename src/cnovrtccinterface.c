@@ -235,7 +235,7 @@ og_tls_t TCCOGCreateTLS()
 	return ret;
 }
 
-void TCCOGDeleteTLS( og_tls_t key )
+static void TCCOGDeleteTLS( og_tls_t key )
 {
 	OGDeleteTLS( key );
 	OGLockMutex( tccinterfacemutex );
@@ -243,6 +243,46 @@ void TCCOGDeleteTLS( og_tls_t key )
 	if( c ) cnptrset_remove( c->tlses, key );
 	OGUnlockMutex( tccinterfacemutex );
 }
+
+static cnovr_shader * TCCCNOVRShaderCreate( const char * shaderfilebase )
+{
+	cnovr_shader * ret = CNOVRShaderCreate( shaderfilebase );
+	OGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	OGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
+static cnovr_simple_node * TCCCNOVRNodeCreateSimple( int reserved_size )
+{
+	cnovr_simple_node * ret = CNOVRNodeCreateSimple( reserved_size );
+	OGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	OGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
+static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int num_vbos, int rendertype )
+{
+	cnovr_model * ret = CNOVRModelCreate( initial_indices, num_vbos, rendertype );
+	OGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	OGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
+static void TCCCNOVRDeleteBase( cnovr_base * b )
+{
+	CNOVRDeleteBase( b );
+	OGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_remove( c->tccobjects, b );
+	OGUnlockMutex( tccinterfacemutex );
+}
+
 
 static int TCCprintf( const char * format, ... )
 {
@@ -381,13 +421,15 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( OGSetTLS );
 
 	TCCExportS( cnovrstate );
-	TCCExportS( CNOVRModelCreate );
+
+	TCCExport( CNOVRNodeCreateSimple );
+	TCCExport( CNOVRModelCreate );
+	TCCExport( CNOVRShaderCreate );
+	TCCExport( CNOVRDeleteBase );
+
 	TCCExportS( CNOVRModelAppendCube );
-	TCCExportS( CNOVRShaderCreate );
 	TCCExportS( CNOVRNodeAddObject );
 	TCCExportS( CNOVRNodeRemoveObject );
-	TCCExportS( CNOVRDeleteBase );
-	TCCExportS( CNOVRNodeCreateSimple );
 
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );

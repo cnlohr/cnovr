@@ -590,7 +590,7 @@ void CNOVRInternalStopCacheSystem()
 
 void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
 {
-	printf( "Adding FileTimeWatch %s [%p] %p\n", fname, tag, fn );
+//	printf( "Adding FileTimeWatch %s [%p] %p\n", fname, tag, fn );
 	OGTSLockMutex( mutFileTimeCacher );
 	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	if( !ftd )
