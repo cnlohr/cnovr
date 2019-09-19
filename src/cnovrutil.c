@@ -908,7 +908,7 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	OGTSLockMutex( jq->mut );
 
 	//Make sure we don't permit addition of a delete-in-progress, in case the user has chained events.
-	if( jq->deletingnow && jq->deletingtag == tag ) goto fail;
+	if( jq->deletingnow && jq->deletingtag == tag && tag != 0) goto fail;
 
 	int is_pending = JQcomp( newe, &jq->staged, 0 ) == 0;
 

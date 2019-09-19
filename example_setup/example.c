@@ -13,15 +13,15 @@ cnovr_simple_node * node;
 
 #define MAX_SPINNERS 200
 cnovr_simple_node * spinner_n[MAX_SPINNERS];
-
+int shutting_down;
 
 void * my_thread( void * v )
 {
-	while(1)
+	while(1 )
 	{
 		//printf( "THREADS 10 %s %p\n", v, thdmax );
-		OGUSleep(1000000);
-		if( 1 )
+		OGUSleep(10000);
+		if( !shutting_down )
 		{
 			node->pose.Pos[0] = (rand()%10 - 5)/10.;
 			node->pose.Pos[1] = (rand()%10 - 5)/10.;
@@ -109,6 +109,7 @@ void start( const char * identifier )
 
 void stop( const char * identifier )
 {
+	shutting_down = 1;
 	printf( "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Start stop\n" );
 	if( node )
 	{

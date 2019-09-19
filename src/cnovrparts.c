@@ -16,6 +16,7 @@
 static void parts_delete_callback( void * tag, void * opaquev )
 {
 	cnovr_base * b = (cnovr_base*)opaquev;
+	printf( "SUC++++++++++ DELETE: %p\n", b );
 	b->header->Delete( b );
 }
 
@@ -1426,8 +1427,7 @@ void CNOVRNodeRender( void * ths )
 	int i;
 	cnovr_simple_node * n = (cnovr_simple_node*)ths;
 	cnovr_base ** objects = (n->objects);
-	int count = sb_count( objects );
-	for( i = 0; i < count; i++ )
+	for( i = 0; i < sb_count( objects ); i++ )
 	{
 		cnovr_base * b = objects[i];
 		cnovr_header * o = b->header;
