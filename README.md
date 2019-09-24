@@ -7,9 +7,13 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
+NEWEST:
+ * Make all objects refcounted.
+
 NEWER:
  * Fix multisample?
  * Get intended frame time.
+ * Make some global "now" or delta timer.
 
 NEW:
  * Make there be a backup mechanism for the crash handler to abort.

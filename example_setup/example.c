@@ -56,13 +56,12 @@ void UpdateFunction( void * tag, void * opaquev )
 		cnovr_euler_angle e;
 		e[0] = 0;
 		e[1] = ang;
-		e[0] = 0;
+		e[2] = 0;
 		quatfromeuler( spinner_n[i]->pose.Rot, e );
 	}
 
 	return;
 }
-
 
 static void example_scene_setup( void * tag, void * opaquev )
 {

@@ -16,14 +16,12 @@
 static void parts_delete_callback( void * tag, void * opaquev )
 {
 	cnovr_base * b = (cnovr_base*)opaquev;
-	printf( "SUC++++++++++ DELETE: %p\n", b );
 	b->header->Delete( b );
 }
 
 void CNOVRDeleteBase( cnovr_base * b )
 {
 	if( !b ) return;
-	printf( "+++++++++++++ DELETE: %p\n", b );
 	CNOVRJobTack( cnovrQPrerender, parts_delete_callback, 0, b, 0 );
 }
 
@@ -657,10 +655,15 @@ static void CNOVRModelDelete( cnovr_model * m )
 	{
 		CNOVRVBODelete( m->pGeos[i] );
 	}
-	for( i = 0; i < m->nMeshes; i++ )
+	if( m->sMeshMarks )
 	{
-		if( m->sMeshMarks && m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+		for( i = 0; i < m->nMeshes; i++ )
+		{
+			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+		}
+		free( m->sMeshMarks );
 	}
+
 	free( m->pIndices );
 	if( m->geofile ) free( m->geofile );
 	glDeleteBuffers( 1, &m->nIBO );
@@ -730,6 +733,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 	ret->iMeshMarks = malloc( sizeof( int ) );
 	ret->iMeshMarks[0] = 0;
 	ret->nMeshes = 1;
+	ret->sMeshMarks = 0;
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
 	ret->iGeos = 0;
@@ -797,6 +801,7 @@ void CNOVRModelResetMarks( cnovr_model * m )
 	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) );
 	m->nMeshes = 1;
 	m->iMeshMarks[0] = 0;
+	m->sMeshMarks[0] = 0;
 	m->iLastVertMark = 0;
 }
 
