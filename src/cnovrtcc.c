@@ -224,7 +224,7 @@ TCCSystem cnovrtccsystem;
 
 void CNOVRTCCLog( void * data, const char * tolog )
 {
-	printf( "TODO LOG: %s\n", tolog );
+	//printf( "TODO LOG: %s\n", tolog );
 	//XXX TODO
 }
 
@@ -346,7 +346,6 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 						goto failout;
 					}
 
-					printf( "Pushing: %s %s\n", cfile, identifier );
 					sb_push( cnovrtccsystem.instances, 
 						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, 0 ) );
 

@@ -18,6 +18,7 @@ CNRBTREETEMPLATE( og_mutex_t, int, RBptrcmp, RBptrcpy, RBnullop );
 
 void OGTSLockMutex( og_mutex_t m )
 {
+	OGLockMutex( m );
 	cnrbtree_og_mutex_tint * tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
 	if( !tree ) return;
 	RBA( tree, m )++;
@@ -26,8 +27,9 @@ void OGTSLockMutex( og_mutex_t m )
 void OGTSUnlockMutex( og_mutex_t m )
 {
 	cnrbtree_og_mutex_tint * tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
-	if( !tree ) return;
-	RBA( tree, m )--;
+	if( tree )
+		RBA( tree, m )--;
+	OGUnlockMutex( m );
 }
 
 //Called when we enter a thread.

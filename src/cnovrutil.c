@@ -729,6 +729,7 @@ static void IndexedDestructor( void * tag, void * item, void * opaque )
 	CNOVRJobQueue * jq = (CNOVRJobQueue*)opaque;
 
 	//This function is not threadsafe.
+	printf( "RM %p\n", je->tag );
 	if( jq->front == je )
 	{
 		jq->front = je->next;
@@ -869,8 +870,9 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		CNOVRJobElement * staged = &(jq->staged);
 		memcpy( staged, front, sizeof( jq->staged ) );
 		jq->is_staged = 1;
-
+		printf( "PQE+ %p /// %p (%p) // %p\n", staged->tag, front->next, (front->next)?front->next->tag:0, jq->front );
 		BackendDeleteJob( jq, front );
+		printf( "PQE- %p /// %p (%p) // %p\n", staged->tag, front->next, (front->next)?front->next->tag:0, jq->front );
 		OGUnlockMutex( jq->mut );
 
 		if( staged->fn ) TCCInvocation( staged->tcctag, staged->fn( staged->tag, staged->opaquev ) );
@@ -885,6 +887,9 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		//This is probably a place worth peeking if there's a problem found with this code
 		//verify no race condition in your particular application/fitness
 		OGTSLockMutex( jq->mut );
+		if( jq->front )
+			printf( "PQE~ %p /// %p (%p) %p\n",  jq->front, jq->front->tag, jq->front->next, (jq->front->next)?jq->front->next->tag:0 );
+
 		while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
 		OGUnlockMutex( jq->mut );
 		return 1;
@@ -920,15 +925,18 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	}
 	else
 	{
+		printf( "TINSERT %p   %p %p (%p)\n", newe, jq->back, jq->front, tag );
 		if( jq->back )
 		{
 			jq->back->next = newe;
 			newe->prev = jq->back;
 			jq->back = newe;
+			printf( "INSERT A %p\n", tag );
 		}
 		else
 		{
 			jq->back = jq->front = newe;
+			printf( "INSERT B %p\n", tag );
 		}
 		newe->correspondance = CNOVRIndexedListInsert( JQELIST, tag, newe, jq );
 		OGUnlockSema( jq->sem );
@@ -969,6 +977,7 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaque
 
 void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 {
+	printf( "CAT: %p\n", tag );
 	int list;
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
@@ -998,6 +1007,7 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 		CNOVRJEQ[list].deletingtag = 0;
 		OGTSUnlockMutex( CNOVRJEQ[list].deletingmut );
 	}
+	printf( "CATDONE: %p\n", tag );
 }
 
 ///////////////////////////////////////////////////////////////////////////////

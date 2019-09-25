@@ -196,6 +196,7 @@ static void CNOVRShaderFileTackInclude( void * opaque, const char * filename )
 
 static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
+	printf( "CNOVRShaderFileChangePrerender: %p %p\n", tag, opaquev );
 	//Re-load shader
 	cnovr_shader * ths = (cnovr_shader*)tag;
 	//Careful: Need to re-try in case a program is still writing.
@@ -294,7 +295,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	{
 		if ( ths->nShaderID )
 		{
-			CNOVRAlert( ths->base.tccctx, 3, "Compile OK: %s\n", ths->shaderfilebase );
+			CNOVRAlert( ths->base.tccctx, 3, "Compile OK: [%p] %s\n", ths, ths->shaderfilebase );
 			//Note: If we got here, we were successful. 
 			glDeleteProgram( ths->nShaderID );
 		}
@@ -308,6 +309,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 
 static void CNOVRShaderFileChange( void * tag, void * opaquev )
 {
+	printf( "CNOVRShaderFileChange (%p %p)\n", tag, opaquev );
 	//0 = don't recompile if a recompile operation is already pending.
 	CNOVRJobTack( cnovrQPrerender, CNOVRShaderFileChangePrerender, tag, opaquev, 0 );
 }
@@ -658,7 +660,7 @@ static void CNOVRModelDelete( cnovr_model * m )
 	}
 	if( m->sMeshMarks )
 	{
-		for( i = 0; i < m->nMeshes; i++ )
+		for( i = 0; i < m->nMeshes + 1; i++ )
 		{
 			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
 		}
