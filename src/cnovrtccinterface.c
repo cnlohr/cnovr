@@ -92,6 +92,43 @@ void InternalSetupTCCInterface()
 	objects_to_delete = CNHashGenerate( 0, 0, CNHASH_POINTERS);
 }
 
+void InternalBreakdownRestOfTCCInterface()
+{
+	OGLockMutex( tccinterfacemutex );
+	CNOVRJobCancelAllTag( 0, 0 );
+	CNOVRListDeleteTCCTag( 0 );
+	printf( "BREAKING DOWN REST OF TCC Interface\n" );
+	int k;
+	for( k = 0; k < objects_to_delete->array_size; k++ )
+	{
+		object_cleanup * o = (object_cleanup *)objects_to_delete->elements[k].data;
+		TCCInstance * tce = (TCCInstance *)objects_to_delete->elements[k].key;
+		if( o )
+		{
+			void * i;
+			cnptrset_foreach( o->threads, i )
+			{
+				OGCancelThread( (og_thread_t)i );
+			}
+			cnptrset_destroy( o->threads );
+			cnptrset_foreach( o->tccobjects, i ) CNOVRDeleteBase( ((cnovr_base*)i) );
+			cnptrset_destroy( o->tccobjects );
+			cnptrset_foreach( o->mutices, i ) OGDeleteMutex( (og_mutex_t)i );
+			cnptrset_destroy( o->mutices );
+			cnptrset_foreach( o->tlses, i ) OGDeleteTLS( (og_tls_t)i );
+			cnptrset_destroy( o->tlses );
+			cnptrset_foreach( o->semaphores, i ) OGDeleteSema( (og_sema_t)i );
+			cnptrset_destroy( o->semaphores );
+			cnptrset_foreach( o->mallocedram, i ) free( i );
+			cnptrset_destroy( o->mallocedram );
+			free( o );
+			CNHashDelete( objects_to_delete, tce );
+		}
+	}
+	OGDeleteMutex( tccinterfacemutex );
+	CNHashDestroy( objects_to_delete );
+}
+
 
 void InternalShutdownTCC( TCCInstance * tce )
 {
@@ -167,6 +204,8 @@ og_thread_t TCCOGCreateThread( void * (routine)( void * ), void * parameter )
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->threads, ret );
 	OGUnlockMutex( tccinterfacemutex );
+
+
 	return ret;
 }
 
@@ -308,7 +347,7 @@ static void TCCCNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * f
 
 
 
-static void *TCCmalloc(size_t size)
+void *TCCmalloc(size_t size)
 {
 	void * ret = malloc( size );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
@@ -316,14 +355,14 @@ static void *TCCmalloc(size_t size)
 	return ret;
 }
 
-static void TCCfree(void *ptr)
+void TCCfree(void *ptr)
 {	
 	free( ptr );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_remove( c->mallocedram, ptr );
 }
 
-static void * TCCcalloc(size_t nmemb, size_t size)
+void * TCCcalloc(size_t nmemb, size_t size)
 {
 	void * ret = calloc( nmemb, size );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
@@ -331,7 +370,7 @@ static void * TCCcalloc(size_t nmemb, size_t size)
 	return ret;
 }
 
-static void * TCCrealloc(void *ptr, size_t size)
+void * TCCrealloc(void *ptr, size_t size)
 {
 	void * ret = realloc( ptr, size );
 	if( ptr != ret )
@@ -346,7 +385,7 @@ static void * TCCrealloc(void *ptr, size_t size)
 	return ret;
 }
 
-static char * TCCstrndup(const char * str, size_t size)
+char * TCCstrndup(const char * str, size_t size)
 {
 	if( str == 0 ) return 0;
 	int asize;

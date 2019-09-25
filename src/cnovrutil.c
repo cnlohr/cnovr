@@ -499,7 +499,7 @@ refresh_set:
 							l->called_this_set = 1;
 							front->list_changed = 0; //Would not be possible to trigger in callback.
 							OGTSUnlockMutex( mutFileTimeCacher );
-							printf( "calling %p with *%p* %p in %p\n", l->fn, e->key, l->opaquev, l->tag );
+							//printf( "calling %p with *%p* %p in %p\n", l->fn, e->key, l->opaquev, l->tag );
 							if( l->fn ) TCCInvocation( l->tcctag, l->fn( l->tag, l->opaquev ) );
 							OGTSLockMutex( mutFileTimeCacher );
 							if( front->list_changed )
@@ -580,13 +580,39 @@ void CNOVRInternalStartCacheSystem()
 	thdFileTimeCacher = OGCreateThread( thdfiletimechecker, 0 );
 }
 
-void CNOVRInternalStopCacheSystem()
+void StopFileTimeChekerThread()
 {
 	intStopFileTimeCacher = 1;
 	OGJoinThread( thdFileTimeCacher ); 
+}
+
+void CNOVRInternalStopCacheSystem()
+{
 	OGDeleteMutex( mutFileTimeCacher );
 	OGDeleteSema( semPendinger );
+
 	CNOVRIndexedListDestroy( ftindexlist );
+
+	//Anything else that hasn't been cleared out by deleting the ftindexlist can get handled here.
+	//XXX TODO: Is there anything left?
+	int k;
+	for( k = 0; k < htFileTimeCacher->array_size; k++ )
+	{
+		cnhashelement * e = htFileTimeCacher->elements + k;
+		if( e->data )
+		{
+			double ft = OGGetFileTime( e->key );
+			filetimedata * frontelem = ((filetimedata*)e->data);
+			filetimetagged * dat = frontelem->front;
+			while( dat )
+			{
+				filetimetagged * of = dat;
+				dat = dat->next;
+				free( of );
+			}
+		}
+	}
+	CNHashDestroy( htFileTimeCacher );
 }
 
 void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void * opaquev )
@@ -729,7 +755,6 @@ static void IndexedDestructor( void * tag, void * item, void * opaque )
 	CNOVRJobQueue * jq = (CNOVRJobQueue*)opaque;
 
 	//This function is not threadsafe.
-	printf( "RM %p\n", je->tag );
 	if( jq->front == je )
 	{
 		jq->front = je->next;
@@ -870,9 +895,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		CNOVRJobElement * staged = &(jq->staged);
 		memcpy( staged, front, sizeof( jq->staged ) );
 		jq->is_staged = 1;
-		printf( "PQE+ %p /// %p (%p) // %p\n", staged->tag, front->next, (front->next)?front->next->tag:0, jq->front );
 		BackendDeleteJob( jq, front );
-		printf( "PQE- %p /// %p (%p) // %p\n", staged->tag, front->next, (front->next)?front->next->tag:0, jq->front );
 		OGUnlockMutex( jq->mut );
 
 		if( staged->fn ) TCCInvocation( staged->tcctag, staged->fn( staged->tag, staged->opaquev ) );
@@ -887,8 +910,6 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		//This is probably a place worth peeking if there's a problem found with this code
 		//verify no race condition in your particular application/fitness
 		OGTSLockMutex( jq->mut );
-		if( jq->front )
-			printf( "PQE~ %p /// %p (%p) %p\n",  jq->front, jq->front->tag, jq->front->next, (jq->front->next)?jq->front->next->tag:0 );
 
 		while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
 		OGUnlockMutex( jq->mut );
@@ -925,18 +946,15 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	}
 	else
 	{
-		printf( "TINSERT %p   %p %p (%p)\n", newe, jq->back, jq->front, tag );
 		if( jq->back )
 		{
 			jq->back->next = newe;
 			newe->prev = jq->back;
 			jq->back = newe;
-			printf( "INSERT A %p\n", tag );
 		}
 		else
 		{
 			jq->back = jq->front = newe;
-			printf( "INSERT B %p\n", tag );
 		}
 		newe->correspondance = CNOVRIndexedListInsert( JQELIST, tag, newe, jq );
 		OGUnlockSema( jq->sem );
@@ -977,7 +995,6 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaque
 
 void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 {
-	printf( "CAT: %p\n", tag );
 	int list;
 	for( list = 0; list < cnovrQMAX; list++ )
 	{
@@ -1007,7 +1024,6 @@ void CNOVRJobCancelAllTag( void * tag, int wait_on_pending )
 		CNOVRJEQ[list].deletingtag = 0;
 		OGTSUnlockMutex( CNOVRJEQ[list].deletingmut );
 	}
-	printf( "CATDONE: %p\n", tag );
 }
 
 ///////////////////////////////////////////////////////////////////////////////

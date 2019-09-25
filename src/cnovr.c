@@ -30,7 +30,8 @@ void InternalSetupTCCInterface();
 void CNOVRInternalSetupFreeLaterSet();
 void CNOVRStopTCCSystem();
 void CNOVRFreeLaterShutdown();
-
+void InternalBreakdownRestOfTCCInterface();
+void StopFileTimeChekerThread();
 
 
 void HandleKey( int keycode, int bDown )
@@ -346,24 +347,36 @@ void CNOVRUpdate()
 
 void CNOVRShutdown()
 {
+	int i, k;
 	void VR_ShutdownInternal();
 	CNOVRStopTCCSystem();
+	StopFileTimeChekerThread();
 
-	// We flush out any pending object deletes here.
-	CNOVRJobProcessQueueElement( cnovrQPrerender );
-
-	CNOVRJobStop();
-	CNOVRInternalStopCacheSystem();
-	CNOVRListSystemDestroy();
 	InternalFileSearchShutdown();
 
 	VR_ShutdownInternal();
 
-	//Flush out any remaining free laters.
-	CNOVRFreeLaterShutdown();
-
 	//Free out any remaining tags from the initial list.
 	tcccrash_deltag( 0 );
+	printf( "Stopping TCC interface\n" );
+	InternalBreakdownRestOfTCCInterface();
+
+	printf( "Final flush\n" );
+	// We flush everything else out here..
+	for( k = 0; k < 6; k++ )
+	for( i = 0; i < cnovrQMAX; i++ )
+	{
+		while( CNOVRJobProcessQueueElement( i ) );
+	}
+	printf( "Closing cache system\n" );
+	CNOVRInternalStopCacheSystem();
+	printf( "NEXT\n" );
+	CNOVRListSystemDestroy();
+	printf( "NEXT2\n" );
+	CNOVRJobStop();
+
+	//Flush out any remaining free laters.
+	CNOVRFreeLaterShutdown();
 
 	printf( "Cleanup complete\n" );
 

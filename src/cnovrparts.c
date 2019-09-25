@@ -13,6 +13,8 @@
 #include <cnovrtccinterface.h>
 #include <stretchy_buffer.h>
 
+//XXX Overall TODO: Replace more FreeLater's with frees
+
 static void parts_delete_callback( void * tag, void * opaquev )
 {
 	cnovr_base * b = (cnovr_base*)opaquev;
@@ -22,7 +24,7 @@ static void parts_delete_callback( void * tag, void * opaquev )
 void CNOVRDeleteBase( cnovr_base * b )
 {
 	if( !b ) return;
-	CNOVRJobTack( cnovrQPrerender, parts_delete_callback, 0, b, 0 );
+	CNOVRJobTack( cnovrQPrerender, parts_delete_callback, (void*)-1, b, 0 );
 }
 
 
@@ -196,7 +198,6 @@ static void CNOVRShaderFileTackInclude( void * opaque, const char * filename )
 
 static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
-	printf( "CNOVRShaderFileChangePrerender: %p %p\n", tag, opaquev );
 	//Re-load shader
 	cnovr_shader * ths = (cnovr_shader*)tag;
 	//Careful: Need to re-try in case a program is still writing.
@@ -295,7 +296,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	{
 		if ( ths->nShaderID )
 		{
-			CNOVRAlert( ths->base.tccctx, 3, "Compile OK: [%p] %s\n", ths, ths->shaderfilebase );
+			//CNOVRAlert( ths->base.tccctx, 3, "Compile OK: [%p] %s\n", ths, ths->shaderfilebase );
 			//Note: If we got here, we were successful. 
 			glDeleteProgram( ths->nShaderID );
 		}
@@ -309,7 +310,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 
 static void CNOVRShaderFileChange( void * tag, void * opaquev )
 {
-	printf( "CNOVRShaderFileChange (%p %p)\n", tag, opaquev );
+	//printf( "CNOVRShaderFileChange (%p %p)\n", tag, opaquev );
 	//0 = don't recompile if a recompile operation is already pending.
 	CNOVRJobTack( cnovrQPrerender, CNOVRShaderFileChangePrerender, tag, opaquev, 0 );
 }
@@ -612,6 +613,7 @@ void CNOVRVBODelete( cnovr_vbo * g )
 	glDeleteBuffers( 1, &g->nVBO );
 	CNOVRFreeLater( g->pVertices );
 	OGDeleteMutex( g->mutData );
+	CNOVRFreeLater( g );
 }
 
 void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
@@ -658,18 +660,20 @@ static void CNOVRModelDelete( cnovr_model * m )
 	{
 		CNOVRVBODelete( m->pGeos[i] );
 	}
+	CNOVRFreeLater( m->pGeos );
 	if( m->sMeshMarks )
 	{
 		for( i = 0; i < m->nMeshes + 1; i++ )
 		{
-			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+			if( m->sMeshMarks[i] ) CNOVRFreeLater( m->sMeshMarks[i] );
 		}
-		free( m->sMeshMarks );
+		CNOVRFreeLater( m->sMeshMarks );
 	}
-
-	free( m->pIndices );
-	if( m->geofile ) free( m->geofile );
+	CNOVRFreeLater( m->pIndices );
+	if( m->geofile ) CNOVRFreeLater( m->geofile );
 	glDeleteBuffers( 1, &m->nIBO );
+	OGDeleteMutex( m->model_mutex );
+	CNOVRFreeLater( m );
 }
 
 
@@ -1415,6 +1419,9 @@ void CNOVRNodeDelete( void * ths, void * opaque )
 {
 	int i;
 	CNOVRListDeleteTag( ths );
+
+	cnovr_simple_node * node = (cnovr_simple_node *)ths;
+	sb_free( node->objects );
 
 #if 0
 	//I think the behavior we desire is to not auto delete.

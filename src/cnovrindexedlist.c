@@ -23,7 +23,12 @@ void CNOVRIndexedListDestroy( CNOVRIndexedList * list )
 			if( e->hashvalue )
 			{
 				CNOVRIndexedListByTag * d = (CNOVRIndexedListByTag *)e->data;
-				list->df( 0, d->byitem, d->thisopaque );
+				while( d )
+				{
+					list->df( 0, d->byitem, d->thisopaque );
+					free( d );
+					d = d->next;
+				}
 			}
 		}
 	}
@@ -92,5 +97,4 @@ CNOVRIndexedListByTag * CNOVRIndexedListInsert( CNOVRIndexedList * list, void * 
 	}
 	return newt;
 }
-
 

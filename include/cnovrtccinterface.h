@@ -44,5 +44,14 @@ void InternalShutdownTCC( TCCInstance * tcc );
 void InternalPopulateTCC( TCCInstance * tcc );
 void InternalInterfaceCreationDone( TCCInstance * tce );
 
+
+//For a thread-safe malloc/free
+void *TCCmalloc(size_t size);
+void TCCfree(void *ptr);
+void * TCCcalloc(size_t nmemb, size_t size);
+void * TCCrealloc(void *ptr, size_t size);
+char * TCCstrndup(const char * str, size_t size);
+char * TCCstrdup(const char * str );
+
 #endif
 
