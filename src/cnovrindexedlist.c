@@ -26,8 +26,9 @@ void CNOVRIndexedListDestroy( CNOVRIndexedList * list )
 				while( d )
 				{
 					list->df( 0, d->byitem, d->thisopaque );
-					free( d );
+					CNOVRIndexedListByTag * dold = d;
 					d = d->next;
+					free( dold );
 				}
 			}
 		}

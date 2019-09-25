@@ -127,6 +127,7 @@ void InternalBreakdownRestOfTCCInterface()
 	}
 	OGDeleteMutex( tccinterfacemutex );
 	CNHashDestroy( objects_to_delete );
+	objects_to_delete = 0;
 }
 
 
@@ -351,7 +352,16 @@ void *TCCmalloc(size_t size)
 {
 	void * ret = malloc( size );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
-	if( c ) cnptrset_insert( c->mallocedram, ret );
+	if( c )
+	{
+		cnptrset_insert( c->mallocedram, ret );
+	}
+	else
+	{
+		InternalInterfaceCreationDone( TCCGetTag() );
+		object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+		cnptrset_insert( c->mallocedram, ret );
+	}
 	return ret;
 }
 

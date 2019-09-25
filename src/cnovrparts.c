@@ -24,6 +24,7 @@ static void parts_delete_callback( void * tag, void * opaquev )
 void CNOVRDeleteBase( cnovr_base * b )
 {
 	if( !b ) return;
+	//XXX Tricky: Use -1 tag to prevent accidental task deletion.
 	CNOVRJobTack( cnovrQPrerender, parts_delete_callback, (void*)-1, b, 0 );
 }
 
@@ -665,9 +666,13 @@ static void CNOVRModelDelete( cnovr_model * m )
 	{
 		for( i = 0; i < m->nMeshes + 1; i++ )
 		{
-			if( m->sMeshMarks[i] ) CNOVRFreeLater( m->sMeshMarks[i] );
+			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
 		}
-		CNOVRFreeLater( m->sMeshMarks );
+		free( m->sMeshMarks );
+	}
+	if( m->iMeshMarks )
+	{
+		free( m->iMeshMarks );
 	}
 	CNOVRFreeLater( m->pIndices );
 	if( m->geofile ) CNOVRFreeLater( m->geofile );

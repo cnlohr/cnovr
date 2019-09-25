@@ -349,7 +349,9 @@ void CNOVRShutdown()
 {
 	int i, k;
 	void VR_ShutdownInternal();
+
 	CNOVRStopTCCSystem();
+
 	StopFileTimeChekerThread();
 
 	InternalFileSearchShutdown();
@@ -358,8 +360,6 @@ void CNOVRShutdown()
 
 	//Free out any remaining tags from the initial list.
 	tcccrash_deltag( 0 );
-	printf( "Stopping TCC interface\n" );
-	InternalBreakdownRestOfTCCInterface();
 
 	printf( "Final flush\n" );
 	// We flush everything else out here..
@@ -368,6 +368,10 @@ void CNOVRShutdown()
 	{
 		while( CNOVRJobProcessQueueElement( i ) );
 	}
+
+	printf( "Stopping TCC interface\n" );
+	InternalBreakdownRestOfTCCInterface();
+
 	printf( "Closing cache system\n" );
 	CNOVRInternalStopCacheSystem();
 	printf( "NEXT\n" );
@@ -375,10 +379,12 @@ void CNOVRShutdown()
 	printf( "NEXT2\n" );
 	CNOVRJobStop();
 
+	printf( "Cleanup complete\n" );
 	//Flush out any remaining free laters.
 	CNOVRFreeLaterShutdown();
 
-	printf( "Cleanup complete\n" );
+	printf( "Unhooking crash handler\n" );
+	tcccrash_uninstall();
 
 	exit( 0 );
 }

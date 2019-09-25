@@ -164,7 +164,7 @@ static void StopTCCInstance( TCCInstance * tcc )
 	InternalShutdownTCC( tcc );
 	tcccrash_deltag( (intptr_t)(void*)tcc->state );
 }
-
+#if 0
 static void DestroyTCC( TCCInstance * tcc )
 {
 	if( !tcc ) return;
@@ -177,6 +177,7 @@ static void DestroyTCC( TCCInstance * tcc )
 	if( tcc->state ) { tcc_delete( tcc->state ); }
 	free( tcc );
 }
+#endif
 
 //Expects pre-dupped 
 TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilename, char ** additionalfiles, char * identifier, int bDynamicGen )
@@ -189,8 +190,7 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->bDynamicGen = bDynamicGen;
 	ret->bFirst = 1;
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
-	printf( "!!!!!!!!!!!!! Marking on %s (%s/%p)\n", tccfilename, identifier, identifier );
-	return 0;
+	return ret;
 }
 
 void DestroyTCCInstance( TCCInstance * tcc )
@@ -202,6 +202,9 @@ void DestroyTCCInstance( TCCInstance * tcc )
 
 	OGLockMutex( tccmutex );
 	if( tcc->tccfilename ) free( tcc->tccfilename );
+	if( tcc->image ) { CNOVRFreeLater( tcc->image ); }
+	if( tcc->identifier ) { free( tcc->identifier );  }
+	//if( tcc->additionalfiles ) { sb_free( tcc->additionalfiles );  }	//????
 	if( tcc->state ) tcc_delete( tcc->state );
 	free( tcc );
 	OGUnlockMutex( tccmutex );
@@ -414,6 +417,5 @@ void CNOVRStopTCCSystem()
 		sb_free( cnovrtccsystem.searchfolders );
 		cnovrtccsystem.searchfolders = 0;
 	}
-
 }
 
