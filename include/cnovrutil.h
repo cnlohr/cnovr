@@ -83,6 +83,12 @@ void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
 void CNOVRListDeleteTag( void * base_object );
 void CNOVRListDeleteTCCTag( void * tcctag );
 
+//////////////////////////////////////////////////////////////////////////////
+
+#define FREE_LATER_LAG 3
+
+void CNOVRFreeLater( void * tofree );
+
 #endif
 
 

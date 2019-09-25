@@ -13,6 +13,7 @@
 
 struct cnovrstate_t  * cnovrstate;
 
+
 //If on TCC, anything that linked to something that needs C++, i.e. OpenVR will require this symbol to be defined.
 #ifdef __TINYC__
 int __dso_handle;
@@ -26,6 +27,10 @@ void CNOVRJobStop(); //Internal
 void CNOVRListSystemInit(); //internal
 void CNOVRListSystemDestroy(); //internal
 void InternalSetupTCCInterface();
+void CNOVRInternalSetupFreeLaterSet();
+void CNOVRStopTCCSystem();
+void CNOVRFreeLaterShutdown();
+
 
 
 void HandleKey( int keycode, int bDown )
@@ -145,6 +150,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
 	}
+
+	CNOVRInternalSetupFreeLaterSet();
 
 	ovrprintf( "Initializing Extensions.\n" );
 
@@ -340,11 +347,26 @@ void CNOVRUpdate()
 void CNOVRShutdown()
 {
 	void VR_ShutdownInternal();
+	CNOVRStopTCCSystem();
+
+	// We flush out any pending object deletes here.
+	CNOVRJobProcessQueueElement( cnovrQPrerender );
+
 	CNOVRJobStop();
 	CNOVRInternalStopCacheSystem();
 	CNOVRListSystemDestroy();
 	InternalFileSearchShutdown();
+
 	VR_ShutdownInternal();
+
+	//Flush out any remaining free laters.
+	CNOVRFreeLaterShutdown();
+
+	//Free out any remaining tags from the initial list.
+	tcccrash_deltag( 0 );
+
+	printf( "Cleanup complete\n" );
+
 	exit( 0 );
 }
 
@@ -392,9 +414,6 @@ void CNOVRShaderLoadedSetUniformsInternal()
 	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 1, cnovrstate->mPerspective );
 	glUniform4fv( UNIFORMSLOT_RENDERPROPS, 1, &cnovrstate->iRTWidth );
 }
-
-
-
 
 
 

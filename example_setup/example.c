@@ -65,7 +65,6 @@ void UpdateFunction( void * tag, void * opaquev )
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
-
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );

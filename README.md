@@ -9,6 +9,7 @@ sudo apt-get install build-essential libgl1-mesa-dev
 
 NEWEST:
  * Make all objects refcounted.
+ * Consider a delete later queue?
 
 NEWER:
  * Fix multisample?

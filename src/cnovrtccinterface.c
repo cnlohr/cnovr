@@ -30,6 +30,7 @@ void OGTSUnlockMutex( og_mutex_t m )
 	RBA( tree, m )--;
 }
 
+//Called when we enter a thread.
 void OGResetSafeMutices()
 {
 	cnrbtree_og_mutex_tint * tree;
@@ -40,7 +41,7 @@ void OGResetSafeMutices()
 	tree = (cnrbtree_og_mutex_tint *)OGGetTLS( ogsafelocktls );
 	if( !tree )
 	{
-		tree = cnrbtree_og_mutex_tint_create();
+		OGSetTLS( ogsafelocktls, cnrbtree_og_mutex_tint_create() );
 	}
 }
 
@@ -85,7 +86,6 @@ cnhashtable * objects_to_delete;
 void InternalSetupTCCInterface()
 {
 	tccinterfacemutex = OGCreateMutex();
-	printf( "CRETE\n" );
 	tcctlstag = OGCreateTLS();
 	objects_to_delete = CNHashGenerate( 0, 0, CNHASH_POINTERS);
 }

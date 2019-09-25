@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "cnovrindexedlist.h"
 #include <stdarg.h>
+#include <stretchy_buffer.h>
 #include "cnovrtccinterface.h"
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
@@ -1111,4 +1112,64 @@ void CNOVRListDeleteTCCTag( void * tcctag )
 		OGTSUnlockMutex( m );
 	}
 }
+
+
+static int deletelaterpos;
+static void ** deletelaterbuffers[FREE_LATER_LAG];
+
+void CNOVRFreeLater( void * tofree )
+{
+	sb_push( deletelaterbuffers[deletelaterpos], tofree );
+}
+
+void CNOVRFreeLaterShutdown()
+{
+	int h;
+	for( h = 0; h < FREE_LATER_LAG; h++ )
+	{
+		int i;
+		void ** dlb = deletelaterbuffers[h];
+		if( dlb )
+		{
+			int len = stb__sbn( dlb );
+			for( i = 0; i < len; i++ )
+			{
+				free( dlb[i] );
+			}
+			sb_free( dlb );
+			deletelaterbuffers[h] = 0;
+		}
+	}
+}
+
+static void DeleteLaterFrameCb( void * tag, void * opaquev )
+{
+	//This gets called every frame.
+	int delete_this_buffer = ( deletelaterpos - 1 + FREE_LATER_LAG ) % FREE_LATER_LAG;
+	int i;
+	void ** dlb = deletelaterbuffers[delete_this_buffer];
+	if( dlb )
+	{
+		int len = stb__sbn( dlb );
+		for( i = 0; i < len; i++ )
+		{
+			free( dlb[i] );
+		}
+		stb__sbn( dlb ) = 0;
+	}
+	deletelaterpos = ( deletelaterpos + 1 ) % FREE_LATER_LAG;
+}
+
+void CNOVRInternalSetupFreeLaterSet()
+{
+	CNOVRListAdd( cnovrLUpdate, 0, DeleteLaterFrameCb );
+	int i;
+	for( i = 0; i < FREE_LATER_LAG; i++ )
+	{
+		deletelaterbuffers[i] = 0;
+	}
+}
+
+
+
 

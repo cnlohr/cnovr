@@ -35,7 +35,7 @@ static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 	if( ths->nRenderTextureId ) glDeleteTextures( 1, &ths->nRenderTextureId );
 	CNOVRListDeleteTag( ths );
 
-	free( ths );
+	CNOVRFreeLater( ths );
 }
 
 cnovr_header cnovr_rf_buffer_header = {
@@ -151,8 +151,8 @@ static void CNOVRShaderDelete( cnovr_shader * ths )
 	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
 	//CNOVRShaderFileClearWatchlist( ths );
-	free( ths->shaderfilebase );
-	free( ths );
+	CNOVRFreeLater( ths->shaderfilebase );
+	CNOVRFreeLater( ths );
 }
 
 static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, const char * shadername, const char * compstr )
@@ -207,9 +207,9 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	char stfbGeo[CNOVR_MAX_PATH];
 	char stfbFrag[CNOVR_MAX_PATH];
 	char stfbVert[CNOVR_MAX_PATH];
-	const char * filedataGeo = 0;
-	const char * filedataFrag = 0;
-	const char * filedataVert = 0;
+	char * filedataGeo = 0;
+	char * filedataFrag = 0;
+	char * filedataVert = 0;
 
 	char includeerrors1[256];
 	char includeerrors2[256];
@@ -236,12 +236,13 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 		return;
 	}
 
-	if( filedataGeo )
-	{
-		nGeoShader = CNOVRShaderCompilePart( ths, GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
-	}
+	if( filedataGeo ) nGeoShader = CNOVRShaderCompilePart( ths, GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
 	nFragShader = CNOVRShaderCompilePart( ths, GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
 	nVertShader = CNOVRShaderCompilePart( ths, GL_VERTEX_SHADER, stfbVert, filedataVert );
+
+	if( filedataVert ) free( filedataVert );
+	if( filedataFrag ) free( filedataFrag );
+	if( filedataGeo ) free( filedataGeo );
 
 	bool compfail = false;
 	if( filedataGeo )
@@ -402,7 +403,7 @@ static void CNOVRTextureDelete( cnovr_texture * ths )
 	if( ths->data ) free( ths->data );
 	if( ths->texfile ) free( ths->texfile );
 	OGDeleteMutex( ths->mutProtect );
-	free( ths );
+	CNOVRFreeLater( ths );
 }
 
 static void CNOVRTextureRender( cnovr_texture * ths )
@@ -607,7 +608,7 @@ void CNOVRVBODelete( cnovr_vbo * g )
 	CNOVRJobCancelAllTag( (void*)g, 1 );
 	OGLockMutex( g->mutData );
 	glDeleteBuffers( 1, &g->nVBO );
-	free( g->pVertices );
+	CNOVRFreeLater( g->pVertices );
 	OGDeleteMutex( g->mutData );
 }
 
@@ -1424,7 +1425,7 @@ void CNOVRNodeDelete( void * ths, void * opaque )
 		if( o->Delete ) o->Delete( objects[i] );
 	}
 #endif
-	free( ths );
+	CNOVRFreeLater( ths );
 }
 
 void CNOVRNodeRender( void * ths )

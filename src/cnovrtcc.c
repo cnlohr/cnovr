@@ -109,7 +109,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	if( tce->bFirst && tce->init)
 	{
 		InternalInterfaceCreationDone( tce );
-		printf( "%p->%s %p\n", tce->init, tce->identifier, tce->identifier );
+		//printf( "%p->%s %p\n", tce->init, tce->identifier, tce->identifier );
 		TCCInvocation( tce, tce->init( tce->identifier ) );
 		tce->bFirst = 0;
 	}
@@ -121,8 +121,12 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	tce->stop =  (tcccbfn)tcc_get_symbol( tce->state, "stop" );
 
-	if( backup_state ) tcc_delete( backup_state );
-	if( backupimage ) free( backupimage );
+	if( backup_state )
+	{
+		tcccrash_deltag( (intptr_t)backup_state );
+		tcc_delete( backup_state );
+	}
+	if( backupimage ) CNOVRFreeLater( backupimage ); //In case there are any hanging references.
 	backupimage = 0;
 
 	if( !tce->start )
@@ -220,6 +224,7 @@ TCCSystem cnovrtccsystem;
 
 void CNOVRTCCLog( void * data, const char * tolog )
 {
+	printf( "TODO LOG: %s\n", tolog );
 	//XXX TODO
 }
 
@@ -345,7 +350,15 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 					sb_push( cnovrtccsystem.instances, 
 						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, 0 ) );
 
-					if( additionalfiles ) sb_free( additionalfiles );
+					if( additionalfiles )
+					{
+						int i;
+						for( i = 0; i < sb_count( additionalfiles ); i++ )
+						{
+							free( additionalfiles[i] );
+						}
+						sb_free( additionalfiles );
+					}
 					additionalfiles = 0;
 				}
 			}
