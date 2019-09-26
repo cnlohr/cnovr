@@ -142,6 +142,7 @@ void InternalShutdownTCC( TCCInstance * tce )
 		void * i;
 		cnptrset_foreach( o->threads, i )
 		{
+			printf( "DELETE: %p\n", i );
 			OGCancelThread( (og_thread_t)i );
 		}
 		cnptrset_destroy( o->threads );
