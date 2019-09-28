@@ -591,6 +591,11 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( hypot );
 	TCCExportS( rand );
 
+	TCCExportS( sin );
+	TCCExportS( cos );
+	TCCExportS( tan );
+	TCCExportS( atan2 );
+
 #endif
 
 	OGUnlockMutex( tccinterfacemutex );

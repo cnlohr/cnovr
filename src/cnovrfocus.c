@@ -48,14 +48,13 @@ void InternalCNOVRFocusUpdate()
 	for( ; ctrl < 2; ctrl++ )
 	{
 		int i;
-		for( i = 0 ; i < CTRLA_MAX - 1; i++ )
+		for( i = 0 ; i <= CTRLA_GRASP; i++ )
 		{
 			int r;
 			VRActionHandle_t h = FOCUS.actionhandles[ctrl][i];
 			if( h == k_ulInvalidActionHandle ) continue;
-			if( ( r = GetDigitalActionData( h ) ) < 0 ) printf( "Err %d on %d\n", r, i );
-			printf( "%d %d = %d\n", ctrl, i, r );
-			//printf( "%d %d %d\n", ctrl, i, GetDigitalActionData( h ) );
+			if( ( r = GetDigitalActionData( h ) ) < 0 ) { printf( "Err %d on %d\n", r, i ); continue; }
+			//R contains the value.
 		}
 	}
 }

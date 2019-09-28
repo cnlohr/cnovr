@@ -19,7 +19,7 @@ typedef enum
 	CTRLA_BUTTONA,
 	CTRLA_BUTTONB,
 	CTRLA_GRASP,
-	CTRLA_TRIG,
+	CTRLA_TRIG, //Special
 	CTRLA_POSE, //Special
 	CTRLA_MAX,
 } ControllerActions;

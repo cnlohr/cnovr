@@ -15,7 +15,7 @@
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/m/in/trig/left"
+                     "output" : "/actions/m/in/trigleft"
                   },
                   "click" : {
                      "output" : "/actions/m/in/trigclickleft"
@@ -27,7 +27,7 @@
             {
                "inputs" : {
                   "pull" : {
-                     "output" : "/actions/m/in/trig/right"
+                     "output" : "/actions/m/in/trigright"
                   },
                   "click" : {
                      "output" : "/actions/m/in/trigclickright"
@@ -74,20 +74,30 @@
             },
             {
                "inputs" : {
-                  "grab" : {
+                  "click" : {
                      "output" : "/actions/m/in/graspclickleft"
                   }
                },
-               "mode" : "grab",
+               "parameters" : {
+                  "force_hold_threshold" : "0.6",
+                  "force_release_threshold" : "0.5",
+                  "force_input" : "force"
+               },
+               "mode" : "button",
                "path" : "/user/hand/left/input/grip"
             },
             {
                "inputs" : {
-                  "grab" : {
+                  "click" : {
                      "output" : "/actions/m/in/graspclickright"
                   }
                },
-               "mode" : "grab",
+               "parameters" : {
+                  "force_hold_threshold" : "0.6",
+                  "force_release_threshold" : "0.5",
+                  "force_input" : "force"
+               },
+               "mode" : "button",
                "path" : "/user/hand/right/input/grip"
             }
          ]

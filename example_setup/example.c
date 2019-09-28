@@ -51,7 +51,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		double ang = i * .04;
 		spinner_n[i]->pose.Scale = .1;
 		spinner_n[i]->pose.Pos[0] = sin( ang );
-		spinner_n[i]->pose.Pos[1] = sin(dt*4.0);
+		spinner_n[i]->pose.Pos[1] = sin(dt*5.0);
 		spinner_n[i]->pose.Pos[2] = cos( ang );
 		cnovr_euler_angle e;
 		e[0] = 0;
