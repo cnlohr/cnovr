@@ -358,7 +358,11 @@ char * FileSearchAbsolute( const char * fname )
 	char * pathfoundrealloc = alloca( pathfoundlen+1 );
 	memcpy( pathfoundrealloc, pathfound, pathfoundlen+1 );
 	char * cret = OGGetTLS( search_path_return );
-	realpath( pathfoundrealloc, cret );
+#if defined( WIN32 ) || defined( WINDOWS ) || defined( WIN64 )
+	_fullpath( cret, pathfoundrealloc, CNOVR_MAX_PATH-1 );
+#else
+	realpath( pathfoundrealloc, cret );	
+#endif
 	return cret;
 }
 

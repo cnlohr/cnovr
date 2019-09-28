@@ -1,23 +1,27 @@
 {
   "default_bindings": [
-    { "controller_type": "vive_controller", "binding_url": "default_vive.json" }
-    { "controller_type": "_XNOT_index_controller", "binding_url": "default_vive.json" }
+    { "controller_type": "vive_controller", "binding_url": "default_vive.json" },
+    { "controller_type": "knuckles", "binding_url": "default_knuckles.json" }
   ],
   "actions": [
-    { "name": "/actions/m/trigclick", "requirement": "optional", "type": "boolean" },
-    { "name": "/actions/m/buttona", "requirement": "optional", "type": "boolean" },
-    { "name": "/actions/m/buttonb", "requirement": "optional", "type": "boolean" },
-    { "name": "/actions/m/graspclick", "requirement" : "optional", "type": "boolean" },
-    { "name": "/actions/m/trig", "requirement" : "optional", "type": "vector1" },
-    { "name": "/actions/m/pose", "type": "pose" },
-  ],
-  "action_sets": [
-    { "name": "/actions/m", "usage": "single" },
+    { "name": "/actions/m/in/trigclickleft", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/buttonaleft", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/buttonbleft", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/graspclickleft", "requirement" : "optional", "type": "boolean" },
+    { "name": "/actions/m/in/trigleft", "requirement" : "optional", "type": "vector1" },
+    { "name": "/actions/m/in/poseleft", "type": "pose" },
+    { "name": "/actions/m/in/trigclickright", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/buttonaright", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/buttonbright", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/graspclickright", "requirement" : "optional", "type": "boolean" },
+    { "name": "/actions/m/in/trigright", "requirement" : "optional", "type": "vector1" },
+    { "name": "/actions/m/in/poseright", "type": "pose" }
   ],
   "localization" : [
    {
        "language_tag": "en_us",
-        "/actions/m" : "cnovr_actions",
+        "/actions/m" : "cnovr_actions",	
+        "/actions/m/in/pose": "Pose"
     }
   ]
 }

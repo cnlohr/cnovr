@@ -1,0 +1,99 @@
+{
+   "bindings" : {
+      "/actions/m" : {
+         "poses" : [
+            {
+               "output" : "/actions/m/in/poseleft",
+               "path" : "/user/hand/left/pose/raw"
+            },
+            {
+               "output" : "/actions/m/in/poseright",
+               "path" : "/user/hand/right/pose/raw"
+            }
+         ],
+         "sources" : [
+            {
+               "inputs" : {
+                  "pull" : {
+                     "output" : "/actions/m/in/trig/left"
+                  },
+                  "click" : {
+                     "output" : "/actions/m/in/trigclickleft"
+                  }
+               },
+               "mode" : "trigger",
+               "path" : "/user/hand/left/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "pull" : {
+                     "output" : "/actions/m/in/trig/right"
+                  },
+                  "click" : {
+                     "output" : "/actions/m/in/trigclickright"
+                  }
+               },
+               "mode" : "trigger",
+               "path" : "/user/hand/right/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/buttonaleft"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/buttonaright"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/a"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/buttonbleft"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/b"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/buttonbright"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/b"
+            },
+            {
+               "inputs" : {
+                  "grab" : {
+                     "output" : "/actions/m/in/graspclickleft"
+                  }
+               },
+               "mode" : "grab",
+               "path" : "/user/hand/left/input/grip"
+            },
+            {
+               "inputs" : {
+                  "grab" : {
+                     "output" : "/actions/m/in/graspclickright"
+                  }
+               },
+               "mode" : "grab",
+               "path" : "/user/hand/right/input/grip"
+            }
+         ]
+      }
+   },
+   "controller_type" : "knuckles",
+   "description" : "cnovr knuckles controller bindings",
+   "name" : "cnovr knuckles controller bindings"
+}

@@ -6,6 +6,8 @@
 
 typedef struct internal_focus_system_t
 {
+	VRActionSetHandle_t inputactionset;
+	VRInputValueHandle_t handsource[2];
 	VRActionHandle_t actionhandles[2][CTRLA_MAX];
 } internal_focus_system;
 
@@ -19,28 +21,42 @@ internal_focus_system FOCUS;
 //XXX TODO: We may want to capture fUpdateTime from actionData.
 int GetDigitalActionData( VRActionHandle_t h )
 {
-	if( !cnovrstate->oInput ) return 0;
+	if( !cnovrstate->oInput ) return -1;
 	InputDigitalActionData_t actionData;
-	if( !cnovrstate->oInput->GetDigitalActionData( h, &actionData, sizeof(actionData), k_ulInvalidInputValueHandle ) ) return 0;
+	int ret;
+	if( ( ret = cnovrstate->oInput->GetDigitalActionData( h, &actionData, sizeof(actionData), k_ulInvalidInputValueHandle ) ) ) return -ret;
 	return actionData.bActive && actionData.bState;
 }
 
 float GetAnalogActionData( VRActionHandle_t h )
 {
-	if( !cnovrstate->oInput ) return 0;
+	if( !cnovrstate->oInput ) return -1;
 	InputAnalogActionData_t actionData;
-	if( !cnovrstate->oInput->GetAnalogActionData( h, &actionData, sizeof(actionData), k_ulInvalidInputValueHandle ) ) return 0;
+	if( cnovrstate->oInput->GetAnalogActionData( h, &actionData, sizeof(actionData), k_ulInvalidInputValueHandle ) ) return -2;
 	return actionData.bActive?actionData.x:0;
 }
 
 void InternalCNOVRFocusUpdate()
 {
 	int ctrl = 0;
+	int r;
+
+	VRActiveActionSet_t actionSet = { 0 };
+	actionSet.ulActionSet = FOCUS.inputactionset;
+	cnovrstate->oInput->UpdateActionState( &actionSet, sizeof( actionSet ), 1 );
+
 	for( ; ctrl < 2; ctrl++ )
 	{
-		VRActionHandle_t h = FOCUS.actionhandles[ctrl][0];
-		if( h == k_ulInvalidActionHandle ) continue;
-		printf( "%d %d %d\n", ctrl, 0, GetDigitalActionData( h ) );
+		int i;
+		for( i = 0 ; i < CTRLA_MAX - 1; i++ )
+		{
+			int r;
+			VRActionHandle_t h = FOCUS.actionhandles[ctrl][i];
+			if( h == k_ulInvalidActionHandle ) continue;
+			if( ( r = GetDigitalActionData( h ) ) < 0 ) printf( "Err %d on %d\n", r, i );
+			printf( "%d %d = %d\n", ctrl, i, r );
+			//printf( "%d %d %d\n", ctrl, i, GetDigitalActionData( h ) );
+		}
 	}
 }
 
@@ -70,24 +86,35 @@ void InternalCNOVRFocusSetup()
 		}
 		else
 		{
+			printf( "Setting up action manifests (%s)\n", manifestpath );
 			cnovrstate->oInput->SetActionManifestPath( manifestpath );
+
+			char stmp[1024];
+			int ret;
+
+			if( ( ret = cnovrstate->oInput->GetActionSetHandle( "/actions/m", &FOCUS.inputactionset) ) )
+			{
+				printf( "ERROR: Failed to get action set handle: %d\n", ret );
+			}
+
 			for( ctrl = 0; ctrl < 2; ctrl++ )
 			{
 				const char * hand = ctrl?"right":"left";
+				sprintf( stmp, "/user/hand/%s", hand );
+				if( ( ret = cnovrstate->oInput->GetInputSourceHandle( stmp, &FOCUS.handsource[ctrl] ) ) < 0 ) printf( "Error %d\n", ret );
 
 				static const char * eventnames[] = {
-					"/actions/m/trigclick",
-					"/actions/m/buttona",
-					"/actions/m/buttonb",
-					"/actions/m/graspclick",
-					"/actions/m/trig",
-					"/actions/m/pose"
+					"/actions/m/in/trigclick",
+					"/actions/m/in/buttona",
+					"/actions/m/in/buttonb",
+					"/actions/m/in/graspclick",
+					"/actions/m/in/trig",
+					"/actions/m/in/pose"
 				};
 
 				for( i = 0; i < CTRLA_MAX; i++ )
 				{
-					char stmp[128];
-					sprintf( stmp, "%s/%s", eventnames[i], hand );
+					sprintf( stmp, "%s%s", eventnames[i], hand );
 					int ret = cnovrstate->oInput->GetActionHandle( stmp, &FOCUS.actionhandles[ctrl][i] );
 					if( ret )
 					{
@@ -99,6 +126,9 @@ void InternalCNOVRFocusSetup()
 					}
 				}
 			}
+
+
+			printf( "FOCUS HAND SOURCES: %d %d\n", FOCUS.handsource[0], FOCUS.handsource[1] );
 		}
 	}
 }

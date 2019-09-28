@@ -155,6 +155,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
 	}
 
+	ovrprintf( "Setting up focus\n" );
 	InternalCNOVRFocusSetup();
 
 	CNOVRInternalSetupFreeLaterSet();

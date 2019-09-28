@@ -15,12 +15,12 @@
 
 typedef enum
 {
-	CTRLA_TRIGGER,
+	CTRLA_TRIGGER = 0,
 	CTRLA_BUTTONA,
 	CTRLA_BUTTONB,
 	CTRLA_GRASP,
 	CTRLA_TRIG,
-	CTRLA_POSE,
+	CTRLA_POSE, //Special
 	CTRLA_MAX,
 } ControllerActions;
 
