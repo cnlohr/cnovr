@@ -11,7 +11,7 @@ cnovr_shader * shader;
 cnovr_model * model;
 cnovr_simple_node * node;
 
-#define MAX_SPINNERS 200
+#define MAX_SPINNERS 50
 cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
 
@@ -47,11 +47,11 @@ void UpdateFunction( void * tag, void * opaquev )
 	int i;
 	for (i = 0; i < MAX_SPINNERS; i++ )
 	{
-		double dt =  (now - start)*.1 - i * .04;
-		double ang = i * .04;
+		double dt =  (now - start)*.2 - i * 3.14159;
+		double ang = (i * .4) + (now - start)*.2;
 		spinner_n[i]->pose.Scale = .1;
 		spinner_n[i]->pose.Pos[0] = sin( ang );
-		spinner_n[i]->pose.Pos[1] = sin(dt*5.0);
+		spinner_n[i]->pose.Pos[1] = sin( dt*1.25);
 		spinner_n[i]->pose.Pos[2] = cos( ang );
 		cnovr_euler_angle e;
 		e[0] = 0;
@@ -83,12 +83,12 @@ static void example_scene_setup( void * tag, void * opaquev )
 		cnovr_model * spinner_m;
 		spinner_m = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 		CNOVRModelAppendCube( spinner_m, 0 );
-		spinner_s = CNOVRShaderCreate( "assets/basic" );
-		CNOVRNodeAddObject( spinner_n[i], spinner_s );
+	//	spinner_s = CNOVRShaderCreate( "assets/basic" );
+	//	CNOVRNodeAddObject( spinner_n[i], shader );
 		CNOVRNodeAddObject( spinner_n[i], spinner_m );
 		CNOVRNodeAddObject( root, spinner_n[i] );
 	}
-
+	
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 
 	thdmax = OGCreateThread( my_thread, (void*)identifier );

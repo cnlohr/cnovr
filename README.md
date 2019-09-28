@@ -21,6 +21,9 @@ NEWER:
  * Get intended frame time.
  * Make some global "now" or delta timer.
 
+Mid future todo:
+ * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?
+ * Fix Windows Crash Handler
 
 Distant-future todo:
  * Input animations: { "name": "/actions/m/anim", "type": "skeleton", "skeleton": "/skeleton/hand/right" }

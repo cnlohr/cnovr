@@ -73,8 +73,9 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	tcc_define_symbol( tce->state, "TCCINSTANCE", "1" );
 	tcc_define_symbol( tce->state, "OSG_NO_IMPLEMENTATION", "1" );
-	
+	printf( "Adding: %s\n", tce->tccfilename );
 	r = tcc_add_file( tce->state, tce->tccfilename );
+	printf( "Add Done: %d\n", r );
 	if( r )
 	{
 		CNOVRAlert( 0, 2, "TCC Comple Status: %d\n", r );

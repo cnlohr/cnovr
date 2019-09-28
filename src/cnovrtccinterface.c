@@ -142,7 +142,6 @@ void InternalShutdownTCC( TCCInstance * tce )
 		void * i;
 		cnptrset_foreach( o->threads, i )
 		{
-			printf( "DELETE: %p\n", i );
 			OGCancelThread( (og_thread_t)i );
 		}
 		cnptrset_destroy( o->threads );
@@ -597,8 +596,8 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( atan2 );
 
 #endif
-
 	OGUnlockMutex( tccinterfacemutex );
+	printf( "Populate done\n" );
 }
 
 void InternalInterfaceCreationDone( TCCInstance * tce )

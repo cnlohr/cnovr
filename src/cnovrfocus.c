@@ -41,6 +41,7 @@ void InternalCNOVRFocusUpdate()
 	int ctrl = 0;
 	int r;
 
+	if( !cnovrstate->oInput ) return;
 	VRActiveActionSet_t actionSet = { 0 };
 	actionSet.ulActionSet = FOCUS.inputactionset;
 	cnovrstate->oInput->UpdateActionState( &actionSet, sizeof( actionSet ), 1 );
