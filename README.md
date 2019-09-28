@@ -22,6 +22,8 @@ NEWER:
  * Make some global "now" or delta timer.
 
 
+Distant-future todo:
+ * Input animations: { "name": "/actions/m/anim", "type": "skeleton", "skeleton": "/skeleton/hand/right" }
 
 Further consider (long-term)
  * Should we continue using "Tag" as an ambiguous term meaning "TCC Instance" or "Node" or should we standardize?

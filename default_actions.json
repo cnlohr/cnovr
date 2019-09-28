@@ -1,0 +1,23 @@
+{
+  "default_bindings": [
+    { "controller_type": "vive_controller", "binding_url": "default_vive.json" }
+    { "controller_type": "_XNOT_index_controller", "binding_url": "default_vive.json" }
+  ],
+  "actions": [
+    { "name": "/actions/m/trigclick", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/buttona", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/buttonb", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/graspclick", "requirement" : "optional", "type": "boolean" },
+    { "name": "/actions/m/trig", "requirement" : "optional", "type": "vector1" },
+    { "name": "/actions/m/pose", "type": "pose" },
+  ],
+  "action_sets": [
+    { "name": "/actions/m", "usage": "single" },
+  ],
+  "localization" : [
+   {
+       "language_tag": "en_us",
+        "/actions/m" : "cnovr_actions",
+    }
+  ]
+}

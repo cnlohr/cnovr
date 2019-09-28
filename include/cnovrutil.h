@@ -32,6 +32,7 @@ int StringCompareEndingCase( const char * thing_to_search, const char * check_ex
 //////////////////////////////////////////////////////////////////////////////
 
 char * FileSearch( const char * fname ); //Returns a thread-local reference.
+char * FileSearchAbsolute( const char * fname ); //Returns a thread-local reference.
 void FileSearchAddPath( const char * path ); //This function dups your string.
 void FileSearchRemovePath( const char * path );
 
@@ -46,6 +47,8 @@ void CNOVRFileTimeRemoveTagged( void * tag, int wait_on_pending );
 double CNOVRFileTimeCached( const char * fname );
 
 //////////////////////////////////////////////////////////////////////////////
+//For one-shot tasks.
+
 typedef enum
 {
 	cnovrQLow,			//Things like making sure we're up to date - not sure?

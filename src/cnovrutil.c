@@ -316,15 +316,13 @@ char * FileSearch( const char * fname )
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
+	if( !cret ) { OGSetTLS( search_path_return, (cret = malloc( CNOVR_MAX_PATH+1 ) ) ); }
+
 	int fnamelen = strlen( fname );
+
 	if( fnamelen >= CNOVR_MAX_PATH ) 
 	{
 		return 0;
-	}
-
-	if( !cret )
-	{
-		cret = malloc( CNOVR_MAX_PATH );
 	}
 
 	if( CheckFileExists( fname ) )
@@ -350,6 +348,17 @@ char * FileSearch( const char * fname )
 	}
 	if( i < 0 ) cret[0] = 0;
 	OGTSUnlockMutex( search_paths_mutex );
+	return cret;
+}
+
+char * FileSearchAbsolute( const char * fname )
+{
+	char * pathfound = FileSearch( fname );
+	int pathfoundlen = strlen( pathfound );
+	char * pathfoundrealloc = alloca( pathfoundlen+1 );
+	memcpy( pathfoundrealloc, pathfound, pathfoundlen+1 );
+	char * cret = OGGetTLS( search_path_return );
+	realpath( pathfoundrealloc, cret );
 	return cret;
 }
 

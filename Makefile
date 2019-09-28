@@ -10,7 +10,7 @@ OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o
 
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
-	src/cnovrtccinterface.o
+	src/cnovrtccinterface.o src/cnovrfocus.o
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread

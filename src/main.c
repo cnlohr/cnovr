@@ -2,14 +2,17 @@
 #include <CNFGFunctions.h>
 #include <cnovrtcc.h>
 #include <cnovr.h>
+#include <cnovrutil.h>
 
 int main()
 {
-	if( CNOVRInit( "test", 640, 480, 2 ) )
+	if( CNOVRInit( "test", 640, 480, 1 ) )
 	{
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;
 	}
+
+	printf( "\nFileSearchAbsolute = %s\n", FileSearchAbsolute( "default_actions.json" ) );
 
 	CNOVRStartTCCSystem( "example_setup/example.json" );
 /*

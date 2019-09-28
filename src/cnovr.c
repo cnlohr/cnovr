@@ -32,7 +32,9 @@ void CNOVRStopTCCSystem();
 void CNOVRFreeLaterShutdown();
 void InternalBreakdownRestOfTCCInterface();
 void StopFileTimeChekerThread();
-
+void InternalCNOVRFocusSetup();
+void InternalCNOVRFocusShutdown();
+void InternalCNOVRFocusUpdate();
 
 void HandleKey( int keycode, int bDown )
 {
@@ -141,6 +143,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 			cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)CNOVRGetOpenVRFunctionTable( IVRSystem_Version );
 			cnovrstate->oRenderModels = (struct VR_IVRRenderModels_FnTable *)CNOVRGetOpenVRFunctionTable( IVRRenderModels_Version );
 			cnovrstate->oCompositor = (struct VR_IVRCompositor_FnTable *)CNOVRGetOpenVRFunctionTable( IVRCompositor_Version );
+			cnovrstate->oInput = (struct VR_IVRInput_FnTable *)CNOVRGetOpenVRFunctionTable( IVRInput_Version );
 		}
 
 		cnovrstate->openvr_renderposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
@@ -151,6 +154,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
 	}
+
+	InternalCNOVRFocusSetup();
 
 	CNOVRInternalSetupFreeLaterSet();
 
@@ -198,11 +203,14 @@ void CNOVRUpdate()
 	int i;
 
 //	memcpy( cnovrstate->openvr_renderposes, lastframeposes, sizeof( lastframeposes ) );
+	InternalCNOVRFocusUpdate();
+
 	if( cnovrstate->has_ovr )
 	{
 		cnovrstate->oCompositor->WaitGetPoses( 
 			cnovrstate->openvr_renderposes, MAX_POSES_TO_PULL_FROM_OPENVR, 
 			cnovrstate->openvr_trackedposes, MAX_POSES_TO_PULL_FROM_OPENVR );
+
 		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
 		{
 			if( ( cnovrstate->bRenderPosesValid[i] = cnovrstate->openvr_renderposes[i].bPoseIsValid ) )
@@ -228,7 +236,6 @@ void CNOVRUpdate()
 
 	//Waste some time...
 	CNFGHandleInput();
-
 
 	//Possibly update stereo target resolutions.
 	if( cnovrstate->has_ovr )
@@ -353,6 +360,8 @@ void CNOVRShutdown()
 	CNOVRStopTCCSystem();
 
 	StopFileTimeChekerThread();
+
+	InternalCNOVRFocusShutdown();
 
 	InternalFileSearchShutdown();
 

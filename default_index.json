@@ -1,0 +1,66 @@
+{
+   "bindings" : {
+      "/actions/m" : {
+         "poses" : [
+            {
+               "output" : "/actions/m/pose/left",
+               "path" : "/user/hand/left/pose/raw"
+            },
+            {
+               "output" : "/actions/m/pose/right",
+               "path" : "/user/hand/right/pose/raw"
+            }
+         ],
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/trigclick"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "position" : {
+                     "output" : "/actions/m/trig"
+                  }
+               },
+               "mode" : "linear",
+               "path" : "/user/hand/right/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/buttona"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/input/a/click"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/buttonb"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/input/b/click"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/graspclick"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/input/grip/click"
+            }
+         ]
+      }
+   },
+   "controller_type" : "vive_controller",
+   "description" : "cnovr vive controller bindings",
+   "name" : "cnovr vive controller bindings"
+}

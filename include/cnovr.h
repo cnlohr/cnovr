@@ -47,6 +47,7 @@ struct cnovrstate_t
 	struct VR_IVRSystem_FnTable * oSystem;
 	struct VR_IVRRenderModels_FnTable * oRenderModels;
 	struct VR_IVRCompositor_FnTable * oCompositor;
+	struct VR_IVRInput_FnTable * oInput;
 
 	struct TrackedDevicePose_t * openvr_renderposes;
 	struct TrackedDevicePose_t * openvr_trackedposes;
