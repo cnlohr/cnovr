@@ -18,6 +18,9 @@ cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int zapped[MAX_SPINNERS];
 int shutting_down;
 
+cnovrfocus_capture focusblock[MAX_SPINNERS];
+
+
 void * my_thread( void * v )
 {
 	while(1 )
@@ -50,8 +53,8 @@ void UpdateFunction( void * tag, void * opaquev )
 	int i;
 	for (i = 0; i < MAX_SPINNERS; i++ )
 	{
-		double dt =  (now - start)*.2 - i * 3.14159;
-		double ang = (i * .4) + (now - start)*.2;
+		double dt =  (now - start)*.2*0 - i * 3.14159;
+		double ang = (i * .4) + (now - start)*.2*0;
 		spinner_n[i]->pose.Scale = .2;
 //		spinner_n[i]->pose.Pos[1] = 2;
 		if( zapped[i] ) spinner_n[i]->pose.Scale = .4;
@@ -67,6 +70,16 @@ void UpdateFunction( void * tag, void * opaquev )
 
 	return;
 }
+
+
+int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	printf( "EVENT: %d %d %d\n", event, cap->opaque, buttoninfo );
+}
+
+
+
+
 
 
 void CollideFunction( void * tag, void * opaquev )
@@ -91,9 +104,10 @@ void CollideFunction( void * tag, void * opaquev )
 		int r = CNOVRModelCollide( spinner_m[i], start, direction, &res );
 		if( r >= 0 )
 		{
-			printf( "%d %f %d %d [%f %f %f]\n", r, res.t, res.whichmesh, res.whichvert, res.collidepos[0], res.collidepos[1], res.collidepos[2] );
-			printf( "zapped %d\n", i );
-			zapped[i] = 1;
+			CNOVRFocusRespond( p->devid, &focusblock[i], res.t, 0 );
+			//printf( "%d %f %d %d [%f %f %f]\n", r, res.t, res.whichmesh, res.whichvert, res.collidepos[0], res.collidepos[1], res.collidepos[2] );
+			//printf( "zapped %d\n", i );
+			//zapped[i] = 1;
 		}
 	}
 	//printf( "%f\n", p->poseTip.Pos[0] );
@@ -121,7 +135,10 @@ static void example_scene_setup( void * tag, void * opaquev )
 		CNOVRModelAppendCube( spinner_m[i], 0 );
 		CNOVRNodeAddObject( spinner_n[i], spinner_m[i] );
 		CNOVRNodeAddObject( root, spinner_n[i] );
+		focusblock[i].opaque = (void*)i;
+		focusblock[i].cb = FocusEvent;
 	}
+
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
