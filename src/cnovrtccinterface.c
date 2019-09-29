@@ -1,5 +1,6 @@
 #include <cnovrtccinterface.h>
 #include <cnovrutil.h>
+#include <cnovrfocus.h>
 #include <tinycc/libtcc.h>
 #include <stdarg.h>
 #include <cnovr.h>
@@ -92,6 +93,7 @@ void InternalSetupTCCInterface()
 	objects_to_delete = CNHashGenerate( 0, 0, CNHASH_POINTERS);
 }
 
+//This is a FINAL SHUTDOWN when the system is going down.  DO NOT call this unless you are totally ready for a shutdown.
 void InternalBreakdownRestOfTCCInterface()
 {
 	OGLockMutex( tccinterfacemutex );
@@ -133,6 +135,7 @@ void InternalBreakdownRestOfTCCInterface()
 
 void InternalShutdownTCC( TCCInstance * tce )
 {
+	CNOVRFocusRemoveTag( tce );
 	OGLockMutex( tccinterfacemutex );
 	CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
 	CNOVRListDeleteTCCTag( tce );
@@ -418,6 +421,16 @@ char * TCCstrdup(const char * str )
 	return ret;
 }
 
+void TCCCNOVRFocusRespond( int devid, cnovrfocus_capture * ce, float realdistance, int attempt_focus )
+{
+	ce->tag = TCCGetTag();
+	CNOVRFocusRespond( devid, ce, realdistance, attempt_focus );
+}
+
+void TCCCNOVRFocusRemoveTag( void * tag )
+{
+	CNOVRFocusRemoveTag( TCCGetTag() );
+}
 
 #if defined( WINDOWS  ) || defined ( WIN32 ) || defined( WIN64 )
 //XXX TODO: I think we'll need these maybe?
@@ -479,11 +492,16 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( CNOVRDeleteBase );
 
 	TCCExportS( CNOVRModelAppendCube );
+	TCCExportS( CNOVRModelCollide );
+ 
 	TCCExportS( CNOVRNodeAddObject );
 	TCCExportS( CNOVRNodeRemoveObject );
 
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );
+
+	TCCExport( CNOVRFocusRespond );
+	TCCExport( CNOVRFocusRemoveTag );
 
 	TCCExportS( cnovr_interpolate );
 	TCCExportS( cross3d );

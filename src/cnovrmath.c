@@ -690,6 +690,13 @@ void apply_pose_to_point(cnovr_point3d pout, const cnovr_pose *pose, const cnovr
 	add3d( pout, tmp, pose->Pos);
 }
 
+void apply_pose_to_point_revorder(cnovr_point3d pout, const cnovr_pose *pose, const cnovr_point3d pin) {
+	cnovr_point3d tmp;
+	add3d( pout, tmp, pose->Pos);
+	scale3d( tmp, tmp, pose->Scale );
+	quatrotatevector(tmp, pose->Rot, pin);
+}
+
 void apply_pose_to_pose(cnovr_pose *pout, const cnovr_pose *lhs_pose, const cnovr_pose *rhs_pose) {
 	apply_pose_to_point(pout->Pos, lhs_pose, rhs_pose->Pos);
 	scale3d( pout->Pos, pout->Pos, rhs_pose->Scale );
@@ -700,8 +707,8 @@ void apply_pose_to_pose(cnovr_pose *pout, const cnovr_pose *lhs_pose, const cnov
 void pose_invert(cnovr_pose *poseout, const cnovr_pose *pose) {
 	quatgetreciprocal(poseout->Rot, pose->Rot);
 	quatrotatevector(poseout->Pos, poseout->Rot, pose->Pos);
-	scale3d(poseout->Pos, poseout->Pos, -1);
 	poseout->Scale = 1. / pose->Scale;
+	scale3d(poseout->Pos, poseout->Pos, -poseout->Scale);
 }
 
 void pose_to_matrix44(FLT *matrix44, const cnovr_pose *pose_in) {

@@ -12,7 +12,6 @@
 //Dev 1 = Controller Left
 //Dev 2 = Controller Right
 
-
 typedef enum
 {
 	CTRLA_TRIGGER = 0,
@@ -27,19 +26,19 @@ typedef enum
 
 struct cnovrfocus_capture_t;
 typedef struct cnovrfocus_capture_t cnovrfocus_capture;
-struct cnovrfocus_controller_t;
-typedef struct cnovrfocus_controller_t cnovrfocus_controller;
+struct cnovrfocus_properties_t;
+typedef struct cnovrfocus_properties_t cnovrfocus_properties;
 
 
 //We have "Check" (Checks everything in the list).  It is called on motion, not on presses.
 // the callback looks like:
-//   typedef void(cnovr_cb_fn)( void * tag, cnovrfocus_controller * controller );
+//   typedef void(cnovr_cb_fn)( void * tag, cnovrfocus_properties * controller );
 // If you, as a subscriber have interest in this event, call 
 //
 // If you've claimed interest you'll get:
-//    In, Out, Motion, Down, UpNoFocus
+//    In, Out, Motion, DownNoFocus, UpNoFocus
 // If you have focus, you'll get:
-//    Drag, UpFocus
+//    Drag, UpFocus, DownFocus
 
 //We need to claim 
 
@@ -47,59 +46,44 @@ typedef enum
 {
 	CNOVRF_IN = 0,
 	CNOVRF_OUT,
-	CNOVRF_MOTION,
-	CNOVRF_DOWN,
+	CNOVRF_DOWNFOCUS,
+	CNOVRF_DOWNNOFOCUS,
 	CNOVRF_UPFOCUS,
 	CNOVRF_UPNOFOCUS,
+	CNOVRF_MOTION,
 	CNOVRF_DRAG,
 	CNOVRF_MAX_EVENTS,
 } cnovrfocus_event;
 
-typedef int (*CNOVRFocusEvent)( int event, cnovrfocus_capture * cap, cnovrfocus_controller * control );
+typedef int (*CNOVRFocusEvent)( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
 
-struct cnovrfocus_capture_t
+typedef struct cnovrfocus_capture_t
 {
 	void * tag;
 	void * opaque;
 	CNOVRFocusEvent cb;
-};
+} cnovrfocus_capture;
 
-typedef struct cnovrfocus_controller_t
+typedef struct cnovrfocus_properties_t
 {
-	uint64_t buttonmask[BUTTONMASKSIZE];
-	cnovr_pose poseRender;
-	cnovr_pose poseFuture;
-	cnovrfocus_capture * captured;
 	int devid;
-} cnovrfocus_controller;
+	uint64_t buttonmask[BUTTONMASKSIZE];
+	cnovr_pose poseTip;
+	cnovrfocus_capture * capturedFocus;
+	cnovrfocus_capture * capturedPassive;
+	float capturedPassiveDistance;
 
-void CNOVRFocusClaim( int devid, cnovrfocus_capture ce, double claimeddistance, int attempt_focus );
+	//This is transitory information stored when excuting the collision list.  Don't mess with it unless you know what you're doing.
+	cnovrfocus_capture * NewCapturedPassive;
+	float NewPassiveRealDistance;
+} cnovrfocus_properties;
+
+//Ugh this is awkward.  Need to fix.
+
+//YOU own the 'ce' object. We just store it for you.
+void CNOVRFocusRespond( int devid, cnovrfocus_capture * ce, float realdistance, int attempt_focus );
 void CNOVRFocusRemoveTag( void * tag );
-void CNOVRFocusNewState( cnovrfocus_controller * newcontroller );
 
-/* 
-  Process
-
-   OpenVR -> 
-      For Each Controller -> CNOVRFocusNewState
-          CNOVRFocusNewState() -> CNOVRListCall( cnovrLCollide, ... ); 
-
-   Task Callback ->
-      CNOVRFocusClaim( ... )
-
-//Private
-//void CNOVRFocusSetup();
-//void CNOVRFocusShutdown();
-
-//INTERNAL
-typedef struct cnovrfocus_t
-{
-	
-} cnovrfocus;
-
-extern cnovrfocus * focussystem;
-
-*/
 
 #endif
 

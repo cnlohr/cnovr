@@ -1054,6 +1054,7 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 	if( m->iGeos == 0 ) return -1;
 	int iMeshNo = 0;
 	//Iterate through all this.
+	if( !m->pGeos[0] ) return -1;
 	float * vpos = m->pGeos[0]->pVertices;
 	int stride = m->pGeos[0]->iStride;
 	int i;
@@ -1081,8 +1082,8 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			sub3d( v02, v0, v2 );
 			{
 				float v20[3];
+				sub3d( v20, v2, v0 ); //!?!?!
 				cross3d( N, v20, v10 );
-				sub3d( v20, v2, v0 );
 			}
 			normalize3d( N, N );
 			float D = dot3d(N, v0);
@@ -1093,15 +1094,25 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			float C0[3];
 			float C1[3];
 			float C2[3];
-			sub3d( C0, Phit, v0 );
-			sub3d( C1, Phit, v1 );
-			sub3d( C2, Phit, v2 );
-			cross3d( C0, v10, C0 );
-			cross3d( C1, v21, C1 );
-			cross3d( C2, v02, C2 );
+
+			{
+				float C0tmp[3];
+				float C1tmp[3];
+				float C2tmp[3];
+				sub3d( C0tmp, Phit, v0 );
+				sub3d( C1tmp, Phit, v1 );
+				sub3d( C2tmp, Phit, v2 );
+				cross3d( C0, C0tmp, v10 );
+				cross3d( C1, C1tmp, v21 );
+				cross3d( C2, C2tmp, v02 );
+			}
+			//C1-2 are busted here.
+
+//			printf( "C0: %f %f %f  C1: %f %f %f   C2: %f %f %f   N: %f %f %f  %f\n", PFTHREE( C0 ), PFTHREE( C1 ), PFTHREE( C2 ), PFTHREE( N ), t );
 			if( dot3d( N, C0 ) < 0 ||
 				dot3d( N, C1 ) < 0 ||
 				dot3d( N, C2 ) < 0 ) continue;
+
 
 			//Else: We have a hit.
 			if( t < r->t )

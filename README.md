@@ -22,6 +22,8 @@ NEWER:
  * Make some global "now" or delta timer.
  * Should lists be allowed to have "priorities"?
  * There should be some default shader for if a shader with a 0 id is activated, it can go to the default.
+ * When shutting down TCC, the actual destruction should maybe happen a frame later to give TCC a chance to actually shutdown instead of us canceling threads mid-run.
+ * Should models have a transform matrix?
 
 Mid future todo:
  * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?

@@ -19,6 +19,10 @@ typedef struct internal_focus_system_t
 	cnovr_pose      poseController[2];
 	cnovr_pose      poseTip[2];
 	bool bShowController[2];
+	cnovrfocus_properties focusProps[3];	//Tricky: Device0 is the HMD, 1 and 2 are the controllers.
+	og_mutex_t    mutFocus;
+	cnovrfocus_capture * capPassiveTemp; //Careful - if we delete in the operation, this must also be removed.
+	int current_devid; //If we're actively pursuing a callback. 
 } internal_focus_system;
 
 internal_focus_system FOCUS;
@@ -74,7 +78,8 @@ void InternalCNOVRFocusUpdate()
 
 	for( ; ctrl < 2; ctrl++ )
 	{
-
+		cnovrfocus_properties * props = &FOCUS.focusProps[ctrl];
+		cnovrfocus_capture * cap;
 		int i;
 		for( i = 0 ; i <= CTRLA_GRASP; i++ )
 		{
@@ -82,18 +87,62 @@ void InternalCNOVRFocusUpdate()
 			VRActionHandle_t h = FOCUS.actionhandles[ctrl][i];
 			if( h == k_ulInvalidActionHandle ) continue;
 			if( ( r = GetDigitalActionData( h ) ) < 0 ) { printf( "Err %d on %d\n", r, i ); continue; }
-			//R contains the value. XXX TODO Pick up here.
+			int wasdown = (props->buttonmask[0] & 1<<i)?1:0;
+			if( wasdown != r )
+			{
+				if( r )
+				{
+					props->buttonmask[0] |= 1<<i;
+					OGLockMutex( FOCUS.mutFocus );
+					if( ( cap = props->capturedFocus   ) ) cap->cb( CNOVRF_DOWNFOCUS, cap, props, i );
+					if( ( cap = props->capturedPassive ) ) cap->cb( CNOVRF_DOWNNOFOCUS, cap, props, i );
+					OGUnlockMutex( FOCUS.mutFocus );
+				}
+				else
+				{
+					props->buttonmask[0] &= ~(1<<i);
+					OGLockMutex( FOCUS.mutFocus );
+					if( ( cap = props->capturedFocus   ) ) cap->cb( CNOVRF_UPFOCUS, cap, props, i );
+					if( ( cap = props->capturedPassive ) ) cap->cb( CNOVRF_UPNOFOCUS, cap, props, i );
+					OGUnlockMutex( FOCUS.mutFocus );
+				}
+			}
 		}
 
+		//All updates should be based off of "tip"
 		InputPoseActionData_t * p = &FOCUS.poseData[ctrl];
 		int ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_TIP], 
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
 		if( !ret && p->bActive && p->pose.bPoseIsValid )
 		{
 			CNOVRPoseFromHMDMatrix( &FOCUS.poseTip[ctrl], &p->pose.mDeviceToAbsoluteTracking );
-			printf( "%f %f %f\n", FOCUS.poseTip[ctrl].Pos[0], FOCUS.poseTip[ctrl].Pos[1], FOCUS.poseTip[ctrl].Pos[2] );
+			memcpy( &props->poseTip, &FOCUS.poseTip[ctrl], sizeof( cnovr_pose ) );
+
+			FOCUS.capPassiveTemp = props->capturedPassive;
+
+			OGLockMutex( FOCUS.mutFocus );
+			FOCUS.current_devid = ctrl+1;
+			//props->NewCapturedFocus = 0; //Do not uncomment.  This would break captured focus.
+			props->NewCapturedPassive = 0;
+			props->NewPassiveRealDistance = 1000;
+			CNOVRListCall( cnovrLCollide, props, 0 );
+			props->capturedPassive = props->NewCapturedPassive;
+			props->capturedPassiveDistance = props->NewPassiveRealDistance;
+			FOCUS.current_devid = -1;
+			OGUnlockMutex( FOCUS.mutFocus );
+
+			OGLockMutex( FOCUS.mutFocus );
+			if( FOCUS.capPassiveTemp != props->capturedPassive )
+			{
+				if( FOCUS.capPassiveTemp ) FOCUS.capPassiveTemp->cb( CNOVRF_OUT, FOCUS.capPassiveTemp, props, i );
+				if( props->capturedPassive ) props->capturedPassive->cb( CNOVRF_IN, props->capturedPassive, props, i );
+			}
+			if( ( cap = props->capturedFocus   ) ) cap->cb( CNOVRF_DRAG, cap, props, i );
+			if( ( cap = props->capturedPassive ) ) cap->cb( CNOVRF_MOTION, cap, props, i );
+			OGUnlockMutex( FOCUS.mutFocus );
 		}
 
+		//Render model updates, etc. can be based off of "hand"
 		ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_HAND], 
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
 		if( ret || !p->bActive || !p->pose.bPoseIsValid )
@@ -124,9 +173,6 @@ void InternalCNOVRFocusUpdate()
 							char rmname2[256];
 							sprintf( rmname2, "%s.rendermodel", rmname );
 							CNOVRModelLoadFromFileAsync( m, rmname2 );
-						//	cnovr_texture * t = FOCUS.texRenderModels[ctrl];
-						//	if( !t ) t = FOCUS.texRenderModels[ctrl] = CNOVRTextureCreate( 1, 1, 4 );
-						//	CNOVRTextureLoadFileAsync( t, rmname2 );
 						}
 					}
 				}
@@ -138,6 +184,7 @@ void InternalCNOVRFocusUpdate()
 
 void InternalCNOVRFocusShutdown()
 {
+	OGDeleteMutex( FOCUS.mutFocus );
 }
 
 
@@ -145,6 +192,16 @@ void InternalCNOVRFocusShutdown()
 void InternalCNOVRFocusSetup()
 {
 	int ctrl, i;
+
+	FOCUS.mutFocus = OGCreateMutex();
+
+	for( i = 0; i < 3; i++ )
+	{
+		cnovrfocus_properties * p = &FOCUS.focusProps[i];
+		memset( p, 0, sizeof( *p ) );
+		p->devid = i;
+		pose_make_identity( &p->poseTip );
+	}
 
 	for( ctrl = 0; ctrl < 2; ctrl++ )
 	{
@@ -210,4 +267,47 @@ void InternalCNOVRFocusSetup()
 	FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
 	CNOVRListAdd( cnovrLRender, &FOCUS, FocusSystemRender );
 }
+
+
+//This is still kind of awkward.  Probably could use some fixing.
+//Also, considerin switching it up so parts of this function live as a #define for speed.
+void CNOVRFocusRespond( int devid, cnovrfocus_capture * ce, float realdistance, int attempt_focus )
+{
+	int cdevid = FOCUS.current_devid;
+	cnovrfocus_properties * fp = FOCUS.focusProps + devid;
+	if( realdistance < fp->NewPassiveRealDistance )
+	{
+		fp->NewCapturedPassive = ce;
+		if( attempt_focus && !fp->capturedFocus )
+		{
+			fp->capturedFocus = ce;
+		}
+		fp->NewPassiveRealDistance = realdistance;
+	}
+
+}
+
+
+void CNOVRFocusRemoveTag( void * tag )
+{
+	OGLockMutex( FOCUS.mutFocus );
+	if( FOCUS.capPassiveTemp && FOCUS.capPassiveTemp->tag == tag ) FOCUS.capPassiveTemp = 0;
+	int i = 0;
+	for( i = 0; i < 3; i++ )
+	{
+		cnovrfocus_properties * p = &FOCUS.focusProps[i];
+		cnovrfocus_capture ** ct[3] = { 
+			&p->capturedFocus,
+			&p->capturedPassive,
+			&p->NewCapturedPassive };
+		int j;
+		for( j = 0; j < 3; j++ )
+		{
+			cnovrfocus_capture * c = *ct[j];
+			if( c && c->tag == tag ) *ct[j] = 0;
+		}
+	}
+	OGUnlockMutex( FOCUS.mutFocus );
+}
+
 
