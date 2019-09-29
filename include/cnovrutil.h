@@ -90,7 +90,13 @@ void CNOVRListDeleteTCCTag( void * tcctag );
 
 #define FREE_LATER_LAG 3
 
+//Not tied to a thread.
 void CNOVRFreeLater( void * tofree );
+
+//Not intended for script use. Use more for internal use.
+void * CNOVRThreadMalloc( int size );
+void * CNOVRThreadRealloc( void * initial, int size );
+void CNOVRThreadFree( void * tofree );
 
 #endif
 

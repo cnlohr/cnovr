@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "cnovrindexedlist.h"
 #include <stdarg.h>
+#include <cnrbtree.h>
 #include <stretchy_buffer.h>
 #include "cnovrtccinterface.h"
 
@@ -30,9 +31,9 @@ int tasprintf( char ** dat, const char * fmt, ... )
 	struct casprintfmt * ca = OGGetTLS( casprintftls );
 	if( !ca )
 	{
-		ca = malloc( sizeof( struct casprintfmt ) );
+		ca = CNOVRThreadMalloc( sizeof( struct casprintfmt ) );
 		ca->size = 256;
-		ca->buffer = malloc( ca->size );
+		ca->buffer = CNOVRThreadMalloc( ca->size );
 		OGSetTLS( casprintftls, ca );
 	}
 	va_list ap;
@@ -48,7 +49,7 @@ int tasprintf( char ** dat, const char * fmt, ... )
 			return n;
 		}
 		ca->size *= 2;
-		ca->buffer = realloc( ca->buffer, ca->size );
+		ca->buffer = CNOVRThreadRealloc( ca->buffer, ca->size );
 	}
 }
 
@@ -62,7 +63,7 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 	{
 		ca = malloc( sizeof( struct casprintfmt ) );
 		ca->size = 256;
-		ca->buffer = malloc( ca->size );
+		ca->buffer = CNOVRThreadMalloc( ca->size );
 		OGSetTLS( casprintftls, ca );
 	}
 	
@@ -77,7 +78,7 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 			return n;
 		}
 		ca->size *= 2;
-		ca->buffer = realloc( ca->buffer, ca->size );
+		ca->buffer = CNOVRThreadRealloc( ca->buffer, ca->size );
 	}
 }
 
@@ -89,32 +90,18 @@ char * jsmnstrdup( const char * data, int start, int end )
 	{
 		ca = malloc( sizeof( struct casprintfmt ) );
 		ca->size = 256;
-		ca->buffer = malloc( ca->size );
+		ca->buffer = CNOVRThreadMalloc( ca->size );
 		OGSetTLS( casprintftls, ca );
 	}
 	int len = end - start;
 	if( ca->size <= len + 1 )
 	{
 		ca->size *= 2;
-		ca->buffer = realloc( ca->buffer, ca->size );
+		ca->buffer = CNOVRThreadRealloc( ca->buffer, ca->size );
 	}
 	memcpy( ca->buffer, data + start, len );
 	ca->buffer[len] = 0;
 	return ca->buffer;
-}
-
-
-
-
-void Internalcasprintffree()
-{
-	if( !casprintftls ) return;
-	struct casprintfmt * ca = OGGetTLS( casprintftls );
-	if( ca )
-	{
-		free( ca->buffer );
-		free( ca );
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1209,6 +1196,53 @@ void CNOVRInternalSetupFreeLaterSet()
 	}
 }
 
+////////////////////////////////////////////////////////////////////////
 
+static og_tls_t casthreadmalloc;
 
+void * CNOVRThreadMalloc( int size )
+{
+	if( !casthreadmalloc ) casthreadmalloc = OGCreateTLS();
+	cnptrset * set = OGGetTLS( casthreadmalloc );
+	if( !set ) OGSetTLS( casthreadmalloc, set = cnrbtree_rbset_trbset_null_t_create() );
+	void * ret = malloc( size );
+	cnptrset_insert( set, ret );
+	return ret;
+}
 
+void * CNOVRThreadRealloc( void * initial, int size )
+{
+	void * reret = realloc( initial, size );
+	if( reret == initial ) return reret;
+
+	if( !casthreadmalloc ) casthreadmalloc = OGCreateTLS();
+	cnptrset * set = OGGetTLS( casthreadmalloc );
+	if( !set ) OGSetTLS( casthreadmalloc, set = cnrbtree_rbset_trbset_null_t_create() );
+	cnptrset_remove( set, initial );
+	cnptrset_insert( set, reret );
+	return reret;
+}
+
+void CNOVRThreadFree( void * tofree )
+{
+	if( !casthreadmalloc ) casthreadmalloc = OGCreateTLS();
+	cnptrset * set = OGGetTLS( casthreadmalloc );
+	if( !set ) OGSetTLS( casthreadmalloc, set = cnrbtree_rbset_trbset_null_t_create() );
+	cnptrset_remove( set, tofree );
+	//XXX TODO: Should we make sure that we actually deleted?
+	CNOVRFreeLater( tofree );
+}
+
+void InternalThreadMallocClose()
+{
+	if( !casthreadmalloc ) return;
+	cnptrset * set = OGGetTLS( casthreadmalloc );
+	if( !set ) return;
+	void * i;
+	cnptrset_foreach( set, i )
+	{
+		CNOVRFreeLater( i );
+	}
+	cnptrset_destroy( set );
+	OGSetTLS( casthreadmalloc, 0 ); //Just in case.
+}

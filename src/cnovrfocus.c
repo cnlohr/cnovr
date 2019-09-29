@@ -2,6 +2,7 @@
 #include <cnovrutil.h>
 #include <cnovr.h>
 #include <stdio.h>
+#include <string.h>
 #include <openvr_capi.h>
 
 typedef struct internal_focus_system_t
@@ -11,9 +12,12 @@ typedef struct internal_focus_system_t
 	VRActionHandle_t actionhandles[2][CTRLA_MAX];
 	InputOriginInfo_t originInfo[2];
 	InputPoseActionData_t poseData[2];
+	char * rendermodelnames[2];
 	cnovr_shader * shdRenderModel;
 	cnovr_model  * mdlRenderModels[2];
 	cnovr_texture * texRenderModels[2];
+	cnovr_pose      poseController[2];
+	bool bShowController[2];
 } internal_focus_system;
 
 internal_focus_system FOCUS;
@@ -62,7 +66,48 @@ void InternalCNOVRFocusUpdate()
 			if( h == k_ulInvalidActionHandle ) continue;
 			if( ( r = GetDigitalActionData( h ) ) < 0 ) { printf( "Err %d on %d\n", r, i ); continue; }
 			//R contains the value.
-			printf( "%d\n", r );
+		}
+
+		InputPoseActionData_t * p = &FOCUS.poseData[ctrl];
+
+		int ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_HAND], 
+			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_unTrackedDeviceIndexInvalid ); 
+		if( ret || !p->bActive || !p->pose.bPoseIsValid )
+		{
+			FOCUS.bShowController[ctrl] = 0;
+		}
+		else
+		{
+			CNOVRPoseFromHMDMatrix( &FOCUS.poseController[ctrl], &p->pose.mDeviceToAbsoluteTracking );
+
+			InputOriginInfo_t * o = &FOCUS.originInfo[ctrl];
+
+			if ( cnovrstate->oInput->GetOriginTrackedDeviceInfo( p->activeOrigin, o, sizeof( *o ) ) == EVRInputError_VRInputError_None 
+				&& o->trackedDeviceIndex != k_unTrackedDeviceIndexInvalid )
+			{
+				if( FOCUS.rendermodelnames[ctrl] == 0 || FOCUS.bShowController[ctrl] == 0 )
+				{
+					char * rmname = CNOVRGetTrackedDeviceString( o->trackedDeviceIndex, ETrackedDeviceProperty_Prop_RenderModelName_String );
+					if( rmname )
+					{
+						int rmlen = strlen( rmname );
+						if( rmlen < 128 )
+						{
+							if( FOCUS.rendermodelnames[ctrl] ) free(  FOCUS.rendermodelnames[ctrl] );
+							rmname = FOCUS.rendermodelnames[ctrl] = strdup( rmname );
+							cnovr_model * m = FOCUS.mdlRenderModels[ctrl];
+							if( !m ) m = FOCUS.mdlRenderModels[ctrl] = CNOVRModelCreate( 0, 0, GL_TRIANGLES );
+							char rmname2[256];
+							sprintf( rmname2, "%s.rendermodel", rmname );
+							CNOVRModelLoadFromFileAsync( m, rmname2 );
+							cnovr_texture * t = FOCUS.texRenderModels[ctrl];
+							if( !t ) t = FOCUS.texRenderModels[ctrl] = CNOVRTextureCreate( 1, 1, 4 );
+							CNOVRTextureLoadFileAsync( t, rmname2 );
+						}
+					}
+				}
+			}
+			FOCUS.bShowController[ctrl] = 1;
 		}
 	}
 }
@@ -117,7 +162,7 @@ void InternalCNOVRFocusSetup()
 					"/actions/m/in/buttonb",
 					"/actions/m/in/graspclick",
 					"/actions/m/in/trig",
-					"/actions/m/in/pose"
+					"/actions/m/in/hand"
 				};
 
 				for( i = 0; i < CTRLA_MAX; i++ )
@@ -133,49 +178,11 @@ void InternalCNOVRFocusSetup()
 						ovrprintf( "Got action: %s / %llx\n", stmp, FOCUS.actionhandles[ctrl][i] );
 					}
 				}
-
-				cnovrstate->oInput->GetPoseActionDataForNextFrame( &FOCUS.actionPose[k], 
-					ETrackingUniverseOrigin_TrackingUniverseStanding, &FOCUS.poseData[k], sizeof( FOCUS.poseData[k] ) ); 
-			
-				GetOriginTrackedDeviceInfo( FOCUS.originInfo, 
 			}
-
-
-			printf( "FOCUS HAND SOURCES: %d %d\n", FOCUS.handsource[0], FOCUS.handsource[1] );
 		}
 	}
-
-		if ( vr::VRInput()->GetPoseActionDataForNextFrame( m_rHand[eHand].m_actionPose, vr::TrackingUniverseStanding, &poseData, sizeof( poseData ), vr::k_ulInvalidInputValueHandle ) != vr::VRInputError_None
-			|| !poseData.bActive || !poseData.pose.bPoseIsValid )
-		{
-			m_rHand[eHand].m_bShowController = false;
-		}
-		else
-		{
-
-			m_rHand[eHand].m_rmat4Pose = ConvertSteamVRMatrixToMatrix4( poseData.pose.mDeviceToAbsoluteTracking );
-
-			vr::InputOriginInfo_t originInfo;
-			if ( vr::VRInput()->GetOriginTrackedDeviceInfo( poseData.activeOrigin, &originInfo, sizeof( originInfo ) ) == vr::VRInputError_None 
-				&& originInfo.trackedDeviceIndex != vr::k_unTrackedDeviceIndexInvalid )
-			{
-				std::string sRenderModelName = GetTrackedDeviceString( originInfo.trackedDeviceIndex, vr::Prop_RenderModelName_String );
-				if ( sRenderModelName != m_rHand[eHand].m_sRenderModelName )
-				{
-					m_rHand[eHand].m_pRenderModel = FindOrLoadRenderModel( sRenderModelName.c_str() );
-					m_rHand[eHand].m_sRenderModelName = sRenderModelName;
-				}
-			}
-		}
 
 	FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
-	for( i = 0; i < 2; i++ )
-	{
-		char rmtext[256];
-		
-		cnovr_model * m = mdlRenderModels[i] = CNOVRModelCreate( 0, 0, GL_TRIANGLES );
-		CNOVRModelLoadFromFileAsync( m, rendermodel );
-		cnovr_texture * texRenderModels[2];
-	}
+
 }
 
