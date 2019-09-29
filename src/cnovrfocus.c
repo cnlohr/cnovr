@@ -65,7 +65,7 @@ void InternalCNOVRFocusUpdate()
 			VRActionHandle_t h = FOCUS.actionhandles[ctrl][i];
 			if( h == k_ulInvalidActionHandle ) continue;
 			if( ( r = GetDigitalActionData( h ) ) < 0 ) { printf( "Err %d on %d\n", r, i ); continue; }
-			//R contains the value.
+			//R contains the value. XXX TODO Pick up here.
 		}
 
 		InputPoseActionData_t * p = &FOCUS.poseData[ctrl];
@@ -74,6 +74,7 @@ void InternalCNOVRFocusUpdate()
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_unTrackedDeviceIndexInvalid ); 
 		if( ret || !p->bActive || !p->pose.bPoseIsValid )
 		{
+			printf( "%d %d %d  %08x\n", ret, p->bActive, p->pose.bPoseIsValid, FOCUS.actionhandles[ctrl][CTRLA_HAND] );
 			FOCUS.bShowController[ctrl] = 0;
 		}
 		else
@@ -85,9 +86,11 @@ void InternalCNOVRFocusUpdate()
 			if ( cnovrstate->oInput->GetOriginTrackedDeviceInfo( p->activeOrigin, o, sizeof( *o ) ) == EVRInputError_VRInputError_None 
 				&& o->trackedDeviceIndex != k_unTrackedDeviceIndexInvalid )
 			{
+				printf( "((((((((((((((((((((((  Focus Got\n" );
 				if( FOCUS.rendermodelnames[ctrl] == 0 || FOCUS.bShowController[ctrl] == 0 )
 				{
 					char * rmname = CNOVRGetTrackedDeviceString( o->trackedDeviceIndex, ETrackedDeviceProperty_Prop_RenderModelName_String );
+					printf( "(((((((((((((((( GOT RM NAME %s\n", rmname );
 					if( rmname )
 					{
 						int rmlen = strlen( rmname );

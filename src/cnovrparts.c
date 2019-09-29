@@ -220,11 +220,14 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	includeerrors2[0] = 0;
 	//printf( "THS: %p\n", ths );
 	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
+	char * found = FileSearch( stfbGeo ); if( found ) strcpy( stfbGeo, found );
 	filedataGeo = stb_include_file( stfbGeo, "", "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
 	//XXX TODO: Do we care about odd errors on geo?
 	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
+	found = FileSearch( stfbFrag ); if( found ) strcpy( stfbFrag, found );
 	filedataFrag = stb_include_file( stfbFrag, "", "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
+	found = FileSearch( stfbVert ); if( found ) strcpy( stfbVert, found );
 	filedataVert = stb_include_file( stfbVert, "", "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 
 	if( includeerrors2[0] )
@@ -342,10 +345,13 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
-	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	char * found = FileSearch( stfb );
+	CNOVRFileTimeAddWatch( found, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.frag", shaderfilebase );
+	found = FileSearch( stfb );
 	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.vert", shaderfilebase );
+	found = FileSearch( stfb );
 	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	CNOVRShaderFileChange( ret, 0 );
 

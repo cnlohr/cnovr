@@ -303,7 +303,7 @@ char * FileSearch( const char * fname )
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
-	if( !cret ) { OGSetTLS( search_path_return, (cret = malloc( CNOVR_MAX_PATH+1 ) ) ); }
+	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+1 ) ) ); }
 
 	int fnamelen = strlen( fname );
 

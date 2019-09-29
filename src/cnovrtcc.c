@@ -272,10 +272,8 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 					t = tokens + i++;
 					char * st = jsmnstrdup( filestr, t->start, t->end );
 					FileSearchAddPath( st );
-					printf( "%p %p\n", cnovrtccsystem.searchfolders, st );
 					sb_push( cnovrtccsystem.searchfolders, strdup( st ) );
 				}
-				printf( "%d %d\n", i, l );
 			}
 			else if( strncmp( filestr + t->start, "cfiles", t->end - t->start ) == 0 )
 			{
