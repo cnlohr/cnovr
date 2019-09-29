@@ -3,11 +3,11 @@
       "/actions/m" : {
          "poses" : [
             {
-               "output" : "/actions/m/in/poseleft",
+               "output" : "/actions/m/in/handleft",
                "path" : "/user/hand/left/pose/raw"
             },
             {
-               "output" : "/actions/m/in/poseright",
+               "output" : "/actions/m/in/handright",
                "path" : "/user/hand/right/pose/raw"
             }
          ],

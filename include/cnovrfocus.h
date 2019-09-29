@@ -18,9 +18,9 @@ typedef enum
 	CTRLA_TRIGGER = 0,
 	CTRLA_BUTTONA,
 	CTRLA_BUTTONB,
-	CTRLA_GRASP,
+	CTRLA_GRASP, //Last "button"
 	CTRLA_TRIG, //Special
-	CTRLA_POSE, //Special
+	CTRLA_HAND, //Special
 	CTRLA_MAX,
 } ControllerActions;
 
