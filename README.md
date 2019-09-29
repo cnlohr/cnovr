@@ -8,7 +8,9 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 NOW:
- * Work on a focus system.
+ * Work on focus system drag.
+ * Switch more to safe mutices
+ * Fix crash issues.
 
 GAMEPLAN:
  * Model Loading
