@@ -35,6 +35,7 @@ typedef struct cnovr_header_t
 	uint8_t Type;
 } cnovr_header;
 
+#define CNOVRRender( x ) x->base.header->Render( x )
 #define CNOVRDelete( x )  CNOVRDeleteBase( &(x->base) )
 void CNOVRDeleteBase( cnovr_base * b );
 

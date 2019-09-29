@@ -288,6 +288,7 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 				free( log );
 			}
 			glDeleteProgram( unProgramID );
+			unProgramID = 0;
 			compfail = true;
 		}
 	}
@@ -324,7 +325,6 @@ static void CNOVRShaderRender( cnovr_shader * ths )
 	int shdid = ths->nShaderID;
 	if( !shdid ) return;
 	glUseProgram( shdid );
-
 	CNOVRShaderLoadedSetUniformsInternal();
 }
 
@@ -384,6 +384,18 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 	cnovr_texture * t = (cnovr_texture*)vths;
 	OGLockMutex( t->mutProtect );
 	t->bTaintData = 0;
+
+	if( !t->nTextureId )
+	{
+		glGenTextures( 1, &t->nTextureId );
+		glBindTexture( GL_TEXTURE_2D, t->nTextureId );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	}
+
+
 	glBindTexture( GL_TEXTURE_2D, t->nTextureId );
 	glTexImage2D( GL_TEXTURE_2D,
 		0,
@@ -439,7 +451,7 @@ cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan )
 
 	ret->mutProtect = OGCreateMutex();
 
-	glGenTextures( 1, &ret->nTextureId );
+	ret->nTextureId = 0;
 
 	ret->width = 1;
 	ret->height = 1;
@@ -450,16 +462,6 @@ cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan )
 	ret->bFileChangeFlag = 0;
 	memset( ret->data, 255, 4 );
 
-	glBindTexture( GL_TEXTURE_2D, ret->nTextureId );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, ret->width, ret->height,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, ret->data );
-
-	glBindTexture( GL_TEXTURE_2D, 0 );
 
 	return ret;
 }
@@ -518,16 +520,9 @@ cnovr_vbo * CNOVRCreateVBO( int iStride, int bDynamic, int iInitialSize, int iAt
 	if( iInitialSize < 1 ) iInitialSize = 1;
 	ret->pVertices = malloc( iInitialSize * sizeof(float) * iStride );
 	ret->iStride = iStride;
-
-	glGenBuffers( 1, &ret->nVBO );
 	ret->bDynamic = bDynamic;
 	ret->mutData = OGCreateMutex();
-
-	glBindBuffer( GL_ARRAY_BUFFER, ret->nVBO);
-	//glEnableClientState( GL_VERTEX_ARRAY);	//Uncommenting will crash.
-	//glEnableVertexAttribArray( iAttribNo ); //Uncommenting will crash
-	glVertexPointer( iStride, GL_FLOAT, 0, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	ret->nVBO = 0;
 
 	return ret;
 }
@@ -552,7 +547,6 @@ void CNOVRVBOTackv( cnovr_vbo * g, int nverts, float * v )
 	}
 	g->iVertexCount++;
 	OGUnlockMutex( g->mutData );
-	CNOVRVBOTaint( g );
 }
 
 void CNOVRVBOTack( cnovr_vbo * g,  int nverts, ... )
@@ -560,18 +554,22 @@ void CNOVRVBOTack( cnovr_vbo * g,  int nverts, ... )
 	OGLockMutex( g->mutData );
 	int stride = g->iStride;
 	g->pVertices = realloc( g->pVertices, (g->iVertexCount+1)*stride*sizeof(float) );
-	float * verts = g->pVertices;
+	float * verts = g->pVertices + (g->iVertexCount*stride);
 	va_list argp;
 	va_start( argp, nverts );
 	int i;
-	for( i = 0; i < stride; i++ )
+	if( nverts > stride ) nverts = stride;
+	for( i = 0; i < nverts; i++ )
 	{
 		verts[i] = va_arg(argp, double);
 	}
-	g->pVertices++;
+	for( ; i < stride; i++ )
+	{
+		verts[i] = 0.0;
+	}
+	g->iVertexCount++;
 	va_end( argp );
 	OGUnlockMutex( g->mutData );
-	CNOVRVBOTaint( g );
 }
 
 static void CNOVRVBOPerformUpload( void * gv, void * dump )
@@ -579,6 +577,8 @@ static void CNOVRVBOPerformUpload( void * gv, void * dump )
 	cnovr_vbo * g = (cnovr_vbo *)gv;
 
 	OGLockMutex( g->mutData );
+
+	if( !g->nVBO ) glGenBuffers( 1, &g->nVBO );
 
 	//This happens from within the render thread
 	glBindBuffer( GL_ARRAY_BUFFER, g->nVBO );
@@ -602,6 +602,7 @@ static void CNOVRVBOPerformUpload( void * gv, void * dump )
 		printf( "\n" );
 	}
 #endif
+	if( CNOVRCheck() ) ovrprintf( "Problem in VBO Upload check\n" );
 
 	OGUnlockMutex( g->mutData );
 }
@@ -617,7 +618,7 @@ void CNOVRVBODelete( cnovr_vbo * g )
 	//Not a normal object.
 	CNOVRJobCancelAllTag( (void*)g, 1 );
 	OGLockMutex( g->mutData );
-	glDeleteBuffers( 1, &g->nVBO );
+	if( g->nVBO ) glDeleteBuffers( 1, &g->nVBO );
 	CNOVRFreeLater( g->pVertices );
 	OGDeleteMutex( g->mutData );
 	CNOVRFreeLater( g );
@@ -626,7 +627,6 @@ void CNOVRVBODelete( cnovr_vbo * g )
 void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 {
 	g->iStride = stride;
-	CNOVRVBOTaint( g );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -644,16 +644,15 @@ static void CNOVRModelUpdateIBO( void * vm, void * dump )
 #if 0
 	printf( "### IBO UPATE INDICES: %ld\n", sizeof(m->pIndices[0])*m->iIndexCount );
 	int i;
-	for( i = 0; i < m->iIndexCount ; i++ )
-	{
-		printf( "%d\n", m->pIndices[i] );
-	}
+//	for( i = 0; i < m->iIndexCount ; i++ )
+//	{
+//		printf( "%d\n", m->pIndices[i] );
+//	}
 #endif
 }
 
 void CNOVRModelTaintIndices( cnovr_model * vm )
 {
-	//printf( "#####################TACK##################### %p\n", vm  );
 	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0, 1 );	
 }
 
@@ -703,20 +702,20 @@ static void CNOVRModelRender( cnovr_model * m )
 		for( i = 0; i < count; i++ )
 		{
 			glActiveTextureCHEW( GL_TEXTURE0 + i );
-			ts[i]->base.header->Render( (cnovr_base*)ts[i] );
+			cnovr_texture * t = ts[i];
+			CNOVRRender( t );
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO );
 
 		count = m->iGeos;
-		count = 1;
 		for( i = 0; i < count; i++ )
 		{
 			if( !m->pGeos[i]->bIsUploaded ) continue;
 			glBindBuffer( GL_ARRAY_BUFFER, m->pGeos[i]->nVBO );
-			glEnableVertexAttribArray( 0 ); //m->pGeos[i]->nVBO);
+			glEnableVertexAttribArray( i ); //m->pGeos[i]->nVBO);
 			//glVertexPointer( m->pGeos[i]->iStride, GL_FLOAT, m->pGeos[i]->iStride, 0);    // last param is offset, not ptr
-			glVertexAttribPointer( 0, m->pGeos[i]->iStride, GL_FLOAT, GL_FALSE, m->pGeos[i]->iStride*4, 0  );
+			glVertexAttribPointer( i, m->pGeos[i]->iStride, GL_FLOAT, GL_FALSE, m->pGeos[i]->iStride*4, 0  );
 	
 		}
 	}
@@ -781,7 +780,9 @@ void CNOVRModelSetNumVBOsWithStrides( cnovr_model * m, int vbos, ... )
 
 	for( i = 0; i < vbos; i++ )
 	{
-		m->pGeos[i] = CNOVRCreateVBO( va_arg(argp, int), 0, 0, i );
+		int stride = va_arg(argp, int);
+		m->pGeos[i] = CNOVRCreateVBO( stride, 0, 0, i );
+		printf( "Created VBO stride %d\n", stride ); 
 	}
 	va_end( argp );
 }
@@ -1269,7 +1270,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 				if( VNumber < t.CVertCount )
 					CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
 				else
-					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0, 0 );
+					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
 
 				if( TNumber < t.CTexCount )
 
@@ -1317,9 +1318,22 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 
 
 
-static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelName )
+static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNameIn )
 {
 	RenderModel_t * pModel = NULL;
+	int rnnamelen = pchRenderModelNameIn?strlen( pchRenderModelNameIn ):0;
+	if( !rnnamelen )
+	{
+		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s (zero-length)\n", pchRenderModelNameIn );
+	}
+	if( strcasecmp( pchRenderModelNameIn + rnnamelen - (sizeof( ".rendermodel" )-1), ".rendermodel" ) == 0 )
+	{
+		rnnamelen -=( sizeof( ".rendermodel" )-1 );
+	}
+	char * pchRenderModelName = alloca( rnnamelen + 1 );
+	memcpy( pchRenderModelName, pchRenderModelNameIn, rnnamelen + 1 );
+	pchRenderModelName[rnnamelen] = 0;
+	
 	while( cnovrstate->oRenderModels->LoadRenderModel_Async( pchRenderModelName, &pModel ) == EVRRenderModelError_VRRenderModelError_Loading)
 	{
 		OGUSleep( 100 );
@@ -1327,11 +1341,9 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	if( cnovrstate->oRenderModels->LoadRenderModel_Async( pchRenderModelName, &pModel ) || pModel == NULL )
 	{
-		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s\n", pchRenderModelName );
+		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s (ASync begin)\n", pchRenderModelName );
 		return;
-	}
-
-
+	}	
 	RenderModel_TextureMap_t *pTexture = NULL;
 
 	while( cnovrstate->oRenderModels->LoadTexture_Async( pModel->diffuseTextureId, &pTexture ) == EVRRenderModelError_VRRenderModelError_Loading )
@@ -1341,15 +1353,17 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	if( cnovrstate->oRenderModels->LoadTexture_Async(pModel->diffuseTextureId, &pTexture) || pTexture == NULL )
 	{
-		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s\n", pchRenderModelName );
+		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s (Texture fail)\n", pchRenderModelName );
 		cnovrstate->oRenderModels->FreeRenderModel( pModel );
 		return;
 	}
 
+	CNOVRAlert( m->base.tccctx, 5, "Loading rendermodel %s\n", pchRenderModelName );
+
 	if( m->iGeos != 3 )
 	{
+		printf( "Setting with strides\n" );
 		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 2, 3 );
-		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
 	CNOVRModelSetNumIndices( m, 0 );
@@ -1359,7 +1373,7 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 	{
 		RenderModel_Vertex_t * v = pModel->rVertexData + i;
 		CNOVRVBOTackv( m->pGeos[0], 3, v->vPosition.v );
-		CNOVRVBOTackv( m->pGeos[1], 2, v->rfTextureCoord );
+		CNOVRVBOTackv( m->pGeos[1], 2,  v->rfTextureCoord );
 		CNOVRVBOTackv( m->pGeos[2], 3, v->vNormal.v );
 	}
 	for( i = 0; i < pModel->unTriangleCount; i++ )
@@ -1380,7 +1394,7 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
 	CNOVRVBOTaint( m->pGeos[2] );
-
+	CNOVRModelTaintIndices( m );
 	cnovrstate->oRenderModels->FreeRenderModel( pModel );
 	cnovrstate->oRenderModels->FreeTexture( pTexture );
 }

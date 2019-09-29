@@ -24,6 +24,7 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap );
 #define UNIFORMSLOT_VIEW        5
 #define UNIFORMSLOT_PERSPECTIVE 6
 #define UNIFORMSLOT_RENDERPROPS 7
+#define UNIFORMSLOT_TEXTURES    8 //Provides 8 textures total.
 
 //////////////////////////////////////////////////////////////////////////////
 // Globals (State)

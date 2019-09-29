@@ -99,7 +99,7 @@ void start( const char * identifier )
 {
 	identifier = strdup(identifier);
 	printf( "Example start %s(%p)                   ++++++++++++++++++++%p %p\n", identifier, identifier );
-
+	return;
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
 
 	printf( "Example start OK %s                   ++++++++++++++++++++%p %p\n", identifier );

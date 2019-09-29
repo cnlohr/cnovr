@@ -9,6 +9,14 @@
             {
                "output" : "/actions/m/in/handright",
                "path" : "/user/hand/right/pose/raw"
+            },
+            {
+               "output" : "/actions/m/in/tipleft",
+               "path" : "/user/hand/left/pose/tip"
+            },
+            {
+               "output" : "/actions/m/in/tipright",
+               "path" : "/user/hand/right/pose/tip"
             }
          ],
          "sources" : [

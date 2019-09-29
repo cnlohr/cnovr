@@ -20,6 +20,8 @@ NEWER:
  * Fix multisample?
  * Get intended frame time.
  * Make some global "now" or delta timer.
+ * Should lists be allowed to have "priorities"?
+ * There should be some default shader for if a shader with a 0 id is activated, it can go to the default.
 
 Mid future todo:
  * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?

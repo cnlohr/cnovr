@@ -3,9 +3,13 @@
 
 out vec4 colorOut;
 
-varying vec3 localpos;
+layout(location = 8) uniform sampler2D textures[];
+
+in vec2 texcoords;
+in vec3 position;
+in vec3 normal;
 
 void main()
 {
-	colorOut = vec4( abs(localpos)*1.0, 1.0);
+	colorOut = vec4( texture( textures[0], texcoords.xy ).xyz, 1.0);
 }

@@ -309,6 +309,7 @@ void CNOVRUpdate()
 			glViewport(0, 0, width, height );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 			root->base.header->Render( root );
+			CNOVRListCall( cnovrLRender, 0, 0); 
 			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 
 			Texture_t t;
@@ -339,6 +340,7 @@ void CNOVRUpdate()
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		root->base.header->Render( root );
+		CNOVRListCall( cnovrLRender, 0, 0); 
 		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
@@ -438,10 +440,12 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap )
 
 void CNOVRShaderLoadedSetUniformsInternal()
 {
+	static GLint TextureSlots[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
 	glUniformMatrix4fv( UNIFORMSLOT_VIEW, 1, 1, cnovrstate->mView );
 	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 1, cnovrstate->mPerspective );
 	glUniform4fv( UNIFORMSLOT_RENDERPROPS, 1, &cnovrstate->iRTWidth );
+	//glUniform1iv( UNIFORMSLOT_TEXTURES, 8, TextureSlots );
 }
 
 

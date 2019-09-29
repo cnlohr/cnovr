@@ -3,6 +3,7 @@
 #include <cnovr.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <openvr_capi.h>
 
 typedef struct internal_focus_system_t
@@ -15,14 +16,30 @@ typedef struct internal_focus_system_t
 	char * rendermodelnames[2];
 	cnovr_shader * shdRenderModel;
 	cnovr_model  * mdlRenderModels[2];
-	cnovr_texture * texRenderModels[2];
 	cnovr_pose      poseController[2];
+	cnovr_pose      poseTip[2];
 	bool bShowController[2];
 } internal_focus_system;
 
 internal_focus_system FOCUS;
 
-
+void FocusSystemRender( void * tag, void * opaque )
+{
+	internal_focus_system * f = &FOCUS;
+	if( f->shdRenderModel )
+	{
+		int i;
+		for( i = 0; i < 2; i++ )
+		{
+			CNOVRRender( f->shdRenderModel );
+			cnovr_model * m = f->mdlRenderModels[i];
+			if( m )
+			{
+				CNOVRModelRenderWithPose( m, &f->poseController[i] );
+			}
+		}
+	}
+}
 
 
 
@@ -69,12 +86,18 @@ void InternalCNOVRFocusUpdate()
 		}
 
 		InputPoseActionData_t * p = &FOCUS.poseData[ctrl];
+		int ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_TIP], 
+			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
+		if( !ret && p->bActive && p->pose.bPoseIsValid )
+		{
+			CNOVRPoseFromHMDMatrix( &FOCUS.poseTip[ctrl], &p->pose.mDeviceToAbsoluteTracking );
+			printf( "%f %f %f\n", FOCUS.poseTip[ctrl].Pos[0], FOCUS.poseTip[ctrl].Pos[1], FOCUS.poseTip[ctrl].Pos[2] );
+		}
 
-		int ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_HAND], 
-			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_unTrackedDeviceIndexInvalid ); 
+		ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_HAND], 
+			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
 		if( ret || !p->bActive || !p->pose.bPoseIsValid )
 		{
-			printf( "%d %d %d  %08x\n", ret, p->bActive, p->pose.bPoseIsValid, FOCUS.actionhandles[ctrl][CTRLA_HAND] );
 			FOCUS.bShowController[ctrl] = 0;
 		}
 		else
@@ -86,12 +109,10 @@ void InternalCNOVRFocusUpdate()
 			if ( cnovrstate->oInput->GetOriginTrackedDeviceInfo( p->activeOrigin, o, sizeof( *o ) ) == EVRInputError_VRInputError_None 
 				&& o->trackedDeviceIndex != k_unTrackedDeviceIndexInvalid )
 			{
-				printf( "((((((((((((((((((((((  Focus Got\n" );
 				if( FOCUS.rendermodelnames[ctrl] == 0 || FOCUS.bShowController[ctrl] == 0 )
 				{
 					char * rmname = CNOVRGetTrackedDeviceString( o->trackedDeviceIndex, ETrackedDeviceProperty_Prop_RenderModelName_String );
-					printf( "(((((((((((((((( GOT RM NAME %s\n", rmname );
-					if( rmname )
+					if( rmname && (!FOCUS.rendermodelnames[ctrl] || strcmp( FOCUS.rendermodelnames[ctrl], rmname ) != 0 ) )
 					{
 						int rmlen = strlen( rmname );
 						if( rmlen < 128 )
@@ -103,9 +124,9 @@ void InternalCNOVRFocusUpdate()
 							char rmname2[256];
 							sprintf( rmname2, "%s.rendermodel", rmname );
 							CNOVRModelLoadFromFileAsync( m, rmname2 );
-							cnovr_texture * t = FOCUS.texRenderModels[ctrl];
-							if( !t ) t = FOCUS.texRenderModels[ctrl] = CNOVRTextureCreate( 1, 1, 4 );
-							CNOVRTextureLoadFileAsync( t, rmname2 );
+						//	cnovr_texture * t = FOCUS.texRenderModels[ctrl];
+						//	if( !t ) t = FOCUS.texRenderModels[ctrl] = CNOVRTextureCreate( 1, 1, 4 );
+						//	CNOVRTextureLoadFileAsync( t, rmname2 );
 						}
 					}
 				}
@@ -165,7 +186,8 @@ void InternalCNOVRFocusSetup()
 					"/actions/m/in/buttonb",
 					"/actions/m/in/graspclick",
 					"/actions/m/in/trig",
-					"/actions/m/in/hand"
+					"/actions/m/in/hand",
+					"/actions/m/in/tip"
 				};
 
 				for( i = 0; i < CTRLA_MAX; i++ )
@@ -186,6 +208,6 @@ void InternalCNOVRFocusSetup()
 	}
 
 	FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
-
+	CNOVRListAdd( cnovrLRender, &FOCUS, FocusSystemRender );
 }
 

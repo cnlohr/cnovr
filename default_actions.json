@@ -10,12 +10,14 @@
     { "name": "/actions/m/in/graspclickleft", "requirement" : "optional", "type": "boolean" },
     { "name": "/actions/m/in/trigleft", "requirement" : "optional", "type": "vector1" },
     { "name": "/actions/m/in/handleft", "type": "pose" },
+    { "name": "/actions/m/in/tipleft", "type": "pose" },
     { "name": "/actions/m/in/trigclickright", "requirement": "optional", "type": "boolean" },
     { "name": "/actions/m/in/buttonaright", "requirement": "optional", "type": "boolean" },
     { "name": "/actions/m/in/buttonbright", "requirement": "optional", "type": "boolean" },
     { "name": "/actions/m/in/graspclickright", "requirement" : "optional", "type": "boolean" },
     { "name": "/actions/m/in/trigright", "requirement" : "optional", "type": "vector1" },
-    { "name": "/actions/m/in/handright", "type": "pose" }
+    { "name": "/actions/m/in/handright", "type": "pose" },
+    { "name": "/actions/m/in/tipright", "type": "pose" }
   ],
   "localization" : [
    {

@@ -35,7 +35,8 @@ char * CNOVRGetTrackedDeviceString( TrackedDeviceIndex_t unDevice, TrackedDevice
  
 	TrackedPropertyError e;
 	uint32_t unRequiredBufferLen = cnovrstate->oSystem->GetStringTrackedDeviceProperty( unDevice, prop, NULL, 0, &e );
-	if( e ) goto err;
+
+	if( e && e != ETrackedPropertyError_TrackedProp_BufferTooSmall ) goto err;
 	if( unRequiredBufferLen == 0 )
 	{
 		t->data[0] = 0;

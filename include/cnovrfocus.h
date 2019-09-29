@@ -21,6 +21,7 @@ typedef enum
 	CTRLA_GRASP, //Last "button"
 	CTRLA_TRIG, //Special
 	CTRLA_HAND, //Special
+	CTRLA_TIP, //Special
 	CTRLA_MAX,
 } ControllerActions;
 
