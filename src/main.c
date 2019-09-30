@@ -12,8 +12,6 @@ int main()
 		return -1;
 	}
 
-	printf( "\nFileSearchAbsolute = %s\n", FileSearchAbsolute( "default_actions.json" ) );
-
 	CNOVRStartTCCSystem( "example_setup/example.json" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;

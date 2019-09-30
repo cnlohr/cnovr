@@ -128,8 +128,10 @@ void * GetNamedPtr( const char * namedptr, const char * type )
 
 void * NamedPtrFn( const char * namedptr, const char * type, int size )
 {
+	//We do not need to do OGTS locking here, since it is not calling anything from
+	//within the save zone that is expected to crash.
 	cnhashelement * e;
-	OGTSLockMutex( namedptrmutex );
+	OGLockMutex( namedptrmutex );
 	e = CNHashIndex( namedptrtable, namedptr ); //If get fails, insert... Same as Insert for non-duplicate hashes.
 	if( !e->data )
 	{
@@ -983,7 +985,7 @@ void CNOVRJobCancel( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaque
 	{
 		BackendDeleteJob( jq, dupat );
 	}
-	OGUnlockMutex( jq->mut );
+	OGTSUnlockMutex( jq->mut );
 
 	//Make srue we don't have any remaining pends.
 	OGUnlockSema( jq->pendingsem );

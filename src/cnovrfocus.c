@@ -1,6 +1,7 @@
 #include "cnovrfocus.h"
 #include <cnovrutil.h>
 #include <cnovr.h>
+#include <cnovrtccinterface.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -93,18 +94,18 @@ void InternalCNOVRFocusUpdate()
 				if( r )
 				{
 					props->buttonmask[0] |= 1<<i;
-					OGLockMutex( FOCUS.mutFocus );
-					if( ( cap = props->capturedFocus   ) ) cap->cb( CNOVRF_DOWNFOCUS, cap, props, i );
-					if( ( cap = props->capturedPassive ) ) cap->cb( CNOVRF_DOWNNOFOCUS, cap, props, i );
-					OGUnlockMutex( FOCUS.mutFocus );
+					OGTSLockMutex( FOCUS.mutFocus );
+					if( ( cap = props->capturedFocus   ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_DOWNFOCUS, cap, props, i ) ); }
+					if( ( cap = props->capturedPassive ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_DOWNNOFOCUS, cap, props, i ) ); }
+					OGTSUnlockMutex( FOCUS.mutFocus );
 				}
 				else
 				{
 					props->buttonmask[0] &= ~(1<<i);
-					OGLockMutex( FOCUS.mutFocus );
-					if( ( cap = props->capturedFocus   ) ) cap->cb( CNOVRF_UPFOCUS, cap, props, i );
-					if( ( cap = props->capturedPassive ) ) cap->cb( CNOVRF_UPNOFOCUS, cap, props, i );
-					OGUnlockMutex( FOCUS.mutFocus );
+					OGTSLockMutex( FOCUS.mutFocus );
+					if( ( cap = props->capturedFocus   ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_UPFOCUS, cap, props, i ) ); }
+					if( ( cap = props->capturedPassive ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_UPNOFOCUS, cap, props, i ) ); }
+					OGTSUnlockMutex( FOCUS.mutFocus );
 				}
 			}
 		}
@@ -120,7 +121,7 @@ void InternalCNOVRFocusUpdate()
 
 			FOCUS.capPassiveTemp = props->capturedPassive;
 
-			OGLockMutex( FOCUS.mutFocus );
+			OGTSLockMutex( FOCUS.mutFocus );
 			FOCUS.current_devid = ctrl+1;
 			//props->NewCapturedFocus = 0; //Do not uncomment.  This would break captured focus.
 			props->NewCapturedPassive = 0;
@@ -129,17 +130,24 @@ void InternalCNOVRFocusUpdate()
 			props->capturedPassive = props->NewCapturedPassive;
 			props->capturedPassiveDistance = props->NewPassiveRealDistance;
 			FOCUS.current_devid = -1;
-			OGUnlockMutex( FOCUS.mutFocus );
+			OGTSUnlockMutex( FOCUS.mutFocus );
 
-			OGLockMutex( FOCUS.mutFocus );
+			OGTSLockMutex( FOCUS.mutFocus );
 			if( FOCUS.capPassiveTemp != props->capturedPassive )
 			{
-				if( FOCUS.capPassiveTemp ) FOCUS.capPassiveTemp->cb( CNOVRF_OUT, FOCUS.capPassiveTemp, props, 0 );
-				if( props->capturedPassive ) props->capturedPassive->cb( CNOVRF_IN, props->capturedPassive, props, 0 );
+				if( FOCUS.capPassiveTemp )
+				{
+					TCCInvocation( FOCUS.capPassiveTemp->tcctag, FOCUS.capPassiveTemp->cb( CNOVRF_OUT, FOCUS.capPassiveTemp, props, 0 ) );
+				}
+				if( props->capturedPassive )
+				{
+					TCCInvocation( props->capturedPassive->tcctag, props->capturedPassive->cb( CNOVRF_IN, props->capturedPassive, props, 0 ) );
+				}
 			}
-			if( ( cap = props->capturedFocus   ) ) cap->cb( CNOVRF_DRAG, cap, props, 0 );
-			if( ( cap = props->capturedPassive ) ) cap->cb( CNOVRF_MOTION, cap, props, 0 );
-			OGUnlockMutex( FOCUS.mutFocus );
+
+			if( ( cap = props->capturedFocus   ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_DRAG, cap, props, 0 ) ); }
+			if( ( cap = props->capturedPassive ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_MOTION, cap, props, 0 ) ); }
+			OGTSUnlockMutex( FOCUS.mutFocus );
 		}
 
 		//Render model updates, etc. can be based off of "hand"

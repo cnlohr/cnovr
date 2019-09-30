@@ -782,7 +782,6 @@ void CNOVRModelSetNumVBOsWithStrides( cnovr_model * m, int vbos, ... )
 	{
 		int stride = va_arg(argp, int);
 		m->pGeos[i] = CNOVRCreateVBO( stride, 0, 0, i );
-		printf( "Created VBO stride %d\n", stride ); 
 	}
 	va_end( argp );
 }

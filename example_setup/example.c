@@ -75,9 +75,9 @@ void UpdateFunction( void * tag, void * opaquev )
 int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	printf( "EVENT: %d %d %d\n", event, cap->opaque, buttoninfo );
+	int * i = 0;
+	*i = 0;
 }
-
-
 
 
 

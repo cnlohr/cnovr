@@ -59,6 +59,7 @@ typedef int (*CNOVRFocusEvent)( int event, cnovrfocus_capture * cap, cnovrfocus_
 
 typedef struct cnovrfocus_capture_t
 {
+	void * tcctag;
 	void * tag;
 	void * opaque;
 	CNOVRFocusEvent cb;
