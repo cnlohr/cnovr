@@ -8,9 +8,7 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 NOW:
- * Work on focus system drag.
- * Switch more to safe mutices
- * Fix crash issues.
+ * TCC Instances should have sustaining data options.
 
 GAMEPLAN:
  * Model Loading
