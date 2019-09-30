@@ -149,7 +149,7 @@ void InternalShutdownTCC( TCCInstance * tce )
 		CNOVRFocusRemoveTag( tce );
 		CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
 		CNOVRListDeleteTCCTag( tce );
-		cnptrset_foreach( o->tccobjects, i ) CNOVRDeleteBase( ((cnovr_base*)i) );
+		cnptrset_foreach( o->tccobjects, i ) { printf( "Destroying %p  %p %p %p\n", i, nodei, nodei->parent, nodei->left ); CNOVRDeleteBase( ((cnovr_base*)i) ); }
 		cnptrset_destroy( o->tccobjects );
 		cnptrset_foreach( o->mutices, i ) OGDeleteMutex( (og_mutex_t)i );
 		cnptrset_destroy( o->mutices );
@@ -332,6 +332,7 @@ static void TCCCNOVRDeleteBase( cnovr_base * b )
 	CNOVRDeleteBase( b );
 	OGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	printf( "**** REMOVE %p\n", c );
 	if( c ) cnptrset_remove( c->tccobjects, b );
 	OGUnlockMutex( tccinterfacemutex );
 }
@@ -498,11 +499,26 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( OGGetTLS );
 	TCCExportS( OGSetTLS );
 
+//Oddball things
+#if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
+#else
+	extern void * CNFGDisplay;		TCCExportS( CNFGDisplay );
+	extern void * CNFGWindow;		TCCExportS( CNFGWindow );
+	extern void * CNFGPixmap;		TCCExportS( CNFGPixmap );
+	extern void * CNFGGC;			TCCExportS( CNFGGC );
+	extern void * CNFGWindowGC;		TCCExportS( CNFGWindowGC );
+	extern void * CNFGVisual;		TCCExportS( CNFGVisual );
+#endif
+
+
+
 	TCCExportS( cnovrstate );
 
 	TCCExport( CNOVRNodeCreateSimple );
 	TCCExport( CNOVRModelCreate );
 	TCCExportS( CNOVRModelRenderWithPose );
+	TCCExportS( CNOVRModelApplyTextureFromFileAsync );
+	TCCExportS( CNOVRModelAppendMesh );
 
 	TCCExport( CNOVRShaderCreate );
 	TCCExport( CNOVRDeleteBase );
@@ -515,6 +531,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );
+	TCCExportS( CNOVRListDeleteTag );
 
 	TCCExport( CNOVRFocusRespond );
 	TCCExport( CNOVRFocusAcquire );

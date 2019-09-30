@@ -669,8 +669,10 @@ static void CNOVRModelDelete( cnovr_model * m )
 	CNOVRFreeLater( m->pGeos );
 	if( m->sMeshMarks )
 	{
-		for( i = 0; i < m->nMeshes + 1; i++ )
+		printf( "Meshes: %d\n", m->nMeshes );
+		for( i = 0; i < m->nMeshes; i++ )
 		{
+			printf( "Mesh: %p\n", m->sMeshMarks[i] );
 			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
 		}
 		free( m->sMeshMarks );
@@ -750,7 +752,8 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 	ret->iMeshMarks = malloc( sizeof( int ) );
 	ret->iMeshMarks[0] = 0;
 	ret->nMeshes = 1;
-	ret->sMeshMarks = 0;
+	ret->sMeshMarks = malloc( sizeof( char* ) );
+	ret->sMeshMarks[0] = 0;
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
 	ret->iGeos = 0;
@@ -835,8 +838,8 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 	}
 	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 1 ) );
 	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes + 1 ) );
-	m->iMeshMarks[m->nMeshes] = m->iIndexCount;
-	m->sMeshMarks[m->nMeshes] = strdup( sectionname );
+	m->iMeshMarks[m->nMeshes-1] = m->iIndexCount;
+	m->sMeshMarks[m->nMeshes-1] = strdup( sectionname );
 }
 
 
@@ -962,7 +965,7 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 	OGUnlockMutex( m->model_mutex );
 }
 
-void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float w, float h )
+void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h )
 {
 	//Copied from Spreadgine.
 	int i;
