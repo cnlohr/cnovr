@@ -135,10 +135,8 @@ void InternalBreakdownRestOfTCCInterface()
 
 void InternalShutdownTCC( TCCInstance * tce )
 {
-	CNOVRFocusRemoveTag( tce );
+	printf( "Shutting down TCC Instance %p\n", tce );
 	OGLockMutex( tccinterfacemutex );
-	CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
-	CNOVRListDeleteTCCTag( tce );
 	object_cleanup * o = CNHashGetValue( objects_to_delete, tce );
 	if( o )
 	{
@@ -148,6 +146,9 @@ void InternalShutdownTCC( TCCInstance * tce )
 			OGCancelThread( (og_thread_t)i );
 		}
 		cnptrset_destroy( o->threads );
+		CNOVRFocusRemoveTag( tce );
+		CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
+		CNOVRListDeleteTCCTag( tce );
 		cnptrset_foreach( o->tccobjects, i ) CNOVRDeleteBase( ((cnovr_base*)i) );
 		cnptrset_destroy( o->tccobjects );
 		cnptrset_foreach( o->mutices, i ) OGDeleteMutex( (og_mutex_t)i );
@@ -161,7 +162,14 @@ void InternalShutdownTCC( TCCInstance * tce )
 		free( o );
 		CNHashDelete( objects_to_delete, tce );
 	}
+	else
+	{
+		CNOVRFocusRemoveTag( tce );
+		CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
+		CNOVRListDeleteTCCTag( tce );
+	}
 	OGUnlockMutex( tccinterfacemutex );
+	printf( "Shutdown complete.\n" );
 }
 
 
@@ -421,10 +429,16 @@ char * TCCstrdup(const char * str )
 	return ret;
 }
 
-void TCCCNOVRFocusRespond( int devid, cnovrfocus_capture * ce, float realdistance, int attempt_focus )
+void TCCCNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance )
 {
 	ce->tag = TCCGetTag();
-	CNOVRFocusRespond( devid, ce, realdistance, attempt_focus );
+	CNOVRFocusRespond( ce, realdistance );
+}
+
+void TCCCNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus )
+{
+	ce->tag = TCCGetTag();
+	CNOVRFocusAcquire( ce, wantfocus );
 }
 
 void TCCCNOVRFocusRemoveTag( void * tag )
@@ -488,6 +502,8 @@ void InternalPopulateTCC( TCCInstance * tce )
 
 	TCCExport( CNOVRNodeCreateSimple );
 	TCCExport( CNOVRModelCreate );
+	TCCExportS( CNOVRModelRenderWithPose );
+
 	TCCExport( CNOVRShaderCreate );
 	TCCExport( CNOVRDeleteBase );
 
@@ -501,7 +517,9 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( CNOVRListAdd );
 
 	TCCExport( CNOVRFocusRespond );
+	TCCExport( CNOVRFocusAcquire );
 	TCCExport( CNOVRFocusRemoveTag );
+	TCCExportS( CNOVRFocusGetTipPose );
 
 	TCCExportS( cnovr_interpolate );
 	TCCExportS( cross3d );
@@ -560,6 +578,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( eulerfrom2vectors );
 	TCCExportS( apply_pose_to_point );
 	TCCExportS( apply_pose_to_pose );
+	TCCExportS( unapply_pose_from_pose );
 	TCCExportS( pose_invert );
 	TCCExportS( pose_to_matrix44 );
 	TCCExportS( matrix44_to_pose );
@@ -610,6 +629,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 
 	TCCExportS( sin );
 	TCCExportS( cos );
+	TCCExportS( floor );
 	TCCExportS( tan );
 	TCCExportS( atan2 );
 

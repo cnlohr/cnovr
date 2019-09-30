@@ -8,6 +8,10 @@
 
 #define CNOVRFOCUSMAXDEVS 16
 #define BUTTONMASKSIZE    2 //(16 * 8 buttons)
+#define CNOVRFOCUS_FAR  1000
+
+
+#define INPUTDEVS 3
 //Dev 0 = HMD / Keyboard
 //Dev 1 = Controller Left
 //Dev 2 = Controller Right
@@ -52,6 +56,8 @@ typedef enum
 	CNOVRF_UPNOFOCUS,
 	CNOVRF_MOTION,
 	CNOVRF_DRAG,
+	CNOVRF_ACQUIREDFOCUS,
+	CNOVRF_LOSTFOCUS,
 	CNOVRF_MAX_EVENTS,
 } cnovrfocus_event;
 
@@ -82,7 +88,8 @@ typedef struct cnovrfocus_properties_t
 //Ugh this is awkward.  Need to fix.
 
 //YOU own the 'ce' object. We just store it for you.
-void CNOVRFocusRespond( int devid, cnovrfocus_capture * ce, float realdistance, int attempt_focus );
+void CNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance );
+void CNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus );
 void CNOVRFocusRemoveTag( void * tag );
 cnovr_pose * CNOVRFocusGetTipPose( int device );
 

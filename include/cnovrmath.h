@@ -83,7 +83,7 @@ extern cnovr_pose cnovr_pose_identity;
 
 // General scalar operations
 void cnovr_interpolate(FLT *out, int n, const FLT *A, const FLT *B, FLT t);
-static inline FLT cnovr_lerp( FLT a, FLT b, FLT f ) { return a * ( 1. - f ) + b * f; }
+static inline FLT cnovr_lerp( FLT a, FLT b, FLT f ) { return (a) * ( 1. - (f) ) + (b) * (f); }
 static inline FLT cnovr_enforce_range(FLT v, FLT mn, FLT mx) { return ((mn) < (v))?(mn):( ((mx)>(v))?(mx):(v) ); }
 static inline FLT cnovr_max(FLT x, FLT y) { return ((x) > (y)) ? (x) : (y); }
 static inline FLT cnovr_min(FLT x, FLT y) { return ((x) < (y)) ? (x) : (y); }
@@ -137,6 +137,10 @@ void quatnormalize(cnovr_quat qout, const cnovr_quat qin); // Safe for in to be 
 void quattomatrix(FLT *matrix44, const cnovr_quat q);
 void quatfrommatrix(cnovr_quat q, const FLT *matrix44);
 void quatgetconjugate(cnovr_quat qout, const cnovr_quat qin);
+//Fast 180 degree, in place rotate.
+void quatrotate180X( cnovr_quat q );
+void quatrotate180Y( cnovr_quat q );
+void quatrotate180Z( cnovr_quat q );
 
 /***
  * Finds the nearest modulo 2*pi of a given axis angle representation that most neatly matches
@@ -207,6 +211,8 @@ void apply_pose_to_point(cnovr_point3d pout, const cnovr_pose *pose, const cnovr
 
 // This is the quat equivalent of 'pout = lhs_pose * rhs_pose' if poses were a 4x4 matrix in homogenous space
 void apply_pose_to_pose(cnovr_pose *pout, const cnovr_pose *lhs_pose, const cnovr_pose *rhs_pose);
+
+void unapply_pose_from_pose(cnovr_pose *pout, const cnovr_pose *thing_youre_looking_at, const cnovr_pose *in_this_coordinate_frame);
 
 // This is the quat equivlant of 'pose_in^-1'; so that ApplyPoseToPose(..., InvertPose(..., pose_in), pose_in) ==
 // Identity ( [0, 0, 0], [1, 0, 0, 0] [1] )

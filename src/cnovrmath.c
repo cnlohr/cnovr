@@ -584,6 +584,28 @@ void quatslerp(cnovr_quat q, const cnovr_quat qa, const cnovr_quat qb, FLT t) {
 	quatnormalize(q, q);
 }
 
+void quatrotate180X( cnovr_quat q )
+{
+	float tmp;
+	tmp = q[0]; q[0] = -q[1]; q[1] = tmp;
+	tmp = q[3]; q[3] = -q[2]; q[2] = tmp;
+}
+
+
+void quatrotate180Y( cnovr_quat q )
+{
+	float tmp;
+	tmp = q[0]; q[0] = -q[2]; q[2] = tmp;
+	tmp = q[1]; q[1] = -q[3]; q[3] = tmp;
+}
+
+void quatrotate180Z( cnovr_quat q )
+{
+	float tmp;
+	tmp = q[0]; q[0] = -q[3]; q[3] = tmp;
+	tmp = q[2]; q[2] = -q[1]; q[1] = tmp;
+}
+
 void eulerrotatevector(FLT *vec3out, const cnovr_euler_angle eulerAngle, const FLT *vec3in) {
 	cnovr_quat q;
 	quatfromeuler(q, eulerAngle);
@@ -709,6 +731,24 @@ void apply_pose_to_pose(cnovr_pose *pout, const cnovr_pose *lhs_pose, const cnov
 	scale3d( pout->Pos, pout->Pos, rhs_pose->Scale );
 	quatrotateabout(pout->Rot, lhs_pose->Rot, rhs_pose->Rot);
 	pout->Scale = lhs_pose->Scale * rhs_pose->Scale;
+}
+
+void unapply_pose_from_pose(cnovr_pose *poseout, const cnovr_pose *in_this_coordinate_frame, const cnovr_pose *thing_youre_looking_at)
+{
+	cnovr_pose inv;
+	//This would be the opposite of apply_pose_to_pose( orig, return of this, in_this_coordinate_frame );
+	//Rules:
+	//  (1) Assume "in_this_coordinate_frame" is 1, always.  This would be applied first, but because we ignore it, it's OK.
+	//  (2) Unrotate quaternion.
+	//  (3) Unapply pose from point.
+	//No need to do any scaling difference.
+
+	poseout->Scale = 1;
+	quatgetreciprocal(inv.Rot, in_this_coordinate_frame->Rot); 
+	quatrotateabout(poseout->Rot, inv.Rot, thing_youre_looking_at->Rot);
+	sub3d( inv.Pos, thing_youre_looking_at->Pos, in_this_coordinate_frame->Pos );
+	quatrotatevector(inv.Pos, inv.Rot, inv.Pos);
+	apply_pose_to_point(poseout->Pos, &inv, thing_youre_looking_at->Pos );
 }
 
 void pose_invert(cnovr_pose *poseout, const cnovr_pose *pose) {

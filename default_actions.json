@@ -4,9 +4,9 @@
     { "controller_type": "knuckles", "binding_url": "default_knuckles.json" }
   ],
   "actions": [
-    { "name": "/actions/m/in/trigclickhmd", "requirement": "optional", "type": "boolean" },
-    { "name": "/actions/m/in/modelhmd", "type": "pose" },
-    { "name": "/actions/m/in/tiphmd", "type": "pose" },
+    { "name": "/actions/m/in/trigclickhead", "requirement": "optional", "type": "boolean" },
+    { "name": "/actions/m/in/modelhead", "type": "pose" },
+    { "name": "/actions/m/in/tiphead", "type": "pose" },
     { "name": "/actions/m/in/trigclickleft", "requirement": "optional", "type": "boolean" },
     { "name": "/actions/m/in/buttonaleft", "requirement": "optional", "type": "boolean" },
     { "name": "/actions/m/in/buttonbleft", "requirement": "optional", "type": "boolean" },
