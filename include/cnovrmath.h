@@ -88,10 +88,10 @@ static inline FLT cnovr_enforce_range(FLT v, FLT mn, FLT mx) { return ((mn) < (v
 static inline FLT cnovr_max(FLT x, FLT y) { return ((x) > (y)) ? (x) : (y); }
 static inline FLT cnovr_min(FLT x, FLT y) { return ((x) < (y)) ? (x) : (y); }
 
-
 void cross3d(FLT *out, const FLT *a, const FLT *b);
 void sub3d(FLT *out, const FLT *a, const FLT *b);
 void add3d(FLT *out, const FLT *a, const FLT *b);
+void mult3d(FLT * out, const FLT *a, const FLT *b);
 void scale3d(FLT *out, const FLT *a, FLT scalar);
 void invert3d(FLT *out, const FLT *a);
 FLT mag3d(const FLT *in);

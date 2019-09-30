@@ -186,7 +186,7 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices );
 void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices );
 void CNOVRModelResetMarks( cnovr_model * m );
 
-void CNOVRModelAppendCube( cnovr_model * m, cnovr_pose * poseofs_optional );
+void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional );
 void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float sx, float sy );
 
 //If before first index, names first section.

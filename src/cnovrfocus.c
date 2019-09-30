@@ -10,16 +10,17 @@
 typedef struct internal_focus_system_t
 {
 	VRActionSetHandle_t inputactionset;
-	VRInputValueHandle_t handsource[2];
-	VRActionHandle_t actionhandles[2][CTRLA_MAX];
-	InputOriginInfo_t originInfo[2];
-	InputPoseActionData_t poseData[2];
-	char * rendermodelnames[2];
+	VRInputValueHandle_t handsource[3];
+	VRActionHandle_t actionhandles[3][CTRLA_MAX];
+	InputOriginInfo_t originInfo[3];
+	InputPoseActionData_t poseData[3];
+	char * rendermodelnames[3];
 	cnovr_shader * shdRenderModel;
-	cnovr_model  * mdlRenderModels[2];
-	cnovr_pose      poseController[2];
-	cnovr_pose      poseTip[2];
-	bool bShowController[2];
+	cnovr_model  * mdlRenderModels[3];
+	cnovr_pose      poseController[3];
+	bool bShowController[3];
+
+	cnovr_pose      poseTip[3];
 	cnovrfocus_properties focusProps[3];	//Tricky: Device0 is the HMD, 1 and 2 are the controllers.
 	og_mutex_t    mutFocus;
 	cnovrfocus_capture * capPassiveTemp; //Careful - if we delete in the operation, this must also be removed.
@@ -28,15 +29,21 @@ typedef struct internal_focus_system_t
 
 internal_focus_system FOCUS;
 
+cnovr_pose * CNOVRFocusGetTipPose( int device )
+{
+	if( device < 0 || device > sizeof( FOCUS.poseTip ) / sizeof( FOCUS.poseTip[0] ) ) return 0;
+	return FOCUS.poseTip + device;
+}
+
 void FocusSystemRender( void * tag, void * opaque )
 {
 	internal_focus_system * f = &FOCUS;
 	if( f->shdRenderModel )
 	{
 		int i;
-		for( i = 0; i < 2; i++ )
+		CNOVRRender( f->shdRenderModel );
+		for( i = 0; i < 3; i++ )
 		{
-			CNOVRRender( f->shdRenderModel );
 			cnovr_model * m = f->mdlRenderModels[i];
 			if( m )
 			{
@@ -77,7 +84,7 @@ void InternalCNOVRFocusUpdate()
 	actionSet.ulActionSet = FOCUS.inputactionset;
 	cnovrstate->oInput->UpdateActionState( &actionSet, sizeof( actionSet ), 1 );
 
-	for( ; ctrl < 2; ctrl++ )
+	for( ; ctrl < 3; ctrl++ )
 	{
 		cnovrfocus_properties * props = &FOCUS.focusProps[ctrl];
 		cnovrfocus_capture * cap;
@@ -114,6 +121,9 @@ void InternalCNOVRFocusUpdate()
 		InputPoseActionData_t * p = &FOCUS.poseData[ctrl];
 		int ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_TIP], 
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
+
+		printf( "*** %d %d %d %f %f %f\n", ctrl, ret, p->bActive, p->pose.bPoseIsValid, PFTHREE( FOCUS.poseTip[ctrl].Pos ) );
+
 		if( !ret && p->bActive && p->pose.bPoseIsValid )
 		{
 			CNOVRPoseFromHMDMatrix( &FOCUS.poseTip[ctrl], &p->pose.mDeviceToAbsoluteTracking );
@@ -151,7 +161,7 @@ void InternalCNOVRFocusUpdate()
 		}
 
 		//Render model updates, etc. can be based off of "hand"
-		ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_HAND], 
+		ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_MODEL], 
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
 		if( ret || !p->bActive || !p->pose.bPoseIsValid )
 		{
@@ -211,7 +221,7 @@ void InternalCNOVRFocusSetup()
 		pose_make_identity( &p->poseTip );
 	}
 
-	for( ctrl = 0; ctrl < 2; ctrl++ )
+	for( ctrl = 0; ctrl < 3; ctrl++ )
 	{
 		for( i = 0; i < CTRLA_MAX; i++ )
 		{
@@ -239,7 +249,16 @@ void InternalCNOVRFocusSetup()
 				printf( "ERROR: Failed to get action set handle: %d\n", ret );
 			}
 
-			for( ctrl = 0; ctrl < 2; ctrl++ )
+			ctrl = 0;
+			{
+				//For the HMD
+				if( ( ret = cnovrstate->oInput->GetInputSourceHandle( "/user/hmd", &FOCUS.handsource[ctrl] ) ) < 0 ) printf( "Error %d\n", ret );
+				cnovrstate->oInput->GetActionHandle( "/actions/m/in/trigclickhmd", &FOCUS.actionhandles[ctrl][CTRLA_TRIGGER] );
+				cnovrstate->oInput->GetActionHandle( "/actions/m/in/modelhmd", &FOCUS.actionhandles[ctrl][CTRLA_MODEL] );
+				cnovrstate->oInput->GetActionHandle( "/actions/m/in/tiphmd", &FOCUS.actionhandles[ctrl][CTRLA_TIP] );
+			}
+
+			for( ctrl = 1; ctrl < 3; ctrl++ )
 			{
 				const char * hand = ctrl?"right":"left";
 				sprintf( stmp, "/user/hand/%s", hand );
@@ -251,7 +270,7 @@ void InternalCNOVRFocusSetup()
 					"/actions/m/in/buttonb",
 					"/actions/m/in/graspclick",
 					"/actions/m/in/trig",
-					"/actions/m/in/hand",
+					"/actions/m/in/model",
 					"/actions/m/in/tip"
 				};
 

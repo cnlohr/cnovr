@@ -29,6 +29,13 @@ void add3d(FLT *out, const FLT *a, const FLT *b) {
 	out[2] = a[2] + b[2];
 }
 
+void mult3d(FLT * out, const FLT *a, const FLT *b)
+{
+	out[0] = a[0] * b[0];
+	out[1] = a[1] * b[1];
+	out[2] = a[2] * b[2];
+}
+
 void invert3d(FLT *out, const FLT *a) {
 	out[0] = 1. / a[0];
 	out[1] = 1. / a[1];

@@ -869,7 +869,7 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 	m->iIndexCount = m->iIndexCount + nindices;
 }
 
-void CNOVRModelAppendCube( cnovr_model * m, cnovr_pose * poseofs_optional )
+void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional )
 {
 	cnovr_pose * pose = poseofs_optional?poseofs_optional:&cnovr_pose_identity;
 
@@ -931,6 +931,8 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_pose * poseofs_optional )
 				float staget[4];
 				{
 					float xyzin[3] = { (vkeys[j]&4)?1:-1, (vkeys[j]&2)?1:-1, (vkeys[j]&1)?1:-1 };
+					printf( "%f %f %f\n", PFTHREE( size ) );
+					mult3d( xyzin, xyzin, size );
 					apply_pose_to_point( stage, pose, xyzin );
 				}
 				stage[3] = 1;

@@ -3,12 +3,16 @@
       "/actions/m" : {
          "poses" : [
             {
-               "output" : "/actions/m/in/handleft",
+               "output" : "/actions/m/in/modelleft",
                "path" : "/user/hand/left/pose/raw"
             },
             {
-               "output" : "/actions/m/in/handright",
+               "output" : "/actions/m/in/modelright",
                "path" : "/user/hand/right/pose/raw"
+            },
+            {
+               "output" : "/actions/m/in/modelhmd",
+               "path" : "/user/hmd/pose/raw"
             },
             {
                "output" : "/actions/m/in/tipleft",
@@ -17,9 +21,22 @@
             {
                "output" : "/actions/m/in/tipright",
                "path" : "/user/hand/right/pose/tip"
+            },
+            {
+               "output" : "/actions/m/in/tiphmd",
+               "path" : "/user/hmd/pose/tip"
             }
          ],
          "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/clickhmd"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hmd/input/system"
+            },
             {
                "inputs" : {
                   "pull" : {

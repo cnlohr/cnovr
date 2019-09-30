@@ -19,7 +19,7 @@ typedef enum
 	CTRLA_BUTTONB,
 	CTRLA_GRASP, //Last "button"
 	CTRLA_TRIG, //Special
-	CTRLA_HAND, //Special
+	CTRLA_MODEL, //Special
 	CTRLA_TIP, //Special
 	CTRLA_MAX,
 } ControllerActions;
@@ -84,7 +84,7 @@ typedef struct cnovrfocus_properties_t
 //YOU own the 'ce' object. We just store it for you.
 void CNOVRFocusRespond( int devid, cnovrfocus_capture * ce, float realdistance, int attempt_focus );
 void CNOVRFocusRemoveTag( void * tag );
-
+cnovr_pose * CNOVRFocusGetTipPose( int device );
 
 #endif
 

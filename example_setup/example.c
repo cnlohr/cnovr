@@ -12,6 +12,10 @@ cnovr_shader * shader;
 cnovr_model * model;
 cnovr_simple_node * node;
 
+cnovr_shader * shaderPointer;
+cnovr_model * pointerline;
+
+
 #define MAX_SPINNERS 50
 cnovr_model * spinner_m[MAX_SPINNERS];
 cnovr_simple_node * spinner_n[MAX_SPINNERS];
@@ -72,11 +76,21 @@ void UpdateFunction( void * tag, void * opaquev )
 }
 
 
+void RenderFunction( void * tag, void * opaquev )
+{
+	CNOVRRender( shaderPointer );
+	int i;
+	for( i = 0; i < 3; i++ )
+	{
+		cnovr_pose * pose = CNOVRFocusGetTipPose( i );
+		if( pose )
+			CNOVRModelRenderWithPose( pointerline, cnovr_pose * pose );
+	}
+}
+
 int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	printf( "EVENT: %d %d %d\n", event, cap->opaque, buttoninfo );
-	int * i = 0;
-	*i = 0;
 }
 
 
@@ -100,7 +114,7 @@ void CollideFunction( void * tag, void * opaquev )
 		apply_pose_to_point( direction, &invertedxform, direction);
 		sub3d( direction, start, direction );
 		cnovr_collide_results res;
-		res.t = 1000;
+		res.t = p->NewPassiveRealDistance;
 		int r = CNOVRModelCollide( spinner_m[i], start, direction, &res );
 		if( r >= 0 )
 		{
@@ -116,23 +130,29 @@ void CollideFunction( void * tag, void * opaquev )
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
+	int i;
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-	CNOVRModelAppendCube( model, 0 );
+	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
 	shader = CNOVRShaderCreate( "assets/basic" );
 	CNOVRNodeAddObject( node, shader );
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 
+	shaderPointer = CNOVRShaderCreate( "assets/pointer" );
+
+	pointerline = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
+	CNOVRModelAppendCube( pointerline, (cnovr_point3d){ .01, .01, 100.0 }, 0 );
+
+
 	cnovr_shader * spinner_s;
 
-	int i;
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
 		spinner_n[i] = CNOVRNodeCreateSimple( 1 );
 		spinner_m[i] = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-		CNOVRModelAppendCube( spinner_m[i], 0 );
+		CNOVRModelAppendCube( spinner_m[i], (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
 		CNOVRNodeAddObject( spinner_n[i], spinner_m[i] );
 		CNOVRNodeAddObject( root, spinner_n[i] );
 		focusblock[i].opaque = (void*)i;
@@ -141,6 +161,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
+	CNOVRListAdd( cnovrLRender, 0, RenderFunction );
 	CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
 
 	thdmax = OGCreateThread( my_thread, (void*)identifier );
