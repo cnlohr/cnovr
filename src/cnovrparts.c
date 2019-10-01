@@ -669,7 +669,7 @@ static void CNOVRModelDelete( cnovr_model * m )
 	CNOVRFreeLater( m->pGeos );
 	if( m->sMeshMarks )
 	{
-		for( i = 0; i < m->nMeshes + 1; i++ )
+		for( i = 0; i < m->nMeshes; i++ )
 		{
 			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
 		}
@@ -679,6 +679,12 @@ static void CNOVRModelDelete( cnovr_model * m )
 	{
 		free( m->iMeshMarks );
 	}
+	for( i = 0; i < m->iTextures; i++ )
+	{
+		CNOVRDelete( m->pTextures[i] );
+	}
+
+
 	CNOVRFreeLater( m->pIndices );
 	if( m->geofile ) CNOVRFreeLater( m->geofile );
 	glDeleteBuffers( 1, &m->nIBO );
@@ -699,11 +705,14 @@ static void CNOVRModelRender( cnovr_model * m )
 		int i;
 		int count = m->iTextures;
 		cnovr_texture ** ts = m->pTextures;
-		for( i = 0; i < count; i++ )
+		if( ts )
 		{
-			glActiveTextureCHEW( GL_TEXTURE0 + i );
-			cnovr_texture * t = ts[i];
-			CNOVRRender( t );
+			for( i = 0; i < count; i++ )
+			{
+				glActiveTextureCHEW( GL_TEXTURE0 + i );
+				cnovr_texture * t = ts[i];
+				CNOVRRender( t );
+			}
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO );
@@ -754,8 +763,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
 	ret->iGeos = 0;
-	ret->pTextures = malloc( sizeof( cnovr_texture * ) );
-	*ret->pTextures = 0;
+	ret->pTextures = 0;
 	ret->iTextures = 0;
 	ret->geofile = 0;
 
@@ -835,8 +843,8 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 	}
 	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 1 ) );
 	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes + 1 ) );
-	m->iMeshMarks[m->nMeshes] = m->iIndexCount;
-	m->sMeshMarks[m->nMeshes] = strdup( sectionname );
+	m->iMeshMarks[m->nMeshes-1] = m->iIndexCount;
+	m->sMeshMarks[m->nMeshes-1] = strdup( sectionname );
 }
 
 
@@ -962,7 +970,7 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 	OGUnlockMutex( m->model_mutex );
 }
 
-void CNOVRModelMakeMesh( cnovr_model * m, int rows, int cols, float w, float h )
+void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h )
 {
 	//Copied from Spreadgine.
 	int i;
@@ -1035,6 +1043,7 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 {
 	if( m->iTextures == 0 )
 	{
+		if( !m->pTextures ) m->pTextures = malloc( sizeof( cnovr_texture * ) );
 		m->pTextures[0] = CNOVRTextureCreate( 1, 1, 4 );
 		m->iTextures = 1;
 	}

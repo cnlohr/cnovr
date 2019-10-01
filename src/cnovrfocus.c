@@ -409,7 +409,6 @@ void CNOVRFocusRemoveTag( void * tag )
 {
 	printf( "Removing tag START: %p\n", tag );
 	OGLockMutex( FOCUS.mutFocus );
-	printf( "Removing tag: %p\n", tag );
 	if( FOCUS.capPassiveTemp && FOCUS.capPassiveTemp->tag == tag ) FOCUS.capPassiveTemp = 0;
 	if( FOCUS.capFocusTemp && FOCUS.capFocusTemp->tag == tag ) FOCUS.capFocusTemp = 0;
 	int i = 0;
@@ -428,5 +427,6 @@ void CNOVRFocusRemoveTag( void * tag )
 		}
 	}
 	OGUnlockMutex( FOCUS.mutFocus );
+	printf( "Tag removal complete.\n" );
 }
 
