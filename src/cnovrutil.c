@@ -358,6 +358,9 @@ char * FileSearchAbsolute( const char * fname )
 
 void FileSearchAddPath( const char * path )
 {
+	TCCInstance * te = TCCGetTag();
+	if( te && te->bClosing ) return;
+
 	if( search_paths_mutex == 0 )
 	{
 		search_paths_mutex = OGCreateMutex();
@@ -488,6 +491,7 @@ void * thdfiletimechecker( void * v )
 							l = l->next;
 						}
 refresh_set:
+						e = htFileTimeCacher->elements + i; //Tricky: If the loop is hit, and we have a table alteration within the loop, the array could become corrupt.
 						front = ((filetimedata*)e->data);
 						staged = &ftstaged;
 						l = k->front;
@@ -621,6 +625,8 @@ void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void
 {
 //	printf( "Adding FileTimeWatch %s [%p] %p\n", fname, tag, fn );
 	OGTSLockMutex( mutFileTimeCacher );
+	TCCInstance * te = TCCGetTag();
+	if( te && te->bClosing ) goto failthrough;
 	filetimedata * ftd = (filetimedata*)CNHashGetValue( htFileTimeCacher, (void*)fname );
 	if( !ftd )
 	{
@@ -934,7 +940,10 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
-	OGTSLockMutex( jq->mut );
+	TCCInstance * te = TCCGetTag();
+	if( te && te->bClosing ) goto fail;
+
+
 
 	//Make sure we don't permit addition of a delete-in-progress, in case the user has chained events.
 	if( jq->deletingnow && jq->deletingtag == tag && tag != 0) goto fail;
@@ -1090,6 +1099,8 @@ void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 
 void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
 {
+	TCCInstance * te = TCCGetTag();
+	if( te && te->bClosing ) return;
 	og_mutex_t  m = ListMTs[l];
 	cnhashelement * e;
 	OGTSLockMutex( m );
@@ -1097,7 +1108,7 @@ void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
 	JobListItem * jli = e->data;
 	if( !jli ) jli = malloc( sizeof( JobListItem ) );
 	jli->fn = fn;
-	jli->tcctag = TCCGetTag();
+	jli->tcctag = te;
 	e->data = jli;	//Overwrite if called again.
 	OGTSUnlockMutex( m );
 }

@@ -669,10 +669,8 @@ static void CNOVRModelDelete( cnovr_model * m )
 	CNOVRFreeLater( m->pGeos );
 	if( m->sMeshMarks )
 	{
-		printf( "Meshes: %d\n", m->nMeshes );
 		for( i = 0; i < m->nMeshes; i++ )
 		{
-			printf( "Mesh: %p\n", m->sMeshMarks[i] );
 			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
 		}
 		free( m->sMeshMarks );
@@ -681,6 +679,12 @@ static void CNOVRModelDelete( cnovr_model * m )
 	{
 		free( m->iMeshMarks );
 	}
+	for( i = 0; i < m->iTextures; i++ )
+	{
+		CNOVRDelete( m->pTextures[i] );
+	}
+
+
 	CNOVRFreeLater( m->pIndices );
 	if( m->geofile ) CNOVRFreeLater( m->geofile );
 	glDeleteBuffers( 1, &m->nIBO );
@@ -701,11 +705,14 @@ static void CNOVRModelRender( cnovr_model * m )
 		int i;
 		int count = m->iTextures;
 		cnovr_texture ** ts = m->pTextures;
-		for( i = 0; i < count; i++ )
+		if( ts )
 		{
-			glActiveTextureCHEW( GL_TEXTURE0 + i );
-			cnovr_texture * t = ts[i];
-			CNOVRRender( t );
+			for( i = 0; i < count; i++ )
+			{
+				glActiveTextureCHEW( GL_TEXTURE0 + i );
+				cnovr_texture * t = ts[i];
+				CNOVRRender( t );
+			}
 		}
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO );
@@ -752,13 +759,11 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertyp
 	ret->iMeshMarks = malloc( sizeof( int ) );
 	ret->iMeshMarks[0] = 0;
 	ret->nMeshes = 1;
-	ret->sMeshMarks = malloc( sizeof( char* ) );
-	ret->sMeshMarks[0] = 0;
+	ret->sMeshMarks = 0;
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
 	ret->iGeos = 0;
-	ret->pTextures = malloc( sizeof( cnovr_texture * ) );
-	*ret->pTextures = 0;
+	ret->pTextures = 0;
 	ret->iTextures = 0;
 	ret->geofile = 0;
 
@@ -1038,6 +1043,7 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 {
 	if( m->iTextures == 0 )
 	{
+		if( !m->pTextures ) m->pTextures = malloc( sizeof( cnovr_texture * ) );
 		m->pTextures[0] = CNOVRTextureCreate( 1, 1, 4 );
 		m->iTextures = 1;
 	}

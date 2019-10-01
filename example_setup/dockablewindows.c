@@ -90,7 +90,7 @@ void ListWindows()
 
 	    int width = attribs.width;
 	    int height = attribs.height;
-		printf( "%d %d\n", width, height );  
+		printf( "%d %d\n", width, height );
 	}
 	else
 	{

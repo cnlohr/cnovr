@@ -64,6 +64,7 @@ typedef struct TCCInstance_t
 	uint8_t bDynamicGen;
 	uint8_t bFirst;
 	uint8_t bDontCompile;
+	uint8_t bClosing;
 } TCCInstance;
 
 

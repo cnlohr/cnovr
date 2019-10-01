@@ -105,6 +105,7 @@ void InternalBreakdownRestOfTCCInterface()
 	{
 		object_cleanup * o = (object_cleanup *)objects_to_delete->elements[k].data;
 		TCCInstance * tce = (TCCInstance *)objects_to_delete->elements[k].key;
+		if( tce ) tce->bClosing = 1;
 		if( o )
 		{
 			void * i;
@@ -113,6 +114,12 @@ void InternalBreakdownRestOfTCCInterface()
 				OGCancelThread( (og_thread_t)i );
 			}
 			cnptrset_destroy( o->threads );
+
+			CNOVRFocusRemoveTag( tce );
+			CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
+			CNOVRListDeleteTCCTag( tce );
+
+
 			cnptrset_foreach( o->tccobjects, i ) CNOVRDeleteBase( ((cnovr_base*)i) );
 			cnptrset_destroy( o->tccobjects );
 			cnptrset_foreach( o->mutices, i ) OGDeleteMutex( (og_mutex_t)i );
@@ -136,6 +143,7 @@ void InternalBreakdownRestOfTCCInterface()
 void InternalShutdownTCC( TCCInstance * tce )
 {
 	printf( "Shutting down TCC Instance %p\n", tce );
+	tce->bClosing = 1;
 	OGLockMutex( tccinterfacemutex );
 	object_cleanup * o = CNHashGetValue( objects_to_delete, tce );
 	if( o )
@@ -332,7 +340,6 @@ static void TCCCNOVRDeleteBase( cnovr_base * b )
 	CNOVRDeleteBase( b );
 	OGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
-	printf( "**** REMOVE %p\n", c );
 	if( c ) cnptrset_remove( c->tccobjects, b );
 	OGUnlockMutex( tccinterfacemutex );
 }
