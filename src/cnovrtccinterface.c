@@ -10,7 +10,6 @@
 #include <string.h>
 #include <cnrbtree.h>
 
-
 ////////////////////////////////////////////////////////////////////////////////
 
 og_tls_t ogsafelocktls;
@@ -315,6 +314,16 @@ static cnovr_shader * TCCCNOVRShaderCreate( const char * shaderfilebase )
 	return ret;
 }
 
+static cnovr_texture * TCCCNOVRTextureCreate( int w, int h, int chan )
+{
+	cnovr_texture * ret = CNOVRTextureCreate( w, h, chan );
+	OGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	OGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
 static cnovr_simple_node * TCCCNOVRNodeCreateSimple( int reserved_size )
 {
 	cnovr_simple_node * ret = CNOVRNodeCreateSimple( reserved_size );
@@ -517,6 +526,14 @@ void InternalPopulateTCC( TCCInstance * tce )
 	extern void * CNFGVisual;		TCCExportS( CNFGVisual );
 #endif
 
+//X11
+ 	void XShmCreateImage(); 
+	void XShmAttach();
+	void XShmGetImage();
+	TCCExportS( XShmCreateImage );
+	TCCExportS( XShmAttach );
+	TCCExportS( XShmGetImage );
+//End X11
 
 
 	TCCExportS( cnovrstate );
@@ -526,10 +543,10 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRModelRenderWithPose );
 	TCCExportS( CNOVRModelApplyTextureFromFileAsync );
 	TCCExportS( CNOVRModelAppendMesh );
-
+	TCCExport( CNOVRTextureCreate );
 	TCCExport( CNOVRShaderCreate );
 	TCCExport( CNOVRDeleteBase );
-
+	TCCExportS( CNOVRTextureLoadDataNow );
 	TCCExportS( CNOVRModelAppendCube );
 	TCCExportS( CNOVRModelCollide );
  

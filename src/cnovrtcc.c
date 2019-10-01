@@ -132,12 +132,15 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	if( backupimage ) CNOVRFreeLater( backupimage ); //In case there are any hanging references.
 	backupimage = 0;
 
+	tce->bClosing = 0;
+
 	if( !tce->start )
 	{
 		CNOVRAlert( 0, 5, "Warning: Cannot find start function in %s.\n", tce->tccfilename );
 	}
 	else
 	{
+		printf( "Invoke %p\n", tce );
 		TCCInvocation( tce, tce->start( tce->identifier ) );
 	}
 
@@ -192,6 +195,7 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->additionalfiles = additionalfiles;
 	ret->bDynamicGen = bDynamicGen;
 	ret->bFirst = 1;
+	ret->bClosing = 0;
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
 	return ret;
 }

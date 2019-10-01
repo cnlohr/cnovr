@@ -13,7 +13,7 @@ OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
-LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread
+LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
 LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
 #LDFLAGS+=./libopenvr_api.so
 

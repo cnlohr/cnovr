@@ -109,7 +109,8 @@ typedef struct cnovr_texture_t
 //Defaults to a 1x1 px texture.
 cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan ); //Set to all 0 to have the load control these details.
 int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile );
-int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data ); //data must have been alloc'd on the heap.
+int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data ); //Data must be on heap.
+int CNOVRTextureLoadDataNow( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data, int data_permanant ); //Must only call from the render/prerender thread.
 
 ///////////////////////////////////////////////////////////////////////////////
 

@@ -478,19 +478,11 @@ int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile )
 	return 0;
 }
 
-int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data )
+static void InternalCNOVRTextureLoadSetup(  cnovr_texture * tex, int w, int h, int chan, int is_float )
 {
-	OGLockMutex( tex->mutProtect );
-
-	//We don't want to confuse the second part of the loader.
-	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
-
-	if( tex->data ) free( tex->data );
-	tex->data = data;
 	tex->width = w;
 	tex->height = h;
 	tex->channels = chan;
-
 	static const int channelmapF[] = { 0, GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F };
 	static const int channelmapI[] = { 0, GL_R8, GL_RG8, GL_RGB8, GL_RGBA8 };
 	static const int channelmapB[] = { 0, GL_RED, GL_RG, GL_RGB, GL_RGBA };
@@ -502,6 +494,38 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	tex->nFormat = channelmapB[chan];
 	tex->nType = is_float?GL_FLOAT:GL_UNSIGNED_BYTE;
 	tex->bTaintData = 1;
+}
+
+int CNOVRTextureLoadDataNow( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data, int data_permanant )
+{
+	OGLockMutex( tex->mutProtect );
+	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );
+
+	if( tex->data ) free( tex->data );
+	tex->data = data;
+
+	CNOVRTextureUploadCallback( tex, 0 );
+
+	//If data is permanant, we don't have to worry about deleting it.
+	if( data_permanant )
+	{
+		tex->data = 0;
+	}
+
+	OGUnlockMutex( tex->mutProtect );
+}
+
+int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data )
+{
+	OGLockMutex( tex->mutProtect );
+
+	//We don't want to confuse the second part of the loader.
+	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
+
+	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );
+	if( tex->data ) free( tex->data );
+	tex->data = data;
+
 	CNOVRJobTack( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 	OGUnlockMutex( tex->mutProtect );
 	return 0;
