@@ -145,7 +145,7 @@ void * GetTextureThread( void * v )
 				{
 					need_texture = 0;
 				}
-				if( part1 > .0015 )
+				if( part1 > .0025 )
 					printf( "GET %10f\n", part1 );
 			}
 		}
@@ -163,7 +163,7 @@ void PreRender()
 		double ds = OGGetAbsoluteTime();
 		CNOVRTextureLoadDataNow( texture, image->width, image->height, 4, 0,  (void*)(&(image->data[0])), 1 );
 		double part1 = OGGetAbsoluteTime() - ds;
-		if( part1 > 0.015 ) printf( "Loading Data %f\n", part1 );
+		if( part1 > 0.005 ) printf( "Loading Data %f\n", part1 );
 		need_texture = 1;
 	}
 }
@@ -179,11 +179,13 @@ void GenGeo()
 {
 	printf( "Genning\n" );
 	pose_make_identity( &pose );
-	pose.Rot[0] = -.707; pose.Rot[1] = .707;
+	pose.Rot[0] = .707; pose.Rot[1] = .707;
 	shader = CNOVRShaderCreate( "rendermodel" );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-//	CNOVRModelAppendMesh( model, 2, 2, 1, 1 );
-	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
+	printf( "CREATING MESH\n" );
+	CNOVRModelAppendMesh( model, 2, 2, 1, 1 );
+	printf( "DONE MESH\n" );
+//	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
 //	CNOVRModelApplyTextureFromFileAsync( model, "test.png" );
 	texture = CNOVRTextureCreate( 0, 0, 0 ); 
 }
@@ -200,7 +202,6 @@ void prerender_startup( void * tag, void * opaquev )
 void start( const char * identifier )
 {
 	printf( "Dockables start %s(%p)\n", identifier, identifier );
-
 	CNOVRJobTack( cnovrQPrerender, prerender_startup, 0, 0, 0 );
 	gtt = OGCreateThread( GetTextureThread, 0 );
 	printf( "Dockables start OK %s\n", identifier );

@@ -196,6 +196,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	return 0;
 }
 
+double FrameStart;
+
 void CNOVRUpdate()
 {
 //	static struct TrackedDevicePose_t lastframeposes[MAX_POSES_TO_PULL_FROM_OPENVR];
@@ -352,7 +354,12 @@ void CNOVRUpdate()
 	void   CNFGSetVSync( int vson );
 	CNFGSetVSync( 0 );
 #endif
+	double diff = OGGetAbsoluteTime() - FrameStart;
+	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
+
 	CNFGSwapBuffers(1);
+	FrameStart = OGGetAbsoluteTime();
+
 }
 
 void CNOVRShutdown()
