@@ -7,56 +7,9 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
-NOW NOW:
- Why:
-==5880== Thread 4:
-==5880== Invalid write of size 4
-==5880==    at 0x14CFB6: CNOVRJobProcessor (cnovrutil.c:820)
-==5880==    by 0x59A96DA: start_thread (pthread_create.c:463)
-==5880==    by 0x5F1F88E: clone (clone.S:95)
-==5880==  Address 0x9ff2a5c is 204 bytes inside a block of size 240 free'd
-==5880==    at 0x4C30D3B: free (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==5880==    by 0x14CA94: DeleteLaterFrameCb (cnovrutil.c:1184)
-==5880==    by 0x14EA66: CNOVRListCall (cnovrutil.c:1083)
-==5880==    by 0x145099: CNOVRUpdate (cnovr.c:232)
-==5880==    by 0x15469B: main (main.c:26)
-==5880==  Block was alloc'd at
-==5880==    at 0x4C2FB0F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==5880==    by 0x152D42: TCCmalloc (cnovrtccinterface.c:365)
-==5880==    by 0x14178C: tcccrash_getcheckpoint (tcccrash.c:376)
-==5880==    by 0x14CFB5: CNOVRJobProcessor (cnovrutil.c:820)
-==5880==    by 0x59A96DA: start_thread (pthread_create.c:463)
-==5880==    by 0x5F1F88E: clone (clone.S:95)
-==5880== 
-==5880== Invalid write of size 8
-==5880==    at 0x5E3CB70: __sigsetjmp (setjmp.S:26)
-==5880==    by 0x14CFD6: CNOVRJobProcessor (cnovrutil.c:820)
-==5880==    by 0x59A96DA: start_thread (pthread_create.c:463)
-==5880==    by 0x5F1F88E: clone (clone.S:95)
-==5880==  Address 0x9ff2990 is 0 bytes inside a block of size 240 free'd
-==5880==    at 0x4C30D3B: free (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==5880==    by 0x14CA94: DeleteLaterFrameCb (cnovrutil.c:1184)
-==5880==    by 0x14EA66: CNOVRListCall (cnovrutil.c:1083)
-==5880==    by 0x145099: CNOVRUpdate (cnovr.c:232)
-==5880==    by 0x15469B: main (main.c:26)
-==5880==  Block was alloc'd at
-==5880==    at 0x4C2FB0F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==5880==    by 0x152D42: TCCmalloc (cnovrtccinterface.c:365)
-==5880==    by 0x14178C: tcccrash_getcheckpoint (tcccrash.c:376)
-==5880==    by 0x14CFB5: CNOVRJobProcessor (cnovrutil.c:820)
-==5880==    by 0x59A96DA: start_thread (pthread_create.c:463)
-==5880==    by 0x5F1F88E: clone (clone.S:95)
-==5880== 
-==5880== Invalid write of size 8
-==5880==    at 0x5E3CB83: __sigsetjmp (setjmp.S:37)
-==5880==    by 0x14CFD6: CNOVRJobProcessor (cnovrutil.c:820)
-==5880==    by 0x59A96DA: start_thread (pthread_create.c:463)
-==5880==    by 0x5F1F88E: clone (clone.S:95)
-==5880==  Address 0x9ff2998 is 8 bytes inside a block of size 240 free'd
-==5880==    at 0x4C30D3B: free (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==5880==    by 0x14CA94: DeleteLaterFrameCb (cnovrutil.c:1184
 NOW:
  * TCC Instances should have sustaining data options.
+ * Unified mechanism to drag models.
 
 GAMEPLAN:
  * Model Loading

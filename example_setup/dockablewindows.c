@@ -146,7 +146,7 @@ void * GetTextureThread( void * v )
 					need_texture = 0;
 				}
 				if( part1 > .0025 )
-					printf( "GET %10f\n", part1 );
+					printf( "FRAME GET Took too long %10f\n", part1 );
 			}
 		}
 		OGUSleep( 1000 );
@@ -166,6 +166,8 @@ void PreRender()
 		if( part1 > 0.005 ) printf( "Loading Data %f\n", part1 );
 		need_texture = 1;
 	}
+	int i;
+
 }
 
 void Render()
@@ -179,22 +181,18 @@ void GenGeo()
 {
 	printf( "Genning\n" );
 	pose_make_identity( &pose );
-	pose.Rot[0] = .707; pose.Rot[1] = .707;
 	shader = CNOVRShaderCreate( "rendermodel" );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 	printf( "CREATING MESH\n" );
 	CNOVRModelAppendMesh( model, 2, 2, 1, 1 );
-	printf( "DONE MESH\n" );
-//	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
-//	CNOVRModelApplyTextureFromFileAsync( model, "test.png" );
 	texture = CNOVRTextureCreate( 0, 0, 0 ); 
+	printf( "DONE MESH\n" );
 }
 
 
 void prerender_startup( void * tag, void * opaquev )
 {
 	GenGeo();
-	ListWindows();
 	CNOVRListAdd( cnovrLRender, &handle, Render );
 	CNOVRListAdd( cnovrLPrerender, &handle, PreRender );
 }
@@ -212,9 +210,15 @@ void stop( const char * identifier )
 {
 	printf( "Stopping\n" );
 	quitting = 1;
-	XCloseDisplay( localdisplay );
+	if( localdisplay )
+	{
+		XCloseDisplay( localdisplay );
+	}
 	printf( "Joining\n" );
-	OGJoinThread( gtt );
+	if( gtt ) 
+	{
+		OGJoinThread( gtt );
+	}
 	printf( "Stopped\n" );
 
 	CNOVRListDeleteTag( &handle );

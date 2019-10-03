@@ -513,6 +513,7 @@ int CNOVRTextureLoadDataNow( cnovr_texture * tex, int w, int h, int chan, int is
 	}
 
 	OGUnlockMutex( tex->mutProtect );
+	return 0;
 }
 
 int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data )
@@ -522,9 +523,10 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	//We don't want to confuse the second part of the loader.
 	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 
-	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );
 	if( tex->data ) free( tex->data );
 	tex->data = data;
+
+	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );
 
 	CNOVRJobTack( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 	OGUnlockMutex( tex->mutProtect );
@@ -885,6 +887,7 @@ void CNOVRModelTackIndex( cnovr_model * m, int nindices, ...)
 	for( i = 0; i < nindices; i++ )
 	{
 		pIndices[i] = va_arg(argp, int);
+		printf( "Adding %d %d\n", i, pIndices[i] );
 	}
 	va_end( argp );
 	m->iIndexCount = m->iIndexCount + nindices;
@@ -1012,25 +1015,23 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
-//	CNOVRModelSetNumIndices( m, 6*c );
 
 	CNOVRDelinateGeometry( m, "mesh" );
 
 	{
 		uint32_t * indices = m->pIndices;
-		for( y = 0; y < h; y++ )
-		for( x = 0; x < w; x++ )
+		for( y = 0; y < rows; y++ )
+		for( x = 0; x < cols; x++ )
 		{
 			int i = x + y * w;
 			int k = m->iLastVertMark;
-			printf( "TACKING %d\n", k );
 			CNOVRModelTackIndex( m, 6, 
-				k + x + y * (w+1),
-				k + (x+1) + y * (w+1),
-				k + (x+1) + (y+1) * (w+1),
-				k + (x) + (y) * (w+1),
-				k + (x+1) + (y+1) * (w+1),
-				k + (x) + (y+1) * (w+1) );
+				k + x + y * (cols+1),
+				k + (x+1) + y * (cols+1),
+				k + (x+1) + (y+1) * (cols+1),
+				k + (x) + (y) * (cols+1),
+				k + (x+1) + (y+1) * (cols+1),
+				k + (x) + (y+1) * (cols+1) );
 		}
 	}
 
@@ -1039,14 +1040,14 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h
 		float stagen[3];
 
 		stagen[0] = 0;
-		stagen[1] = 0	;
+		stagen[1] = 0;
 		stagen[2] = -1;
 
-		for( y = 0; y <= h; y++ )
-		for( x = 0; x <= w; x++ )
+		for( y = 0; y <= rows; y++ )
+		for( x = 0; x <= cols; x++ )
 		{
-			stage[0] = x/(float)w;
-			stage[1] = y/(float)h;
+			stage[0] = x/(float)rows;
+			stage[1] = y/(float)cols;
 			stage[2] = 1;
 			stage[3] = m->nMeshes;
 
@@ -1056,7 +1057,7 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h
 		}
 	}
 
-	m->iLastVertMark += (w)*(h)*6;
+	m->iLastVertMark += (rows)*(cols)*6;
 
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
