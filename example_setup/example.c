@@ -19,8 +19,8 @@ float zapped[MAX_SPINNERS];
 int shutting_down;
 cnovrfocus_capture focusblock[MAX_SPINNERS];
 
-int draggingid[INPUTDEVS] = { -1, -1, -1 };
-cnovr_pose draggingpose[INPUTDEVS]; //Pose of object relative to tip.
+int draggingid[CNOVRINPUTDEVS] = { -1, -1, -1 };
+cnovr_pose draggingpose[CNOVRINPUTDEVS]; //Pose of object relative to tip.
 
 int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
 
@@ -174,7 +174,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
+	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
 	shader = CNOVRShaderCreate( "assets/basic" );
 	CNOVRNodeAddObject( node, shader );
 	CNOVRNodeAddObject( node, model );
@@ -186,7 +186,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	{
 		spinner_n[i] = CNOVRNodeCreateSimple( 1 );
 		spinner_m[i] = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-		CNOVRModelAppendCube( spinner_m[i], (cnovr_point3d){ 1.f, 1.f, 1.f }, 0 );
+		CNOVRModelAppendCube( spinner_m[i], (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
 		CNOVRNodeAddObject( spinner_n[i], spinner_m[i] );
 		CNOVRNodeAddObject( root, spinner_n[i] );
 		focusblock[i].opaque = (void*)i;

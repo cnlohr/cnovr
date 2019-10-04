@@ -322,6 +322,7 @@ void CNOVRUpdate()
 		}
 	}
 
+
 	//XXX TODO: How do we know when we need to update the preview window?
 	//XXX TODO: blit renderbuffer to frame?  (as an alternative to a separate render view for preview)
 	if( cnovrstate->has_preview )
@@ -348,17 +349,20 @@ void CNOVRUpdate()
 	}
 
 	CNOVRCheck();
+
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
 #else
 	//XXX Hacky - this disables vsync on Linux only
 	void   CNFGSetVSync( int vson );
 	CNFGSetVSync( 0 );
 #endif
-	double diff = OGGetAbsoluteTime() - FrameStart;
-	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
+
+//	double diff = OGGetAbsoluteTime() - FrameStart;
+//	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
 
 	CNFGSwapBuffers(1);
-	FrameStart = OGGetAbsoluteTime();
+//	FrameStart = OGGetAbsoluteTime();
+	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
 
 }
 

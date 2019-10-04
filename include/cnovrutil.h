@@ -79,6 +79,7 @@ typedef enum
 	cnovrLPrerender,
 	cnovrLCollide,
 	cnovrLRender,
+	cnovrLPostRender,
 	cnovrLMAX,
 } cnovrRunList;
 

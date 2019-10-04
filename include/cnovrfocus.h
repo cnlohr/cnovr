@@ -11,7 +11,7 @@
 #define CNOVRFOCUS_FAR  1000
 
 
-#define INPUTDEVS 3
+#define CNOVRINPUTDEVS 3
 //Dev 0 = HMD / Keyboard
 //Dev 1 = Controller Left
 //Dev 2 = Controller Right

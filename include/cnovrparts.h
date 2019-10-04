@@ -7,6 +7,7 @@
 #include <os_generic.h>
 #include <cnovrmath.h>
 #include <stdint.h>
+#include <cnovrfocus.h>
 
 typedef struct cnovr_collide_results_t
 {
@@ -169,6 +170,12 @@ typedef struct cnovr_model_t
 
 	uint8_t bIsLoading;
 	uint8_t bIsUploaded;
+
+	cnovr_pose * pose;
+
+	//Focus data
+	cnovr_pose ** focusgrab; //array, [INPUTDEVS] //If set, currently dragging.
+	cnovrfocus_capture * focusevent; //Return collide events with this.
 } cnovr_model;
 
 //XXX TODO: Reorganize this.
@@ -187,8 +194,8 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices );
 void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices );
 void CNOVRModelResetMarks( cnovr_model * m );
 
-void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional );
-void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float sx, float sy );
+void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata );
+void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata );
 
 //If before first index, names first section.
 void CNOVRDelinateGeometry( cnovr_model * m, const char * newGeoName );
@@ -198,10 +205,15 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
 
+// Focus Stuff
+
+void CNOVRModelSetInteractable( cnovr_model * m, cnovrfocus_capture * focusevent );
+void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, int event, int buttoninfo );
+
 //XXX TODO NOTE: We can set the models up to be "stamped" down with different uniform properties.  
 
 ///////////////////////////////////////////////////////////////////////////////
-
+///////////////// Probably should not use nodes, I think they will go away.
 typedef struct cnovr_simple_node_t
 {
 	cnovr_base base;

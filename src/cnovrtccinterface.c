@@ -549,6 +549,8 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRTextureLoadDataNow );
 	TCCExportS( CNOVRModelAppendCube );
 	TCCExportS( CNOVRModelCollide );
+	TCCExportS( CNOVRModelHandleFocusEvent );
+	TCCExportS( CNOVRModelSetInteractable );
  
 	TCCExportS( CNOVRNodeAddObject );
 	TCCExportS( CNOVRNodeRemoveObject );

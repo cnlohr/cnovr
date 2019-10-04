@@ -725,6 +725,14 @@ static void CNOVRModelRender( cnovr_model * m )
 {
 	static cnovr_model * last_rendered_model = 0;
 
+	cnovr_pose * pose;
+
+	if( m->pose )
+	{
+		pose_to_matrix44( cnovrstate->mModel, m->pose );
+		glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
+	}
+
 	if( !m->bIsUploaded ) return;
 	//XXX Tricky: Don't lock model, so if we're loading while rendering, we don't hitch.
 //	if( m != last_rendered_model )
@@ -887,7 +895,6 @@ void CNOVRModelTackIndex( cnovr_model * m, int nindices, ...)
 	for( i = 0; i < nindices; i++ )
 	{
 		pIndices[i] = va_arg(argp, int);
-		printf( "Adding %d %d\n", i, pIndices[i] );
 	}
 	va_end( argp );
 	m->iIndexCount = m->iIndexCount + nindices;
@@ -906,7 +913,7 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 	m->iIndexCount = m->iIndexCount + nindices;
 }
 
-void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional )
+void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata )
 {
 	cnovr_pose * pose = poseofs_optional?poseofs_optional:&cnovr_pose_identity;
 
@@ -928,9 +935,9 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 		0b101111011101,
 	};
 	OGLockMutex( m->model_mutex );
-	if( m->iGeos != 3 )
+	if( m->iGeos != 4 )
 	{
-		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 4, 3 );
+		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 2, 3, 4 );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
@@ -985,6 +992,11 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 				stage[2] = (normaxis==2)?normplus:0;
 				stage[3] = 0;
 				CNOVRVBOTackv( m->pGeos[2], 3, stage );
+
+				if( extradata )
+					CNOVRVBOTackv( m->pGeos[3], 4, *extradata );
+				else
+					CNOVRVBOTackv( m->pGeos[3], 4, (float[4]){ 0, 0, 0, 0 } );
 			}
 		}
 	}
@@ -999,21 +1011,22 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 	OGUnlockMutex( m->model_mutex );
 }
 
-void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h )
+void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata )
 {
 	//Copied from Spreadgine.
 	int i;
 	int x, y;
-	int c = w * h;
-	int v = (w+1)*(h+1);
+//	int c = w * h;
+//	int v = (w+1)*(h+1);
 
 	OGLockMutex( m->model_mutex );
 
-	if( m->iGeos != 3 )
+	if( m->iGeos != 4 )
 	{
-		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 4, 3 );
+		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 2, 3, 4  );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
+		printf( "RESET\n");
 	}
 
 	CNOVRDelinateGeometry( m, "mesh" );
@@ -1023,8 +1036,8 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h
 		for( y = 0; y < rows; y++ )
 		for( x = 0; x < cols; x++ )
 		{
-			int i = x + y * w;
 			int k = m->iLastVertMark;
+			printf( "MARK: %d\n", k );
 			CNOVRModelTackIndex( m, 6, 
 				k + x + y * (cols+1),
 				k + (x+1) + y * (cols+1),
@@ -1042,22 +1055,33 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, float w, float h
 		stagen[0] = 0;
 		stagen[1] = 0;
 		stagen[2] = -1;
+		stagen[3] = m->nMeshes;
 
 		for( y = 0; y <= rows; y++ )
 		for( x = 0; x <= cols; x++ )
 		{
 			stage[0] = x/(float)rows;
 			stage[1] = y/(float)cols;
-			stage[2] = 1;
-			stage[3] = m->nMeshes;
-
-			CNOVRVBOTackv( m->pGeos[0], 3, stage );
-			CNOVRVBOTackv( m->pGeos[1], 4, stage );
+			if( flipv ) stage[1] = 1.0 - stage[1];
+			stage[2] = 0;
+			CNOVRVBOTackv( m->pGeos[1], 2, stage );	//TC
+			stage[1] = y/(float)cols;
+			stage[0] *= size[0];
+			stage[1] *= size[1];
+			stage[2] = size[2];
+			if( poseofs_optional )
+				apply_pose_to_point( stage, poseofs_optional, stage );
+			CNOVRVBOTackv( m->pGeos[0], 3, stage );	//Pos
 			CNOVRVBOTackv( m->pGeos[2], 3, stagen );
+
+			if( extradata )
+				CNOVRVBOTackv( m->pGeos[3], 4, *extradata );
+			else
+				CNOVRVBOTackv( m->pGeos[3], 4, (float[4]){ 0, 0, 0, 0 } );
 		}
 	}
 
-	m->iLastVertMark += (rows)*(cols)*6;
+	m->iLastVertMark += (rows+1)*(cols+1);
 
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
@@ -1095,6 +1119,7 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 	float * vpos = m->pGeos[0]->pVertices;
 	int stride = m->pGeos[0]->iStride;
 	int i;
+	GLuint * indices = m->pIndices;
 	for( i = 0; i < m->nMeshes; i++ )
 	{
 		int meshStart = m->iMeshMarks[i];
@@ -1102,9 +1127,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 		int j;
 		for( j = meshStart; j < meshEnd; j+=3 )
 		{
-			int i0 = j+0;
-			int i1 = j+1;
-			int i2 = j+2;
+			int i0 = indices[j+0];
+			int i1 = indices[j+1];
+			int i2 = indices[j+2];
 			//i0..2 are the indices we will be verting.
 			float * v0 = &vpos[i0*stride];
 			float * v1 = &vpos[i1*stride];
@@ -1481,6 +1506,85 @@ void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 }
 
 
+static void ModelFocusCollideFunction(void * tag, void * opaquev )
+{
+	//XXX TODO: This needs to be optimized.
+	cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
+	cnovr_model * m = tag;
+	if( !m->focusevent ) return;
+	cnovr_point3d start = { 0, 0, 0 };
+	cnovr_vec3d direction = { 0, 0, 1 };
+	cnovr_pose invertedxform;
+	pose_invert( &invertedxform, m->pose );
+	apply_pose_to_point( start, &p->poseTip, start);
+	apply_pose_to_point( start, &invertedxform, start);
+	apply_pose_to_point( direction, &p->poseTip, direction);
+	apply_pose_to_point( direction, &invertedxform, direction);
+	sub3d( direction, direction, start );
+	cnovr_collide_results res;
+	res.t = p->NewPassiveRealDistance;
+	int r = CNOVRModelCollide( m, start, direction, &res );
+	if( r >= 0 && res.t > 0 )
+	{
+		CNOVRFocusRespond( m->focusevent, res.t );
+	}
+}
+
+void CNOVRModelSetInteractable( cnovr_model * m, cnovrfocus_capture * focusevent )
+{
+	if( m->focusevent )
+	{
+		CNOVRListDeleteTag( m ); 
+	}
+
+	m->focusevent = focusevent;
+
+	if( focusevent )
+	{
+		CNOVRListAdd( cnovrLCollide, m, ModelFocusCollideFunction );
+	}
+}
+
+void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, int event, int buttoninfo )
+{
+	int devid = prop->devid;
+
+	switch( event )
+	{
+		case CNOVRF_DOWNNOFOCUS:
+			if( buttoninfo == 3 ) CNOVRFocusAcquire( m->focusevent, 1 );
+			break;
+		case CNOVRF_DRAG:
+			if( m->focusgrab && m->focusgrab[devid] )
+			{
+				cnovr_pose * p = m->focusgrab[devid];
+				apply_pose_to_pose( m->pose, &prop->poseTip, p );
+			}
+			break;
+		case CNOVRF_UPFOCUS:
+			CNOVRFocusAcquire( m->focusevent, 0 );
+			break;
+		case CNOVRF_LOSTFOCUS:
+			if( m->focusgrab && m->focusgrab[devid] ) m->focusgrab[devid] = 0;
+			break;
+		case CNOVRF_ACQUIREDFOCUS:
+		{
+			cnovr_pose * posein;
+			if( !m->focusgrab ) m->focusgrab = calloc( CNOVRINPUTDEVS, sizeof( cnovr_pose * ) );
+
+			cnovr_pose * poseout =  m->focusgrab[devid];
+
+			if( !poseout )
+				poseout = m->focusgrab[devid] = malloc( sizeof( cnovr_pose ) );
+
+			unapply_pose_from_pose( m->focusgrab[devid], &prop->poseTip, m->pose );
+			break;
+		}
+	}
+}
+
+
+
 
 
 
@@ -1570,4 +1674,5 @@ void CNOVRNodeRemoveObject( cnovr_simple_node * node, void * o )
 
 	stb_sb_remove( node->objects, i );
 }
+
 

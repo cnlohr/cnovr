@@ -11,23 +11,23 @@
 typedef struct internal_focus_system_t
 {
 	VRActionSetHandle_t inputactionset;
-	VRInputValueHandle_t handsource[INPUTDEVS];
-	VRActionHandle_t actionhandles[INPUTDEVS][CTRLA_MAX];
-	InputOriginInfo_t originInfo[INPUTDEVS];
-	InputPoseActionData_t poseData[INPUTDEVS];
-	char * rendermodelnames[INPUTDEVS];
+	VRInputValueHandle_t handsource[CNOVRINPUTDEVS];
+	VRActionHandle_t actionhandles[CNOVRINPUTDEVS][CTRLA_MAX];
+	InputOriginInfo_t originInfo[CNOVRINPUTDEVS];
+	InputPoseActionData_t poseData[CNOVRINPUTDEVS];
+	char * rendermodelnames[CNOVRINPUTDEVS];
 	cnovr_shader * shdRenderModel;
-	cnovr_model  * mdlRenderModels[INPUTDEVS];
-	cnovr_pose      poseController[INPUTDEVS];
-	bool bShowController[INPUTDEVS];
+	cnovr_model  * mdlRenderModels[CNOVRINPUTDEVS];
+	cnovr_pose      poseController[CNOVRINPUTDEVS];
+	bool bShowController[CNOVRINPUTDEVS];
 
 	cnovr_model * mdlPointer;
 	cnovr_model * mdlHitPos;
 	cnovr_shader * shdPointer;
 
 
-	cnovr_pose      poseTip[INPUTDEVS];
-	cnovrfocus_properties focusProps[INPUTDEVS];	//Tricky: Device0 is the HMD, 1 and 2 are the controllers.
+	cnovr_pose      poseTip[CNOVRINPUTDEVS];
+	cnovrfocus_properties focusProps[CNOVRINPUTDEVS];	//Tricky: Device0 is the HMD, 1 and 2 are the controllers.
 	og_mutex_t    mutFocus;
 	
 	cnovrfocus_capture * capPassiveTemp; //Careful - if we delete in the operation, this must also be removed.
@@ -51,7 +51,7 @@ void FocusSystemRender( void * tag, void * opaque )
 	{
 		int i;
 		CNOVRRender( f->shdRenderModel );
-		for( i = 0; i < INPUTDEVS; i++ )
+		for( i = 0; i < CNOVRINPUTDEVS; i++ )
 		{
 			if( !FOCUS.bShowController[i] ) continue;
 			cnovr_model * m = f->mdlRenderModels[i];
@@ -69,7 +69,7 @@ void FocusSystemRender( void * tag, void * opaque )
 		cnovr_model * mp = f->mdlPointer;
 		cnovr_model * mh = f->mdlHitPos;
 		
-		for( i = 0; i < INPUTDEVS; i++ )
+		for( i = 0; i < CNOVRINPUTDEVS; i++ )
 		{
 			if( !FOCUS.bShowController[i] ) continue;
 			cnovrfocus_properties * props = f->focusProps + i;
@@ -124,7 +124,7 @@ void InternalCNOVRFocusUpdate()
 	actionSet.ulActionSet = FOCUS.inputactionset;
 	cnovrstate->oInput->UpdateActionState( &actionSet, sizeof( actionSet ), 1 );
 
-	for( ; ctrl < INPUTDEVS; ctrl++ )
+	for( ; ctrl < CNOVRINPUTDEVS; ctrl++ )
 	{
 		cnovrfocus_properties * props = &FOCUS.focusProps[ctrl];
 		cnovrfocus_capture * cap;
@@ -277,8 +277,8 @@ void InternalCNOVRFocusPrerenderStartup()
 {
 	FOCUS.mdlPointer = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 	FOCUS.mdlHitPos = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-	CNOVRModelAppendCube( FOCUS.mdlHitPos, (cnovr_point3d){ .02, .02, .02 }, 0 );
-	CNOVRModelAppendCube( FOCUS.mdlPointer, (cnovr_point3d){ .01, .01, CNOVRFOCUS_FAR }, 0 );
+	CNOVRModelAppendCube( FOCUS.mdlHitPos, (cnovr_point3d){ .02, .02, .02 }, 0, 0 );
+	CNOVRModelAppendCube( FOCUS.mdlPointer, (cnovr_point3d){ .01, .01, CNOVRFOCUS_FAR }, 0, 0 );
 	FOCUS.shdPointer = CNOVRShaderCreate( "pointer" );	
 	FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
 }
@@ -290,7 +290,7 @@ void InternalCNOVRFocusSetup()
 
 	FOCUS.mutFocus = OGCreateMutex();
 
-	for( i = 0; i < INPUTDEVS; i++ )
+	for( i = 0; i < CNOVRINPUTDEVS; i++ )
 	{
 		cnovrfocus_properties * p = &FOCUS.focusProps[i];
 		memset( p, 0, sizeof( *p ) );
@@ -298,7 +298,7 @@ void InternalCNOVRFocusSetup()
 		pose_make_identity( &p->poseTip );
 	}
 
-	for( ctrl = 0; ctrl < INPUTDEVS; ctrl++ )
+	for( ctrl = 0; ctrl < CNOVRINPUTDEVS; ctrl++ )
 	{
 		for( i = 0; i < CTRLA_MAX; i++ )
 		{
@@ -335,9 +335,9 @@ void InternalCNOVRFocusSetup()
 				cnovrstate->oInput->GetActionHandle( "/actions/m/in/tiphead", &FOCUS.actionhandles[ctrl][CTRLA_TIP] );
 			}
 
-			for( ctrl = 1; ctrl < INPUTDEVS; ctrl++ )
+			for( ctrl = 1; ctrl < CNOVRINPUTDEVS; ctrl++ )
 			{
-				const char * hand = (ctrl == INPUTDEVS-1)?"right":"left";
+				const char * hand = (ctrl == CNOVRINPUTDEVS-1)?"right":"left";
 				sprintf( stmp, "/user/hand/%s", hand );
 				if( ( ret = cnovrstate->oInput->GetInputSourceHandle( stmp, &FOCUS.handsource[ctrl] ) ) < 0 ) printf( "Error %d\n", ret );
 
@@ -392,7 +392,6 @@ void CNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus )
 	int cdevid = FOCUS.current_devid;
 	if( cdevid < 0 ) return;
 	cnovrfocus_properties * fp = FOCUS.focusProps + cdevid;
-	printf( "Acquiring focus %p %p  %d  %d\n", ce, fp->capturedFocus, wantfocus, cdevid );
 	if( !wantfocus )
 	{
 		if( ce == fp->capturedFocus )
@@ -412,15 +411,15 @@ void CNOVRFocusRemoveTag( void * tag )
 	if( FOCUS.capPassiveTemp && FOCUS.capPassiveTemp->tag == tag ) FOCUS.capPassiveTemp = 0;
 	if( FOCUS.capFocusTemp && FOCUS.capFocusTemp->tag == tag ) FOCUS.capFocusTemp = 0;
 	int i = 0;
-	for( i = 0; i < INPUTDEVS; i++ )
+	for( i = 0; i < CNOVRINPUTDEVS; i++ )
 	{
 		cnovrfocus_properties * p = &FOCUS.focusProps[i];
-		cnovrfocus_capture ** ct[INPUTDEVS] = { 
+		cnovrfocus_capture ** ct[CNOVRINPUTDEVS] = { 
 			&p->capturedFocus,
 			&p->capturedPassive,
 			&p->NewCapturedPassive };
 		int j;
-		for( j = 0; j < INPUTDEVS; j++ )
+		for( j = 0; j < CNOVRINPUTDEVS; j++ )
 		{
 			cnovrfocus_capture * c = *ct[j];
 			if( c && c->tag == tag ) *ct[j] = 0;
