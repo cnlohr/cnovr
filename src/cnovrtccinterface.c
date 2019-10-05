@@ -374,6 +374,11 @@ static void TCCCNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * f
 	CNOVRListAdd( l, TCCGetTag(), fn );
 }
 
+void TCCCNOVRListDeleteTCCTag( void * tcctag )
+{
+	CNOVRListDeleteTCCTag( TCCGetTag() );
+}
+
 
 
 void *TCCmalloc(size_t size)
@@ -555,8 +560,12 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRNodeAddObject );
 	TCCExportS( CNOVRNodeRemoveObject );
 
+	TCCExportS( NamedPtrData );
+
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );
+	TCCExport( CNOVRListDeleteTCCTag );
+
 	TCCExportS( CNOVRListDeleteTag );
 
 	TCCExport( CNOVRFocusRespond );

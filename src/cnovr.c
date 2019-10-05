@@ -35,6 +35,7 @@ void StopFileTimeChekerThread();
 void InternalCNOVRFocusSetup();
 void InternalCNOVRFocusShutdown();
 void InternalCNOVRFocusUpdate();
+void InternalSetupNamedPtrs();
 
 void HandleKey( int keycode, int bDown )
 {
@@ -64,6 +65,8 @@ void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr_mode )
 {
 	int r;
+
+	InternalSetupNamedPtrs();
 
 	OGResetSafeMutices();
 

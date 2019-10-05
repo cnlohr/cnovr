@@ -112,6 +112,7 @@ static og_mutex_t  namedptrmutex;
 struct NamedPtrType
 {
 	char * typename;
+	int length;
 	uint8_t data[1];
 };
 
@@ -121,33 +122,36 @@ void * GetNamedPtr( const char * namedptr, const char * type )
 	OGTSLockMutex( namedptrmutex );
 	ret = (struct NamedPtrType *)CNHashGetValue( namedptrtable, namedptr );
 	OGTSUnlockMutex( namedptrmutex );
-	if( strcmp( type, ret->typename ) == 0 )
+	if( !type || strcmp( type, ret->typename ) == 0 )
 		return ret->data;
 	return 0;
 }
 
-void * NamedPtrFn( const char * namedptr, const char * type, int size )
+void * NamedPtrData( const char * namedptr, const char * type, int size )
 {
 	//We do not need to do OGTS locking here, since it is not calling anything from
 	//within the save zone that is expected to crash.
 	cnhashelement * e;
 	OGLockMutex( namedptrmutex );
 	e = CNHashIndex( namedptrtable, namedptr ); //If get fails, insert... Same as Insert for non-duplicate hashes.
+	printf( "index: %p %p %d\n", e, e->data, size );
 	if( !e->data )
 	{
-		int typelen = strlen( type );
+		int typelen = type?strlen( type ):0;
 		e->data = malloc( sizeof( struct NamedPtrType ) + size + typelen + 1 );
 		struct NamedPtrType * t = (struct NamedPtrType*)e->data;
 		char * typenameptr = (char*)&t->data[size];
 		t->typename = typenameptr;
-		memcpy( typenameptr, type, typelen + 1 );
+		t->length = size;
+		if( type ) memcpy( typenameptr, type, typelen + 1 );
+		else typenameptr[0] = 0;
 		memset( t->data, 0, size );
 		OGUnlockMutex( namedptrmutex );
 		return t->data;	
 	}
 	struct NamedPtrType * t = ((struct NamedPtrType*)e->data);
 	OGUnlockMutex( namedptrmutex );
-	if( strcmp( type, t->typename ) == 0 )
+	if( !type || strcmp( type, t->typename ) == 0 )
 		return t->data;
 	return 0;
 }

@@ -1,3 +1,6 @@
+//This was one of the first programs written when developing cnovr.
+//Do not use this as a template for "good coding" moving forward.
+
 #include <cnovrtcc.h>
 #include <cnovrparts.h>
 #include <cnovrfocus.h>
@@ -17,12 +20,6 @@
 int handle;
 
 cnovr_shader * shader;
-
-// Static components
-struct staticstore
-{
-	
-} * store;
 
 /////////////////////////////////////////////////////////////////////////////////
 // Display stuff
@@ -44,19 +41,30 @@ struct DraggableWindow
 	int width, height;
 	cnovr_model * model;
 	cnovr_texture * texture;
-	cnovr_pose modelpose;
 	cnovrfocus_capture focusblock;
 };
+
+
+// Static components
+struct staticstore
+{
+	int initialized;
+	int windowpidof[MAX_DRAGGABLE_WINDOWS];
+	cnovr_pose modelpose[MAX_DRAGGABLE_WINDOWS];
+} * store;
+
 
 struct DraggableWindow dwindows[MAX_DRAGGABLE_WINDOWS];
 int current_window_check;
 
 
-Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename );
+Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename, int matchpid /*-1 to ignore*/, int * pidout );
 
-int AllocateNewWindow( const char * name, const char * matchingwindowpid )
+int AllocateNewWindow( const char * name, const char * matchingwindowpname, int pidmatch )
 {
-	Window wnd = GetWindowIdBySubstring( name, matchingwindowpid );
+	int pid;
+	Window wnd = GetWindowIdBySubstring( name, matchingwindowpname, pidmatch, &pid );
+	printf( "GOT WINDOW: %d / %d\n", wnd, pid );
 	if( !wnd )
 	{
 		printf( "Can't find window name %s\n", name );
@@ -82,7 +90,8 @@ int AllocateNewWindow( const char * name, const char * matchingwindowpid )
 	dw->width = 0;
 	dw->height = 0;
 	dw->image = 0;
-	pose_make_identity( &dw->modelpose );
+	store->windowpidof[i] = pid;
+	//pose_make_identity( store->modelpose + i );
 
 	printf( "SET INTERACTABLE: %p %p\n", dw->model, &dw->focusblock );
 	CNOVRModelSetInteractable( dw->model, &dw->focusblock );
@@ -97,7 +106,7 @@ int Xerrhandler(Display * d, XErrorEvent * e)
 }
 
 
-Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename )
+Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename, int matchpid, int * pidout )
 {
 	Window ret  = 0;
 
@@ -123,33 +132,33 @@ Window GetWindowIdBySubstring( const char * windownamematch, const char * window
 		printf( "There are %d windows\n", numItems );
         for (int i = 0; i < numItems; ++i) {
 			if( !list[i] ) continue;
-			printf( "START\n" );
 			pidata = 0;
 			windowName = 0;
 			unsigned long bytesAfter_pid;
          	int namestatus  = XFetchName(localdisplay, list[i], &windowName);
-			printf( "Namestatus: %d\n", namestatus );
+
+		 	int pidstatus = XGetWindowProperty(localdisplay, list[i], atomGetPid,
+				0L, 1024, false, AnyPropertyType, &actualTypeGetPid, &formatGetPid,
+				&numItems_pid, &bytesAfter_pid, (char**)&pidata );
+
+			int pid = (pidata)?( pidata[1] * 256 + pidata[0] ) : 0;
+
 
 			if( windownamematch )
 			{
 		        if ( namestatus >= Success && windowName ) {
-						printf( "WN: %p\n", windownamematch );
 					if( strstr( windowName, windownamematch ) != 0 )
 					{
-						ret = list[i];
-						XFree(pidata);
-						XFree(windowName);
-						break;
+						goto success;
 					}
 		        }
 			}
 
-			printf( "Getting PID\n" );
-		 	int pidstatus = XGetWindowProperty(localdisplay, list[i], atomGetPid,
-				0L, 1024, false, AnyPropertyType, &actualTypeGetPid, &formatGetPid,
-				&numItems_pid, &bytesAfter_pid, (char**)&pidata );
-			printf( "pidata %p\n", pidata );
-			int pid = (pidata)?( pidata[1] * 256 + pidata[0] ) : 0;
+			if( pid == matchpid && matchpid >= 0 )
+			{
+				goto success;
+			}
+
 	
 			char stp[128];
 			char linkprop[1024];
@@ -163,17 +172,20 @@ Window GetWindowIdBySubstring( const char * windownamematch, const char * window
 				{
 					if( strstr( linkprop, windowmatchexename ) != 0 )
 					{
-						printf( "Link: %s\n", linkprop );
-						ret = list[i];
-						XFree(pidata);
-						XFree(windowName);
-						break;
+						goto success;
 					}
 				}
 			}
 
 		    XFree(pidata);
 		    XFree(windowName);
+			continue;
+success:
+			ret = list[i];
+			if( pidout ) *pidout = pid;
+			XFree(pidata);
+			XFree(windowName);
+			break;
         }
     }
     XFree(list);
@@ -198,9 +210,9 @@ void * GetTextureThread( void * v )
 
 
 //	ListWindows();
-	AllocateNewWindow( 0, "/firefox" );
-//	AllocateNewWindow( "Frame Timing" );
-//	AllocateNewWindow( " (" );
+	AllocateNewWindow( 0, "/firefox", -1 );
+	//AllocateNewWindow( "Frame Timing", 0, -1 );
+	//AllocateNewWindow( 0, 0, -1 );
 
 	while( !quitting )
 	{
@@ -244,6 +256,9 @@ void * GetTextureThread( void * v )
 		//No way we'd need to be woken up faster than this.
 		OGUSleep( 2000 );
 	}
+	printf( "Closing display\n" );
+	XCloseDisplay( localdisplay );
+	printf( "Closing thraed\n" );
 	return 0;
 }
 
@@ -260,6 +275,7 @@ void Update()
 
 void PostRender()
 {
+
 	if( frame_in_buffer >= 0 )
 	{
 		struct DraggableWindow * dw = &dwindows[frame_in_buffer];
@@ -276,7 +292,7 @@ void Render()
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
 		struct DraggableWindow * dw = &dwindows[i];
-		if( dw->windowtrack )
+		if( dw->windowtrack && store->windowpidof[i] >= 0 )
 		{
 			CNOVRRender( dw->texture );
 			CNOVRRender( dw->model );
@@ -307,17 +323,24 @@ void prerender_startup( void * tag, void * opaquev )
 		CNOVRModelAppendMesh( dw->model, 2, 2, 1, (cnovr_point3d){ 1, 1, 0 }, 0, &extradata );
 		cnovr_pose offset = (cnovr_pose){ { 1, 0, 0, 0 }, { 1, 0, 0 }, 1 };
 		CNOVRModelAppendMesh( dw->model, 2, 2, 1, (cnovr_point3d){ -1, 1, 0. }, &offset, &extradata );
-		pose_make_identity( &dw->modelpose );
-		dw->model->pose = &dw->modelpose;
+		if( !store->initialized )
+		{
+			pose_make_identity( store->modelpose + i );
+			store->windowpidof[i] = -1;
+		}
+		dw->model->pose = store->modelpose + i;
 		dw->focusblock.tag = 0;
 		dw->focusblock.opaque = dw->model;
 		dw->focusblock.cb = DockableWindowFocusEvent;
 		dw->texture = CNOVRTextureCreate( 0, 0, 0 );
 	}
 
+	store->initialized = 1;
+
 	gtt = OGCreateThread( GetTextureThread, 0 );
 
 	shader = CNOVRShaderCreate( "draggablewindow" );
+
 	CNOVRListAdd( cnovrLRender, &handle, Render );
 	CNOVRListAdd( cnovrLPrerender, &handle, PreRender );
 	CNOVRListAdd( cnovrLUpdate, &handle, Update );
@@ -326,8 +349,9 @@ void prerender_startup( void * tag, void * opaquev )
 
 void start( const char * identifier )
 {
-
-
+	printf( "Start\n" );
+	store = NamedPtrData( "draggablewindowsdata", 0, 1024 );
+	printf( "Store: %p\n", store );
 	printf( "Dockables start %s(%p)\n", identifier, identifier );
 	CNOVRJobTack( cnovrQPrerender, prerender_startup, 0, 0, 0 );
 	printf( "Dockables start OK %s\n", identifier );
@@ -336,24 +360,14 @@ void start( const char * identifier )
 
 void stop( const char * identifier )
 {
-	if( shminfo.shmid >= 0 )
-	{
-		shmdt(shminfo.shmaddr);
-		/* 'remove' shared memory segment */
-		shmctl(shminfo.shmid, IPC_RMID, NULL);
-	}
+	CNOVRListDeleteTCCTag( 0 );
 
 	quitting = 1;
 	printf( "Joining\n" );
 	if( gtt ) 
 	{
+		printf( "actually joining\n" );
 		OGJoinThread( gtt );
-	}
-
-	printf( "Stopping\n" );
-	if( localdisplay )
-	{
-		XCloseDisplay( localdisplay );
 	}
 	printf( "Stopped\n" );
 
@@ -366,6 +380,15 @@ void stop( const char * identifier )
 		CNOVRDelete( dw->model );
 		CNOVRDelete( dw->texture );
 	}
+
+	//Freeing shmem
+	if( shminfo.shmid >= 0 )
+	{
+		shmdt(shminfo.shmaddr);
+		/* 'remove' shared memory segment */
+		shmctl(shminfo.shmid, IPC_RMID, NULL);
+	}
+
 
 	CNOVRDelete( shader );
 	printf( "Dockables End stop\n" );
