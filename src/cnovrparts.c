@@ -659,16 +659,16 @@ void CNOVRVBOSetStride( cnovr_vbo * g, int stride )
 
 static void CNOVRModelUpdateIBO( void * vm, void * dump )
 {
-	printf( "START MODEL UPATE\n" );
+//	printf( "START MODEL UPATE\n" );
 	cnovr_model * m = (cnovr_model *)vm;
 	OGLockMutex( m->model_mutex );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
-	printf( "Updating IBO: %d\n", m->iIndexCount );
+//	printf( "Updating IBO: %d\n", m->iIndexCount );
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);	//XXX TODO Make this tunable.
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	OGUnlockMutex( m->model_mutex );
 	m->bIsUploaded = 1;
-	printf( "STOP MODEL UPDATE\n" );
+//	printf( "STOP MODEL UPDATE\n" );
 #if 0
 	printf( "### IBO UPATE INDICES: %ld\n", sizeof(m->pIndices[0])*m->iIndexCount );
 	int i;
@@ -1026,7 +1026,6 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 2, 3, 4  );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
-		printf( "RESET\n");
 	}
 
 	CNOVRDelinateGeometry( m, "mesh" );
@@ -1037,7 +1036,7 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 		for( x = 0; x < cols; x++ )
 		{
 			int k = m->iLastVertMark;
-			printf( "MARK: %d\n", k );
+			//printf( "MARK: %d\n", k );
 			CNOVRModelTackIndex( m, 6, 
 				k + x + y * (cols+1),
 				k + (x+1) + y * (cols+1),

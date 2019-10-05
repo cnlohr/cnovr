@@ -941,10 +941,10 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
 	TCCInstance * te = TCCGetTag();
-	printf( "TCE: %p %d\n", te, te?te->bClosing:0 );
+//	printf( "TCE: %p %d\n", te, te?te->bClosing:0 );
 	if( te && te->bClosing ) goto fail;
 
-	printf( "%d %p %p\n", jq->deletingnow, jq->deletingtag, tag );
+	//printf( "%d %p %p\n", jq->deletingnow, jq->deletingtag, tag );
 	//Make sure we don't permit addition of a delete-in-progress, in case the user has chained events.
 	if( jq->deletingnow && jq->deletingtag == tag && tag != 0) goto fail;
 

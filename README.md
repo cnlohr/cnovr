@@ -7,6 +7,9 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
+NEWEST:
+ * Make dragging be able to be two-handed.
+
 NOW:
  * TCC Instances should have sustaining data options.
  * Unified mechanism to drag models.
@@ -32,6 +35,7 @@ Mid future todo:
 
 Distant-future todo:
  * Input animations: { "name": "/actions/m/anim", "type": "skeleton", "skeleton": "/skeleton/hand/right" }
+ * Check this out: https://github.com/NVIDIA/NvPipe/blob/master/src/Video_Codec_SDK_9.0.20/Samples/NvCodec/NvEncoder/NvEncoder.cpp  CNOVRStreaming?
 
 Further consider (long-term)
  * Should we continue using "Tag" as an ambiguous term meaning "TCC Instance" or "Node" or should we standardize?

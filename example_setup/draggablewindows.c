@@ -10,11 +10,19 @@
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include <errno.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 int handle;
 
 cnovr_shader * shader;
 
+// Static components
+struct staticstore
+{
+	
+} * store;
 
 /////////////////////////////////////////////////////////////////////////////////
 // Display stuff
@@ -44,11 +52,11 @@ struct DraggableWindow dwindows[MAX_DRAGGABLE_WINDOWS];
 int current_window_check;
 
 
-Window GetWindowIdBySubstring( const char * windownamematch );
+Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename );
 
-int AllocateNewWindow( const char * name )
+int AllocateNewWindow( const char * name, const char * matchingwindowpid )
 {
-	Window wnd = GetWindowIdBySubstring( name );
+	Window wnd = GetWindowIdBySubstring( name, matchingwindowpid );
 	if( !wnd )
 	{
 		printf( "Can't find window name %s\n", name );
@@ -89,40 +97,86 @@ int Xerrhandler(Display * d, XErrorEvent * e)
 }
 
 
-Window GetWindowIdBySubstring( const char * windownamematch )
+Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename )
 {
 	Window ret  = 0;
 
     Window rootWindow = RootWindow( localdisplay, DefaultScreen(localdisplay));
     Atom atom = XInternAtom(localdisplay, "_NET_CLIENT_LIST", true);
+    Atom atomGetPid = XInternAtom(localdisplay, "_NET_WM_PID", true);
     Atom actualType;
+    Atom actualTypeGetPid;
     int format;
-    unsigned long numItems;
+	int formatGetPid;
+    unsigned long numItems, numItems_pid;
     unsigned long bytesAfter;
-    
-    unsigned char *data = '\0';
-    Window *list;    
-    char *windowName;
+
+    Window * list = 0;    
 
     int status = XGetWindowProperty(localdisplay, rootWindow, atom, 0L, (~0L), false,
-        AnyPropertyType, &actualType, &format, &numItems, &bytesAfter, &data);
-    list = (Window *)data;
+        AnyPropertyType, &actualType, &format, &numItems, &bytesAfter, (char**)&list );
+
+	uint8_t * pidata = 0;
+    char * windowName = 0;
     
     if (status >= Success && numItems) {
+		printf( "There are %d windows\n", numItems );
         for (int i = 0; i < numItems; ++i) {
-            status = XFetchName(localdisplay, list[i], &windowName);
-            if (status >= Success && windowName ) {
-				printf( "Seen window %s\n", windowName );
-				if( strstr( windowName, windownamematch ) != 0 )
+			if( !list[i] ) continue;
+			printf( "START\n" );
+			pidata = 0;
+			windowName = 0;
+			unsigned long bytesAfter_pid;
+         	int namestatus  = XFetchName(localdisplay, list[i], &windowName);
+			printf( "Namestatus: %d\n", namestatus );
+
+			if( windownamematch )
+			{
+		        if ( namestatus >= Success && windowName ) {
+						printf( "WN: %p\n", windownamematch );
+					if( strstr( windowName, windownamematch ) != 0 )
+					{
+						ret = list[i];
+						XFree(pidata);
+						XFree(windowName);
+						break;
+					}
+		        }
+			}
+
+			printf( "Getting PID\n" );
+		 	int pidstatus = XGetWindowProperty(localdisplay, list[i], atomGetPid,
+				0L, 1024, false, AnyPropertyType, &actualTypeGetPid, &formatGetPid,
+				&numItems_pid, &bytesAfter_pid, (char**)&pidata );
+			printf( "pidata %p\n", pidata );
+			int pid = (pidata)?( pidata[1] * 256 + pidata[0] ) : 0;
+	
+			char stp[128];
+			char linkprop[1024];
+			sprintf( stp, "/proc/%d/exe", pid );
+			int rlp = readlink( stp, linkprop, sizeof( linkprop ) - 1 );
+
+			if( rlp > 0 )
+			{
+				linkprop[rlp] = 0;
+				if( windowmatchexename )
 				{
-					ret = list[i];
-					break;
+					if( strstr( linkprop, windowmatchexename ) != 0 )
+					{
+						printf( "Link: %s\n", linkprop );
+						ret = list[i];
+						XFree(pidata);
+						XFree(windowName);
+						break;
+					}
 				}
-            }
+			}
+
+		    XFree(pidata);
+		    XFree(windowName);
         }
     }
-    XFree(windowName);
-    XFree(data);
+    XFree(list);
 
 	return ret;
 }
@@ -144,9 +198,9 @@ void * GetTextureThread( void * v )
 
 
 //	ListWindows();
-	AllocateNewWindow( "Mozilla Firefox" );
-	AllocateNewWindow( "Frame Timing" );
-	AllocateNewWindow( " (" );
+	AllocateNewWindow( 0, "/firefox" );
+//	AllocateNewWindow( "Frame Timing" );
+//	AllocateNewWindow( " (" );
 
 	while( !quitting )
 	{
@@ -186,9 +240,6 @@ void * GetTextureThread( void * v )
 			need_texture = 0;
 			frame_in_buffer = current_window_check;
 		}
-
-		if( part1 > .005 )
-			printf( "FRAME GET Took too long %10f\n", part1 );
 
 		//No way we'd need to be woken up faster than this.
 		OGUSleep( 2000 );
@@ -292,16 +343,17 @@ void stop( const char * identifier )
 		shmctl(shminfo.shmid, IPC_RMID, NULL);
 	}
 
-	printf( "Stopping\n" );
 	quitting = 1;
-	if( localdisplay )
-	{
-		XCloseDisplay( localdisplay );
-	}
 	printf( "Joining\n" );
 	if( gtt ) 
 	{
 		OGJoinThread( gtt );
+	}
+
+	printf( "Stopping\n" );
+	if( localdisplay )
+	{
+		XCloseDisplay( localdisplay );
 	}
 	printf( "Stopped\n" );
 

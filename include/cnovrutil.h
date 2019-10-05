@@ -20,6 +20,7 @@ char * jsmnstrdup( const char * data, int start, int end );
 
 //Not sure if we need this feature.
 void * GetNamedPtr( const char * namedptr, const char * type );
+
 void * NamedPtrFnInternal( const char * namedptr, const char * type, int size );
 #define NamedPtrInternal( name, type ) ((type*)NamedPtrFn( name, #type, sizeof( type )))
 
@@ -99,6 +100,7 @@ void CNOVRFreeLater( void * tofree );
 void * CNOVRThreadMalloc( int size );
 void * CNOVRThreadRealloc( void * initial, int size );
 void CNOVRThreadFree( void * tofree );
+
 
 #endif
 
