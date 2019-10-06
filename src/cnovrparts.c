@@ -287,6 +287,10 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 				CNOVRAlert( ths->base.tccctx, 1, "%s\n", log );
 				free( log );
 			}
+			else
+			{
+				CNOVRAlert( ths->base.tccctx, 1, "No message\n" );
+			}
 			glDeleteProgram( unProgramID );
 			unProgramID = 0;
 			compfail = true;
@@ -368,8 +372,11 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	OGUnlockMutex( t->mutProtect );
 
 	int x, y, chan;
-	stbi_uc * data = stbi_load( FileSearch( localfn ), &x, &y, &chan, 4 );
+	const char * ffn = FileSearch( localfn );
+	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 4 );
+	CNOVRFileTimeAddWatch( ffn, CNOVRTextureLoadFileTask, tag, 0 );
 	free( localfn );
+
 
 	if( data )
 	{
@@ -981,8 +988,8 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 				stage[3] = 1;
 				CNOVRVBOTackv( m->pGeos[0], 3, stage );
 
-				staget[0] = stage[tcaxis1];
-				staget[1] = stage[tcaxis2];
+				staget[0] = stage[tcaxis1] * 0.5 + 0.5;
+				staget[1] = stage[tcaxis2] * 0.5 + 0.5;
 				staget[2] = m->nMeshes;
 
 				CNOVRVBOTackv( m->pGeos[1], 3, staget );
@@ -1006,6 +1013,7 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
 	CNOVRVBOTaint( m->pGeos[2] );
+	CNOVRVBOTaint( m->pGeos[3] );
 	CNOVRModelTaintIndices( m );
 
 	OGUnlockMutex( m->model_mutex );
@@ -1065,8 +1073,8 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 			stage[2] = m->nMeshes;
 			CNOVRVBOTackv( m->pGeos[1], 3, stage );	//TC
 			stage[1] = y/(float)cols;
-			stage[0] *= size[0];
-			stage[1] *= size[1];
+			stage[0] = (stage[0] - 0.5)*2.0 * size[0];
+			stage[1] = (stage[1] - 0.5)*2.0 * size[1];
 			stage[2] = size[2];
 			if( poseofs_optional )
 				apply_pose_to_point( stage, poseofs_optional, stage );
@@ -1085,6 +1093,7 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 	CNOVRVBOTaint( m->pGeos[0] );
 	CNOVRVBOTaint( m->pGeos[1] );
 	CNOVRVBOTaint( m->pGeos[2] );
+	CNOVRVBOTaint( m->pGeos[3] );
 	CNOVRModelTaintIndices( m );
 
 	OGUnlockMutex( m->model_mutex );
@@ -1570,28 +1579,84 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 						cnovr_pose * pg2 = m->focusgrab[CNOVRINPUTDEV_RIGHT];
 						apply_pose_to_pose( &p1, m->twohandgrab_first, pg1 );
 						apply_pose_to_pose( &p2, &prop->poseTip, pg2 );
-						//p1 and p2 are in world space.
+
+						//P1 is where the left controller thinks the object should go.
+						//P2 is where the right controller thinks the object should go.
+
+						cnovr_point3d grabpos_conroller_space1 = { 0, 0, m->initial_grab_z[CNOVRINPUTDEV_LEFT] };
+						cnovr_point3d grabpos_conroller_space2 = { 0, 0, m->initial_grab_z[CNOVRINPUTDEV_RIGHT] };
+						cnovr_point3d grabposworldspace1;
+						cnovr_point3d grabposworldspace2;
+						apply_pose_to_point(grabposworldspace1, m->twohandgrab_first, grabpos_conroller_space1 );
+						apply_pose_to_point(grabposworldspace2, &prop->poseTip, grabpos_conroller_space2 );
+
+
 						//Step 1: Average the two values to make the average grab pose.
 						cnovr_pose average_pose;
+						average_pose.Scale = m->pose->Scale;
+
+						//Compute the center between the two points. 
 						add3d( average_pose.Pos, p1.Pos, p2.Pos );
 						scale3d( average_pose.Pos, average_pose.Pos, 0.5 );
+
+						//Temporarily calculate the average rotation (probably won't be used)
 						quatslerp( average_pose.Rot, p1.Rot, p2.Rot, 0.5 );
-						//Step 2: Scale?
-						float cdist = dist3d( m->twohandgrab_first->Pos, prop->poseTip.Pos );
-							printf( "POSESCALE: %f %f\n", cdist, m->twohandgrab_initialdist );
+
+
+						//Step 2: Scale/Rotate
+						float cdist = dist3d( grabposworldspace1, grabposworldspace2 ); //Distance from the two vritual grab locations.
+						cnovr_point3d spacedelta;
+						sub3d( spacedelta, grabposworldspace2, grabposworldspace1 ); // right hand from left hand.
+				//			printf( "POSESCALE: %f %f\n", cdist, m->twohandgrab_initialdist );
 						if( m->twohandgrab_initialdist < 0 )
 						{
+							//If first grabbed frame, we have to do some more leg work to set things up.
 							m->twohandgrab_initialdist = cdist / m->pose->Scale;
+							memcpy(m->twohandgrab_space_delta, spacedelta, sizeof( spacedelta ) );
+							memcpy( m->twohandgrab_q, average_pose.Rot, sizeof( m->twohandgrab_q ) );
+
+							//We use twohandgrab_space_delta to figure out what our rotation delta should be.
 						}
 						else
 						{
 							average_pose.Scale = cdist / m->twohandgrab_initialdist;
+							//We have spacedelta and twohandgrab_space_delta.
+							//This forms a basis where the cross product is an axis.
+							//The angle between the two is how much we should rotate.
+							cnovr_quat qxform;
+							//quatfrom2vectors( qxform, spacedelta, m->twohandgrab_space_delta );
+							//cnovr_aamag aa;
+							//quattoaxisanglemag(aa, qxform);
+							cnovr_point3d axis;
+							cnovr_point3d a1;
+							cnovr_point3d a2;
+							float angle;
+							normalize3d( a1, m->twohandgrab_space_delta );
+							normalize3d( a2, spacedelta );
+							cross3d( axis, a1, a2 );
+							normalize3d( axis, axis );
+							float dot = dot3d( a1, a2 );
+							if( dot < .9999 )
+							{
+								angle = acos( dot );
+								quatfromaxisangle( qxform, axis, angle);
+								//printf( "%f %f %f %f    %f %f %f %f\n", PFFOUR( qxform ), PFTHREE( axis ), angle );
+								memcpy(m->twohandgrab_space_delta, spacedelta, sizeof( spacedelta ) );
+								//QXform is in world space...  How do we transform twohandgrab locally?
+								quatrotateabout( m->pose->Rot, qxform, m->pose->Rot );
+							}
+							//XXX TODO: Make two-hand grab update based on transformed position to object's pose center.
+							//We can do that by ... somehow?
 						}
-						memcpy( m->pose, &average_pose, sizeof( average_pose ) );
+
+						memcpy( m->pose->Pos, average_pose.Pos, sizeof( cnovr_point3d ) );
+						m->pose->Scale = average_pose.Scale; 
+						//memcpy( m->pose, &average_pose, sizeof( average_pose ) );
 					}
 				}
 				else if( m->focusgrab[devid] )
 				{
+					//Regular 1-hand grab.
 					float keepscale = m->pose->Scale;
 					cnovr_pose * p = m->focusgrab[devid];
 					apply_pose_to_pose( m->pose, &prop->poseTip, p );
@@ -1603,7 +1668,19 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 			CNOVRFocusAcquire( m->focusevent, 0 );
 			break;
 		case CNOVRF_LOSTFOCUS:
-			if( m->focusgrab && m->focusgrab[devid] ) { m->focusgrab[devid] = 0; m->twohandgrab_first = 0; m->twohandgrab_initialdist = -1; }
+			if( m->focusgrab && m->focusgrab[devid] )
+			{
+				m->focusgrab[devid] = 0; m->twohandgrab_first = 0; m->twohandgrab_initialdist = -1;
+				//Make sure if we were doing a two-hand grab, we release both.
+				if( devid == CNOVRINPUTDEV_LEFT && m->focusgrab[CNOVRINPUTDEV_RIGHT] )
+				{
+					m->focusgrab[CNOVRINPUTDEV_RIGHT] = 0;
+				}
+				if( devid == CNOVRINPUTDEV_RIGHT && m->focusgrab[CNOVRINPUTDEV_LEFT] )
+				{
+					m->focusgrab[CNOVRINPUTDEV_LEFT] = 0;
+				}
+			}
 			break;
 		case CNOVRF_ACQUIREDFOCUS:
 		{
@@ -1611,13 +1688,17 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 			if( !m->focusgrab ) m->focusgrab = calloc( CNOVRINPUTDEVS, sizeof( cnovr_pose * ) );
 
 			m->twohandgrab_initialdist = -1; 
+			m->twohandgrab_first = 0;
 
 			cnovr_pose * poseout =  m->focusgrab[devid];
 
 			if( !poseout )
 				poseout = m->focusgrab[devid] = malloc( sizeof( cnovr_pose ) );
 
+			m->initial_grab_z[devid] = prop->NewPassiveRealDistance;
+
 			unapply_pose_from_pose( m->focusgrab[devid], &prop->poseTip, m->pose );
+		//	printf( "CAP PASSIVE: %d %f   %f %f %f\n", devid, m->initial_grab_z[devid], PFTHREE(  m->focusgrab[devid]->Pos ) );
 			break;
 		}
 	}

@@ -39,9 +39,11 @@ struct DraggableWindow
 	Window windowtrack;
 	XImage * image;
 	int width, height;
+	int lastwidth, lastheight;
 	cnovr_model * model;
 	cnovr_texture * texture;
 	cnovrfocus_capture focusblock;
+	int ptrx, ptry;
 };
 
 
@@ -51,6 +53,7 @@ struct staticstore
 	int initialized;
 	int windowpidof[MAX_DRAGGABLE_WINDOWS];
 	cnovr_pose modelpose[MAX_DRAGGABLE_WINDOWS];
+	float uniformset[MAX_DRAGGABLE_WINDOWS*4];
 } * store;
 
 
@@ -219,7 +222,7 @@ void * GetTextureThread( void * v )
 //	ListWindows();
 	AllocateNewWindow( 0, "/firefox", -1 );
 	AllocateNewWindow( "Frame Timing", 0, -1 );
-	AllocateNewWindow( 0, "/chromi", -1 );
+	AllocateNewWindow( "~/git/cnovr", 0, -1 );
 	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
@@ -250,6 +253,17 @@ void * GetTextureThread( void * v )
 			printf( "Gen Image: %p\n", dw->image );
 		}
 	 
+		int rx, ry, wx, wy, mask;
+		Window windowreturned;
+		int ptrresult = XQueryPointer( localdisplay, dw->windowtrack, &windowreturned, &windowreturned, &rx, &ry, &wx, &wy, &mask );
+		if( ptrresult )
+		{
+			dw->ptrx = wx;
+			dw->ptry = wy;
+		}
+//        if (ptrresult == True) {
+ //           printf( "%d  %d %d %d %d %d\n", ptrresult, rx, ry, wx, wy, mask );
+  //      }
 
 	//	printf( "%d %d\n", dw->windowtrack, dw->image );
 		double ds = OGGetAbsoluteTime();
@@ -288,7 +302,36 @@ void PostRender()
 	if( frame_in_buffer >= 0 )
 	{
 		struct DraggableWindow * dw = &dwindows[frame_in_buffer];
+		if( dw->lastwidth != dw->width || dw->lastheight != dw->height )
+		{
+			cnovr_vbo * geo = dw->model->pGeos[0];
+			cnovr_vbo * geoextra = dw->model->pGeos[3];
+			int x, y, side;
+			int rows = 1;
+			int cols = 1;
+			float aspect = dw->width / ((float)dw->height + 1.0);
+			for( side = 0; side < 2; side++ )
+			for( y = 0; y <= rows; y++ )
+			for( x = 0; x <= cols; x++ )
+			{
+				float * stage = &geo->pVertices[((x + y*2) * 3)+side*12];
+				stage[0] = aspect * (side?(x/(float)rows):(1-x/(float)rows));
+				stage[1] = y/(float)cols;
+				stage[0] = (stage[0] - 0.5)*2.0;
+				stage[1] = (stage[1] - 0.5)*2.0;
+				stage[2] = 0;
+
+				stage = &geoextra->pVertices[((x + y*2) * 4)+side*16];
+				//printf( "Extra: %f %f %f %f %f\n", stage[0], stage[1], stage[2], stage[3] );
+				CNOVRVBOTaint( geo );
+//				CNOVRVBOTaint( geoextra );
+				dw->lastwidth = dw->width;
+				dw->lastheight = dw->height;
+			}
+		} 
 		CNOVRTextureLoadDataNow( dw->texture, dw->width, dw->height, 4, 0, (void*)(&(dw->image->data[0])), 1 );
+		store->uniformset[frame_in_buffer*4+0] = dw->width;
+		store->uniformset[frame_in_buffer*4+1] = dw->height;
 		need_texture = 1;
 		frame_in_buffer = -1;
 	}
@@ -297,7 +340,19 @@ void PostRender()
 void Render()
 {
 	int i;
+	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
+	{
+		struct DraggableWindow * dw = &dwindows[i];
+		//float aspect = dw->width / ((float)dw->height + 1.0);
+		if( dw->width > 0 && dw->height > 0 )
+		{
+			store->uniformset[i*4+2] = dw->ptrx / (float)dw->width;
+			store->uniformset[i*4+3] = dw->ptry / (float)dw->height;
+		}
+	}
+
 	CNOVRRender( shader );
+	glUniform4fv( 19, MAX_DRAGGABLE_WINDOWS*4, store->uniformset ); glGetError(); //glGetError ignores the error if we aren't examining uniform #17
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
 		struct DraggableWindow * dw = &dwindows[i];
@@ -333,9 +388,8 @@ void prerender_startup( void * tag, void * opaquev )
 		//Not sure how we would handle the textures, though.
 		dw->model = CNOVRModelCreate( 0, 4, GL_TRIANGLES );
 		cnovr_point4d extradata = { i, 0, 0, 0 };
-		CNOVRModelAppendMesh( dw->model, 2, 2, 1, (cnovr_point3d){ 1, 1, 0 }, 0, &extradata );
-		cnovr_pose offset = (cnovr_pose){ { 1, 0, 0, 0 }, { 1, 0, 0 }, 1 };
-		CNOVRModelAppendMesh( dw->model, 2, 2, 1, (cnovr_point3d){ -1, 1, 0. }, &offset, &extradata );
+		CNOVRModelAppendMesh( dw->model, 1, 1, 1, (cnovr_point3d){ 1, 1, 0 }, 0, &extradata );
+		CNOVRModelAppendMesh( dw->model, 1, 1, 1, (cnovr_point3d){ -1, 1, 0. }, 0, &extradata );
 		if( !store->initialized )
 		{
 			pose_make_identity( store->modelpose + i );
@@ -364,6 +418,8 @@ void start( const char * identifier )
 {
 	printf( "Start\n" );
 	store = CNOVRNamedPtrData( "draggablewindowsdata", 0, 1024 );
+//	store->initialized = 0;
+
 	printf( "Store: %p\n", store );
 	printf( "Dockables start %s(%p)\n", identifier, identifier );
 	CNOVRJobTack( cnovrQPrerender, prerender_startup, 0, 0, 0 );

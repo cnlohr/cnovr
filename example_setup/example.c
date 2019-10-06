@@ -13,7 +13,7 @@ cnovr_model * model;
 cnovr_texture * texture;
 cnovr_simple_node * node;
 
-#define MAX_SPINNERS 50
+#define MAX_SPINNERS 100
 cnovr_model * spinner_m[MAX_SPINNERS];
 //cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
@@ -54,7 +54,8 @@ int ExampleFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 	if( event == CNOVRF_DRAG )
 	{
 		cnovr_pose * dragout = &store->modelpose[id];
-		if( dragout->Rot[0] > .9 || dragout->Rot[0] < -.9 )
+		if(1)
+		if( dragout->Rot[0] > .95 || dragout->Rot[0] < -.95 )
 		{
 			quatidentity( dragout->Rot );
 			dragout->Pos[0] = floor( dragout->Pos[0] * 10. ) / 10.;
@@ -71,6 +72,7 @@ int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * pro
 
 void * my_thread( void * v )
 {
+	return 0;
 	while(1 )
 	{
 		//printf( "THREADS 10 %s %p\n", v, thdmax );
@@ -103,7 +105,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	for (i = 0; i < MAX_SPINNERS; i++ )
 	{
 		double dt =  truedt*.2*1 - i * 3.14159;
-		double ang = (i * .4) + (now - start)*.2*1;
+		double ang = (i * .4);// + (now - start)*.2*1;
 		cnovr_pose * pose = &store->modelpose[i];
 		float * zap = &store->zapped[i];
 //		spinner_n[i]->pose.Pos[1] = 2;
@@ -111,9 +113,10 @@ void UpdateFunction( void * tag, void * opaquev )
 		if( *zap > 0 ) *zap -= .001;
 		if( *zap < 0 ) *zap = 0;
 		float z = *zap;
-		pose->Pos[0] = cnovr_lerp( sin( ang ), pose->Pos[0], z );
-		pose->Pos[1] = cnovr_lerp( sin( dt*1.25), pose->Pos[1], z );
-		pose->Pos[2] = cnovr_lerp( cos( ang ), pose->Pos[2], z );
+		pose->Pos[0] = cnovr_lerp( sin( ang ) * 6., pose->Pos[0], z );
+		pose->Pos[1] = cnovr_lerp( sin( dt*.1) * 2., pose->Pos[1], z );
+		pose->Pos[2] = cnovr_lerp( cos( ang ) * 6., pose->Pos[2], z );
+		pose->Scale = cnovr_lerp( pose->Scale, .2, .01 );
 
 		cnovr_euler_angle e;
 		e[0] = 0;
@@ -145,15 +148,16 @@ void RenderFunction( void * tag, void * opaquev )
 static void example_scene_setup( void * tag, void * opaquev )
 {
 	int i;
+	shader = CNOVRShaderCreate( "assets/example" );
+/*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
-	shader = CNOVRShaderCreate( "assets/example" );
 	CNOVRNodeAddObject( node, shader );
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
-
+*/
 	printf( "SETUP\n" );
 
 	for( i = 0; i < MAX_SPINNERS; i++ )
@@ -187,6 +191,7 @@ void start( const char * identifier )
 
 	store = CNOVRNamedPtrData( "examplecodestore", 0, sizeof( *store ) + 1024 );
 	printf( "Initializing %p\n", store );
+	store->initialized = 0;
 	if( !store->initialized )
 	{
 		int i;
@@ -194,7 +199,7 @@ void start( const char * identifier )
 		{
 			printf( "%p\n",  &store->modelpose[i] );
 			pose_make_identity( &store->modelpose[i] );
-			store->modelpose->Scale = .2;
+			store->modelpose[i].Scale = .2;
 
 		}
 		store->initialized = 1;

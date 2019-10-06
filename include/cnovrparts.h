@@ -175,6 +175,9 @@ typedef struct cnovr_model_t
 	cnovrfocus_capture * focusevent; //Return collide events with this.
 	cnovr_pose * twohandgrab_first; //Points to pose inside focus controller
 	float twohandgrab_initialdist;
+	cnovr_point3d twohandgrab_space_delta;
+	cnovr_quat twohandgrab_q;
+	float initial_grab_z[CNOVRINPUTDEVS];
 
 	uint8_t bIsLoading;
 	uint8_t bIsUploaded;

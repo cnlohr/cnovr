@@ -8,8 +8,16 @@ layout(location = 8) uniform sampler2D textures[];
 in vec2 texcoords;
 in vec3 position;
 in vec3 normal;
+in vec4 extradataout;
+
+layout(location = 19) uniform vec4 paramdata[16*4];
 
 void main()
 {
-	colorOut = vec4( texture( textures[0], texcoords.xy ).bgr, 1.0);
+	vec4 pd = paramdata[ int( extradataout.x+0.5 )+0];
+	float aspect = pd.x / pd.y;
+	vec2 cursorpos = pd.zw;
+	vec2 dcp = (texcoords - cursorpos) * vec2( aspect, 1.0 );
+	float dcpl = clamp( 100.*length( dcp ), 0., 1. )*2.0-1.0;
+	colorOut = vec4( ((texture( textures[0], texcoords.xy ).bgr*2.0-1.0) * dcpl )*0.5+0.5, 1.0 );
 }

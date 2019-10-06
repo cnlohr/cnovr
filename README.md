@@ -8,8 +8,7 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 NEWEST:
- * Make dragging be able to be two-handed.
- * Make example work more uniformly (Store)
+ * Make dragging be able to be two-handed nice.
  * Make example not lock as heavily as it does currently.
 
 NOW:

@@ -544,6 +544,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( cnovrstate );
 
 	TCCExport( CNOVRNodeCreateSimple );
+	TCCExportS( CNOVRVBOTaint );
 	TCCExport( CNOVRModelCreate );
 	TCCExportS( CNOVRModelRenderWithPose );
 	TCCExportS( CNOVRModelApplyTextureFromFileAsync );

@@ -204,7 +204,7 @@ void quatoddproduct(FLT *outvec3, cnovr_quat qa, cnovr_quat qb);
 void quatslerp(cnovr_quat q, const cnovr_quat qa, const cnovr_quat qb, FLT t);
 void quatrotatevector(FLT *vec3out, const cnovr_quat quat, const FLT *vec3in);
 void eulerrotatevector(FLT *vec3out, const cnovr_euler_angle quat, const FLT *vec3in);
-void quatfrom2vectors(cnovr_quat q, const FLT *src, const FLT *dest);
+void quatfrom2vectors(cnovr_quat q, const FLT *src, const FLT *dest); //XXX I am suspicious this function is not good.
 void eulerfrom2vectors(cnovr_euler_angle q, const FLT *src, const FLT *dest);
 
 // This is the quat equivalent of 'pout = pose * pin' if pose were a 4x4 matrix in homogenous space
