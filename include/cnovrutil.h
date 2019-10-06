@@ -19,10 +19,10 @@ int tvasprintf( char ** out, const char * format, va_list ap );
 char * jsmnstrdup( const char * data, int start, int end );
 
 //Not sure if we need this feature.
-void * GetNamedPtr( const char * namedptr, const char * type );
-
-void * NamedPtrData( const char * namedptr, const char * type, int size );
-#define NamedPtrTyped( name, type ) ((type*)NamedPtrData( name, #type, sizeof( type )))
+void * CNOVRNamedPtrGet( const char * namedptr, const char * type );
+void CNOVRNamedPtrSave( const char * namedptr );
+void * CNOVRNamedPtrData( const char * namedptr, const char * type, int size );
+#define NAMEDPTRTYPED( name, type ) ((type*)CNOVRNamedPtrData( name, #type, sizeof( type )))
 
 //////////////////////////////////////////////////////////////////////////////
 

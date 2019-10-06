@@ -9,6 +9,8 @@ sudo apt-get install build-essential libgl1-mesa-dev
 
 NEWEST:
  * Make dragging be able to be two-handed.
+ * Make example work more uniformly (Store)
+ * Make example not lock as heavily as it does currently.
 
 NOW:
  * TCC Instances should have sustaining data options.
@@ -19,6 +21,7 @@ GAMEPLAN:
  * Terminal
  * Drag windows
  * Windows mirroring
+ * What about putting input capture into it's own thread and gate it?
 
 NEWER:
  * Fix multisample?

@@ -168,14 +168,17 @@ typedef struct cnovr_model_t
 	og_mutex_t model_mutex;
 	char * geofile;
 
-	uint8_t bIsLoading;
-	uint8_t bIsUploaded;
-
 	cnovr_pose * pose;
 
-	//Focus data
+	//Focus data TODO: We may be putting this into its own structure to minimize impact on the overall size fo cnovr_model.
 	cnovr_pose ** focusgrab; //array, [INPUTDEVS] //If set, currently dragging.
 	cnovrfocus_capture * focusevent; //Return collide events with this.
+	cnovr_pose * twohandgrab_first; //Points to pose inside focus controller
+	float twohandgrab_initialdist;
+
+	uint8_t bIsLoading;
+	uint8_t bIsUploaded;
+	int iOpaque;
 } cnovr_model;
 
 //XXX TODO: Reorganize this.

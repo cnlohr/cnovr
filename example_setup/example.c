@@ -10,17 +10,62 @@ og_thread_t thdmax;
 const char * identifier;
 cnovr_shader * shader;
 cnovr_model * model;
+cnovr_texture * texture;
 cnovr_simple_node * node;
 
 #define MAX_SPINNERS 50
 cnovr_model * spinner_m[MAX_SPINNERS];
-cnovr_simple_node * spinner_n[MAX_SPINNERS];
-float zapped[MAX_SPINNERS];
+//cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
 cnovrfocus_capture focusblock[MAX_SPINNERS];
 
 int draggingid[CNOVRINPUTDEVS] = { -1, -1, -1 };
 cnovr_pose draggingpose[CNOVRINPUTDEVS]; //Pose of object relative to tip.
+
+
+struct staticstore
+{
+	int initialized;
+	cnovr_pose modelpose[MAX_SPINNERS];
+	float zapped[MAX_SPINNERS];
+} * store;
+
+
+int ExampleFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	//printf( "EVENT: %d %d %d\n", event, cap->opaque, buttoninfo );
+	cnovr_model * m = (cnovr_model*)cap->opaque;
+	int id = m->iOpaque;
+	switch( event )
+	{
+		case CNOVRF_DOWNNOFOCUS:
+			if( buttoninfo == 0 ) { store->zapped[id] = .999; return 0; } //Catpured event
+			break;
+		case CNOVRF_LOSTFOCUS:
+			CNOVRNamedPtrSave( "examplecodestore" );
+			break;
+		case CNOVRF_ACQUIREDFOCUS:
+			store->zapped[id] = 1;
+			break;
+	}
+
+	CNOVRModelHandleFocusEvent( cap->opaque, prop, event, buttoninfo );
+
+	if( event == CNOVRF_DRAG )
+	{
+		cnovr_pose * dragout = &store->modelpose[id];
+		if( dragout->Rot[0] > .9 || dragout->Rot[0] < -.9 )
+		{
+			quatidentity( dragout->Rot );
+			dragout->Pos[0] = floor( dragout->Pos[0] * 10. ) / 10.;
+			dragout->Pos[1] = floor( dragout->Pos[1] * 10. ) / 10.;
+			dragout->Pos[2] = floor( dragout->Pos[2] * 10. ) / 10.;
+		}
+	}
+	return 0;
+}
+
+
 
 int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
 
@@ -59,15 +104,16 @@ void UpdateFunction( void * tag, void * opaquev )
 	{
 		double dt =  truedt*.2*1 - i * 3.14159;
 		double ang = (i * .4) + (now - start)*.2*1;
-		spinner_n[i]->pose.Scale = .2;
+		cnovr_pose * pose = &store->modelpose[i];
+		float * zap = &store->zapped[i];
 //		spinner_n[i]->pose.Pos[1] = 2;
-		if( zapped[i] >= 1.0 ) { continue; } //spinner_n[i]->pose.Scale = .4;
-		if( zapped[i] > 0 ) zapped[i] -= .001;
-		if( zapped[i] < 0 ) zapped[i] = 0;
-		float z = zapped[i];
-		spinner_n[i]->pose.Pos[0] = cnovr_lerp( sin( ang ), spinner_n[i]->pose.Pos[0], z );
-		spinner_n[i]->pose.Pos[1] = cnovr_lerp( sin( dt*1.25), spinner_n[i]->pose.Pos[1], z );
-		spinner_n[i]->pose.Pos[2] = cnovr_lerp( cos( ang ), spinner_n[i]->pose.Pos[2], z );
+		if( *zap >= 1.0 ) { continue; } //spinner_n[i]->pose.Scale = .4;
+		if( *zap > 0 ) *zap -= .001;
+		if( *zap < 0 ) *zap = 0;
+		float z = *zap;
+		pose->Pos[0] = cnovr_lerp( sin( ang ), pose->Pos[0], z );
+		pose->Pos[1] = cnovr_lerp( sin( dt*1.25), pose->Pos[1], z );
+		pose->Pos[2] = cnovr_lerp( cos( ang ), pose->Pos[2], z );
 
 		cnovr_euler_angle e;
 		e[0] = 0;
@@ -75,7 +121,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		e[2] = 0;
 		cnovr_quat targetquat;
 		quatfromeuler( targetquat, e );
-		quatslerp( spinner_n[i]->pose.Rot, targetquat, spinner_n[i]->pose.Rot, z );
+		quatslerp( pose->Rot, targetquat, pose->Rot, z );
 	}
 
 	return;
@@ -84,89 +130,17 @@ void UpdateFunction( void * tag, void * opaquev )
 
 void RenderFunction( void * tag, void * opaquev )
 {
-	//Nothing
-}
-
-int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
-{
-	//printf( "EVENT: %d %d %d\n", event, cap->opaque, buttoninfo );
-	int opa = (int)cap->opaque;
-
-	switch( event )
-	{
-		case CNOVRF_DOWNNOFOCUS:
-			printf( "DOWN %d %d\n", prop->devid, buttoninfo );
-			if( buttoninfo == 3 ) CNOVRFocusAcquire( cap, 1 );
-			if( buttoninfo == 0 ) { zapped[opa] = .999; }
-			break;
-		case CNOVRF_DRAG:
-		{
-			if( draggingid[prop->devid] == opa )
-			{
-				cnovr_pose * dragout = draggingpose + prop->devid;
-				apply_pose_to_pose( &spinner_n[opa]->pose, &prop->poseTip, dragout );
-				spinner_n[opa]->pose.Pos[0] = floor( spinner_n[opa]->pose.Pos[0] * 50 ) / 50.;
-				spinner_n[opa]->pose.Pos[1] = floor( spinner_n[opa]->pose.Pos[1] * 50 ) / 50.;
-				spinner_n[opa]->pose.Pos[2] = floor( spinner_n[opa]->pose.Pos[2] * 50 ) / 50.;
-				if( spinner_n[opa]->pose.Rot[0] > .9 || spinner_n[opa]->pose.Rot[0] < -.9 ) { quatidentity( spinner_n[opa]->pose.Rot ); }
-				if( spinner_n[opa]->pose.Rot[1] > .9 || spinner_n[opa]->pose.Rot[1] < -.9 ) { quatidentity( spinner_n[opa]->pose.Rot ); }
-				if( spinner_n[opa]->pose.Rot[2] > .9 || spinner_n[opa]->pose.Rot[2] < -.9 ) { quatidentity( spinner_n[opa]->pose.Rot ); }
-				if( spinner_n[opa]->pose.Rot[3] > .9 || spinner_n[opa]->pose.Rot[3] < -.9 ) { quatidentity( spinner_n[opa]->pose.Rot ); }
-			}
-			break;
-		}
-		case CNOVRF_UPFOCUS:
-			draggingid[prop->devid] = -1;
-			CNOVRFocusAcquire( cap, 0 );
-			break;
-		case CNOVRF_LOSTFOCUS:
-			printf( "LOST FOCUS\n" );
-			break;
-		case CNOVRF_ACQUIREDFOCUS:
-		{
-			printf( "GOT FOCUS\n" );
-			zapped[opa] = 1;
-			draggingid[prop->devid] = opa;
-			cnovr_pose * dragout = draggingpose + prop->devid;
-			unapply_pose_from_pose( dragout, &prop->poseTip, &spinner_n[opa]->pose );
-			break;
-		}
-	}
-}
-
-
-
-
-void CollideFunction( void * tag, void * opaquev )
-{
-	cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
 	int i;
-
-
-	for (i = 0; i < MAX_SPINNERS; i++ )
+	CNOVRRender( shader );
+	CNOVRRender( texture );
+	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
-		cnovr_point3d start = { 0, 0, 0 };
-		cnovr_vec3d direction = { 0, 0, 1 };
-		cnovr_pose invertedxform;
-		pose_invert( &invertedxform, &spinner_n[i]->pose );
-		apply_pose_to_point( start, &p->poseTip, start);
-		apply_pose_to_point( start, &invertedxform, start);
-		apply_pose_to_point( direction, &p->poseTip, direction);
-		apply_pose_to_point( direction, &invertedxform, direction);
-		sub3d( direction, direction, start );
-		cnovr_collide_results res;
-		res.t = p->NewPassiveRealDistance;
-		int r = CNOVRModelCollide( spinner_m[i], start, direction, &res );
-		if( r >= 0 && res.t > 0 )
-		{
-			CNOVRFocusRespond( &focusblock[i], res.t );
-			//printf( "zapped %d\n", i );
-			//zapped[i] = 1;
-		}
+		//Texture?
+		CNOVRRender( spinner_m[i] );
 	}
-	//printf( "%f\n", p->poseTip.Pos[0] );
-	//spinner_n[i]->pose
+
 }
+
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
@@ -175,28 +149,34 @@ static void example_scene_setup( void * tag, void * opaquev )
 	node = CNOVRNodeCreateSimple( 1 );
 	model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 	CNOVRModelAppendCube( model, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
-	shader = CNOVRShaderCreate( "assets/basic" );
+	shader = CNOVRShaderCreate( "assets/example" );
 	CNOVRNodeAddObject( node, shader );
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 
-	cnovr_shader * spinner_s;
+	printf( "SETUP\n" );
 
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
-		spinner_n[i] = CNOVRNodeCreateSimple( 1 );
+		//spinner_n[i] = CNOVRNodeCreateSimple( 1 );
 		spinner_m[i] = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
 		CNOVRModelAppendCube( spinner_m[i], (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
-		CNOVRNodeAddObject( spinner_n[i], spinner_m[i] );
-		CNOVRNodeAddObject( root, spinner_n[i] );
-		focusblock[i].opaque = (void*)i;
-		focusblock[i].cb = FocusEvent;
+		spinner_m[i]->pose = &store->modelpose[i];
+		spinner_m[i]->iOpaque = i;
+		focusblock[i].opaque = spinner_m[i];
+		focusblock[i].cb = ExampleFocusEvent;
+		CNOVRModelSetInteractable( spinner_m[i], &focusblock[i] );
 	}
+
+	texture = CNOVRTextureCreate( 0, 0, 0 ); //Set to all 0 to have the load control these details.
+	CNOVRTextureLoadFileAsync( texture, "test.png" );
+
+	printf( "Create done\n" );
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLRender, 0, RenderFunction );
-	CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
+	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
 
 	thdmax = OGCreateThread( my_thread, (void*)identifier );
 }
@@ -204,32 +184,42 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 void start( const char * identifier )
 {
+
+	store = CNOVRNamedPtrData( "examplecodestore", 0, sizeof( *store ) + 1024 );
+	printf( "Initializing %p\n", store );
+	if( !store->initialized )
+	{
+		int i;
+		for( i = 0; i < MAX_SPINNERS; i++ )
+		{
+			printf( "%p\n",  &store->modelpose[i] );
+			pose_make_identity( &store->modelpose[i] );
+			store->modelpose->Scale = .2;
+
+		}
+		store->initialized = 1;
+	}
+
 	identifier = strdup(identifier);
-	printf( "Example start %s(%p)                   ++++++++++++++++++++%p %p\n", identifier, identifier );
+	printf( "Example start %s(%p) + %p %p\n", identifier, identifier );
 
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
 
-	printf( "Example start OK %s                   ++++++++++++++++++++%p %p\n", identifier );
+	printf( "Example start OK %s + %p %p\n", identifier );
 }
 
 void stop( const char * identifier )
 {
 	shutting_down = 1;
-	printf( "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Start stop\n" );
+	printf( "^^ Start stop\n" );
 	if( node )
 	{
 		CNOVRNodeRemoveObject( cnovrstate->pRootNode, node );
-		//CNOVRDelete( node );
-		int i;
-		for( i = 0; i < MAX_SPINNERS; i++ )
-		{
-			CNOVRNodeRemoveObject( cnovrstate->pRootNode, spinner_n[i] );
-			//CNOVRDelete( spinner_n[i] );
-		}
 	}
 
 	//OGCancelThread( thdmax );
-	printf( "Example stop %s                   ---------------------%p %p\n", identifier, thdmax, &thdmax );
+	printf( "Example stop %s ----%p %p\n", identifier, thdmax, &thdmax );
 	printf( "End stop\n" );
 }
+
 

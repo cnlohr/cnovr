@@ -368,7 +368,7 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	OGUnlockMutex( t->mutProtect );
 
 	int x, y, chan;
-	stbi_uc * data = stbi_load( localfn, &x, &y, &chan, 4 );
+	stbi_uc * data = stbi_load( FileSearch( localfn ), &x, &y, &chan, 4 );
 	free( localfn );
 
 	if( data )
@@ -937,7 +937,7 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 	OGLockMutex( m->model_mutex );
 	if( m->iGeos != 4 )
 	{
-		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 2, 3, 4 );
+		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 3, 3, 4 );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
@@ -983,9 +983,9 @@ void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * pos
 
 				staget[0] = stage[tcaxis1];
 				staget[1] = stage[tcaxis2];
-				staget[2] = 1;
-				staget[3] = m->nMeshes;
-				CNOVRVBOTackv( m->pGeos[1], 4, staget );
+				staget[2] = m->nMeshes;
+
+				CNOVRVBOTackv( m->pGeos[1], 3, staget );
 
 				stage[0] = (normaxis==0)?normplus:0;
 				stage[1] = (normaxis==1)?normplus:0;
@@ -1023,7 +1023,7 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 
 	if( m->iGeos != 4 )
 	{
-		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 2, 3, 4  );
+		CNOVRModelSetNumVBOsWithStrides( m, 4, 3, 3, 3, 4  );
 		CNOVRModelSetNumIndices( m, 0 );
 		CNOVRModelResetMarks( m );
 	}
@@ -1062,8 +1062,8 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 			stage[0] = x/(float)rows;
 			stage[1] = y/(float)cols;
 			if( flipv ) stage[1] = 1.0 - stage[1];
-			stage[2] = 0;
-			CNOVRVBOTackv( m->pGeos[1], 2, stage );	//TC
+			stage[2] = m->nMeshes;
+			CNOVRVBOTackv( m->pGeos[1], 3, stage );	//TC
 			stage[1] = y/(float)cols;
 			stage[0] *= size[0];
 			stage[1] *= size[1];
@@ -1507,7 +1507,7 @@ void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 
 static void ModelFocusCollideFunction(void * tag, void * opaquev )
 {
-	//XXX TODO: This needs to be optimized.
+	//XXX TODO: This needs to be optimized! There's a lot we can do to improve its performance.
 	cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
 	cnovr_model * m = tag;
 	if( !m->focusevent ) return;
@@ -1554,22 +1554,63 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 			if( buttoninfo == 3 ) CNOVRFocusAcquire( m->focusevent, 1 );
 			break;
 		case CNOVRF_DRAG:
-			if( m->focusgrab && m->focusgrab[devid] )
+			if( m->focusgrab )
 			{
-				cnovr_pose * p = m->focusgrab[devid];
-				apply_pose_to_pose( m->pose, &prop->poseTip, p );
+				if( m->focusgrab[CNOVRINPUTDEV_LEFT] && m->focusgrab[CNOVRINPUTDEV_RIGHT] )
+				{
+					if( devid == CNOVRINPUTDEV_LEFT )
+					{
+						m->twohandgrab_first = &prop->poseTip;
+					}
+					else if( devid == CNOVRINPUTDEV_RIGHT && m->twohandgrab_first )
+					{
+						//Tricky: We're doing a two-hand grab.
+						cnovr_pose p1, p2;
+						cnovr_pose * pg1 = m->focusgrab[CNOVRINPUTDEV_LEFT];
+						cnovr_pose * pg2 = m->focusgrab[CNOVRINPUTDEV_RIGHT];
+						apply_pose_to_pose( &p1, m->twohandgrab_first, pg1 );
+						apply_pose_to_pose( &p2, &prop->poseTip, pg2 );
+						//p1 and p2 are in world space.
+						//Step 1: Average the two values to make the average grab pose.
+						cnovr_pose average_pose;
+						add3d( average_pose.Pos, p1.Pos, p2.Pos );
+						scale3d( average_pose.Pos, average_pose.Pos, 0.5 );
+						quatslerp( average_pose.Rot, p1.Rot, p2.Rot, 0.5 );
+						//Step 2: Scale?
+						float cdist = dist3d( m->twohandgrab_first->Pos, prop->poseTip.Pos );
+							printf( "POSESCALE: %f %f\n", cdist, m->twohandgrab_initialdist );
+						if( m->twohandgrab_initialdist < 0 )
+						{
+							m->twohandgrab_initialdist = cdist / m->pose->Scale;
+						}
+						else
+						{
+							average_pose.Scale = cdist / m->twohandgrab_initialdist;
+						}
+						memcpy( m->pose, &average_pose, sizeof( average_pose ) );
+					}
+				}
+				else if( m->focusgrab[devid] )
+				{
+					float keepscale = m->pose->Scale;
+					cnovr_pose * p = m->focusgrab[devid];
+					apply_pose_to_pose( m->pose, &prop->poseTip, p );
+					m->pose->Scale = keepscale;
+				}
 			}
 			break;
 		case CNOVRF_UPFOCUS:
 			CNOVRFocusAcquire( m->focusevent, 0 );
 			break;
 		case CNOVRF_LOSTFOCUS:
-			if( m->focusgrab && m->focusgrab[devid] ) m->focusgrab[devid] = 0;
+			if( m->focusgrab && m->focusgrab[devid] ) { m->focusgrab[devid] = 0; m->twohandgrab_first = 0; m->twohandgrab_initialdist = -1; }
 			break;
 		case CNOVRF_ACQUIREDFOCUS:
 		{
 			cnovr_pose * posein;
 			if( !m->focusgrab ) m->focusgrab = calloc( CNOVRINPUTDEVS, sizeof( cnovr_pose * ) );
+
+			m->twohandgrab_initialdist = -1; 
 
 			cnovr_pose * poseout =  m->focusgrab[devid];
 

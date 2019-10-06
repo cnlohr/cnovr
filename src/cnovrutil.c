@@ -116,25 +116,24 @@ struct NamedPtrType
 	uint8_t data[1];
 };
 
-void * GetNamedPtr( const char * namedptr, const char * type )
+void * CNOVRNamedPtrGet( const char * namedptr, const char * type )
 {
 	struct NamedPtrType * ret;
 	OGTSLockMutex( namedptrmutex );
 	ret = (struct NamedPtrType *)CNHashGetValue( namedptrtable, namedptr );
 	OGTSUnlockMutex( namedptrmutex );
-	if( !type || strcmp( type, ret->typename ) == 0 )
+	if( ret && ( !type || !*type || strcmp( type, ret->typename ) == 0 ) )
 		return ret->data;
 	return 0;
 }
 
-void * NamedPtrData( const char * namedptr, const char * type, int size )
+void * CNOVRNamedPtrData( const char * namedptr, const char * type, int size )
 {
 	//We do not need to do OGTS locking here, since it is not calling anything from
 	//within the save zone that is expected to crash.
 	cnhashelement * e;
 	OGLockMutex( namedptrmutex );
 	e = CNHashIndex( namedptrtable, namedptr ); //If get fails, insert... Same as Insert for non-duplicate hashes.
-	printf( "index: %p %p %d\n", e, e->data, size );
 	if( !e->data )
 	{
 		int typelen = type?strlen( type ):0;
@@ -145,7 +144,20 @@ void * NamedPtrData( const char * namedptr, const char * type, int size )
 		t->length = size;
 		if( type ) memcpy( typenameptr, type, typelen + 1 );
 		else typenameptr[0] = 0;
-		memset( t->data, 0, size );
+
+		//See if we have a saved copy.
+		char stpath[CNOVR_MAX_PATH];
+		snprintf( stpath, CNOVR_MAX_PATH-1, "savenameptr/%s.%s.dat", namedptr, type?type:"" );
+		FILE * f = fopen( stpath, "rb" );
+		if( f )
+		{
+			fread( t->data, 1, size, f );
+			fclose( f );
+		}
+		else
+		{
+			memset( t->data, 0, size );
+		}
 		OGUnlockMutex( namedptrmutex );
 		return t->data;	
 	}
@@ -154,6 +166,25 @@ void * NamedPtrData( const char * namedptr, const char * type, int size )
 	if( !type || strcmp( type, t->typename ) == 0 )
 		return t->data;
 	return 0;
+}
+
+void CNOVRNamedPtrSave( const char * namedptr )
+{
+	struct NamedPtrType * ret;
+	OGTSLockMutex( namedptrmutex );
+	ret = (struct NamedPtrType *)CNHashGetValue( namedptrtable, namedptr );
+	OGTSUnlockMutex( namedptrmutex );
+	if( ret )
+	{
+		char stpath[CNOVR_MAX_PATH];
+		snprintf( stpath, CNOVR_MAX_PATH-1, "savenameptr/%s.%s.dat", namedptr, ret->typename?ret->typename:"" );
+		FILE * f = fopen(  stpath, "wb" );
+		if( f ) 
+		{
+			fwrite( ret->data, ret->length, 1, f );
+			fclose( f );
+		}
+	}
 }
 
 void InternalSetupNamedPtrs()

@@ -552,6 +552,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( CNOVRShaderCreate );
 	TCCExport( CNOVRDeleteBase );
 	TCCExportS( CNOVRTextureLoadDataNow );
+	TCCExportS( CNOVRTextureLoadFileAsync );
 	TCCExportS( CNOVRModelAppendCube );
 	TCCExportS( CNOVRModelCollide );
 	TCCExportS( CNOVRModelHandleFocusEvent );
@@ -560,7 +561,9 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRNodeAddObject );
 	TCCExportS( CNOVRNodeRemoveObject );
 
-	TCCExportS( NamedPtrData );
+	TCCExportS( CNOVRNamedPtrData );
+	TCCExportS( CNOVRNamedPtrSave );
+	TCCExportS( CNOVRNamedPtrGet );
 
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );
@@ -681,6 +684,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 
 	TCCExportS( sin );
 	TCCExportS( cos );
+	TCCExportS( ffloor );
 	TCCExportS( floor );
 	TCCExportS( tan );
 	TCCExportS( atan2 );

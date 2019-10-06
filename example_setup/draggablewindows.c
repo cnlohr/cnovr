@@ -111,6 +111,10 @@ Window GetWindowIdBySubstring( const char * windownamematch, const char * window
 	Window ret  = 0;
 
     Window rootWindow = RootWindow( localdisplay, DefaultScreen(localdisplay));
+	if( windownamematch && strcmp( windownamematch, "ROOTWINDOW" ) == 0 )
+	{
+		return rootWindow;
+	}
     Atom atom = XInternAtom(localdisplay, "_NET_CLIENT_LIST", true);
     Atom atomGetPid = XInternAtom(localdisplay, "_NET_WM_PID", true);
     Atom actualType;
@@ -143,6 +147,9 @@ Window GetWindowIdBySubstring( const char * windownamematch, const char * window
 
 			int pid = (pidata)?( pidata[1] * 256 + pidata[0] ) : 0;
 
+	        if ( namestatus >= Success && windowName ) {
+				printf( "%s\n", windowName );
+			}
 
 			if( windownamematch )
 			{
@@ -211,8 +218,10 @@ void * GetTextureThread( void * v )
 
 //	ListWindows();
 	AllocateNewWindow( 0, "/firefox", -1 );
-	//AllocateNewWindow( "Frame Timing", 0, -1 );
-	//AllocateNewWindow( 0, 0, -1 );
+	AllocateNewWindow( "Frame Timing", 0, -1 );
+	AllocateNewWindow( 0, "/chromi", -1 );
+	AllocateNewWindow( 0, "/xed", -1 );
+	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
 	while( !quitting )
 	{
@@ -304,6 +313,10 @@ void Render()
 int DockableWindowFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	CNOVRModelHandleFocusEvent( cap->opaque, prop, event, buttoninfo );
+	if( event == CNOVRF_LOSTFOCUS )
+	{
+		CNOVRNamedPtrSave( "draggablewindowsdata" );
+	}
 	return 0;
 }
 
@@ -350,7 +363,7 @@ void prerender_startup( void * tag, void * opaquev )
 void start( const char * identifier )
 {
 	printf( "Start\n" );
-	store = NamedPtrData( "draggablewindowsdata", 0, 1024 );
+	store = CNOVRNamedPtrData( "draggablewindowsdata", 0, 1024 );
 	printf( "Store: %p\n", store );
 	printf( "Dockables start %s(%p)\n", identifier, identifier );
 	CNOVRJobTack( cnovrQPrerender, prerender_startup, 0, 0, 0 );

@@ -12,6 +12,8 @@
 
 
 #define CNOVRINPUTDEVS 3
+#define CNOVRINPUTDEV_LEFT  1
+#define CNOVRINPUTDEV_RIGHT 2
 //Dev 0 = HMD / Keyboard
 //Dev 1 = Controller Left
 //Dev 2 = Controller Right
