@@ -9,6 +9,7 @@
 #include <cnovrparts.h>
 #include <string.h>
 #include <cnrbtree.h>
+#include <chew.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -654,6 +655,17 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( matrix44ptransform );
 	TCCExportS( matrix44vtransform );
 	TCCExportS( matrix444transform );
+
+	TCCExportS( glGenBuffers );
+	TCCExportS( glBindBuffer );
+	TCCExportS( glMapBufferRange );
+	TCCExportS( glUnmapBuffer );
+	TCCExportS( glBufferData );
+	TCCExportS( glMapBuffer );
+	TCCExportS( glUniform4fv );
+	TCCExportS( glBindTexture );
+	TCCExportS( glTexImage2D );
+
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
 

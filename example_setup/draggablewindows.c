@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <chew.h>
 
 int handle;
 
@@ -42,6 +43,9 @@ struct DraggableWindow
 	int lastwidth, lastheight;
 	cnovr_model * model;
 	cnovr_texture * texture;
+	GLuint textureid;
+	GLuint pboid;
+	uint8_t * mapptr;
 	cnovrfocus_capture focusblock;
 	int ptrx, ptry;
 };
@@ -203,6 +207,12 @@ success:
 	return ret;
 }
 
+//void FinishedBufferEvent( void * tag, void * opaque )
+//{
+//	DraggableWindow * dw = (DraggableWindow*)opaque;
+//	need_texture = 0;
+//}
+
 void * GetTextureThread( void * v )
 {
 	XInitThreads();
@@ -221,9 +231,9 @@ void * GetTextureThread( void * v )
 
 //	ListWindows();
 //	AllocateNewWindow( 0, "/firefox", -1 );
-	AllocateNewWindow( "Frame Timing", 0, -1 );
-	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
-	AllocateNewWindow( 0, "/xed", -1 );
+//	AllocateNewWindow( "Frame Timing", 0, -1 );
+//	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
+//	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
 	while( !quitting )
@@ -272,7 +282,9 @@ void * GetTextureThread( void * v )
 		//printf( "Got Frame %d %p %p %p\n", current_window_check, dw->image, dw->image->data, *(int32_t*)(&(dw->image->data[0])) );
 		if( dw->image && dw->image->data && (void*)(&(dw->image->data[0])) != (void*)(-1) )
 		{
+			memcpy( dw->mapptr, dw->image->data, dw->width * dw->height * 4 );
 			need_texture = 0;
+			//CNOVRJobTack( cnovrQPrerender, FinishedBufferEvent, 0, dw, 0 );
 			frame_in_buffer = current_window_check;
 		}
 
@@ -328,8 +340,24 @@ void PostRender()
 				dw->lastwidth = dw->width;
 				dw->lastheight = dw->height;
 			}
+			glBindTexture( GL_TEXTURE_2D, dw->textureid );
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, dw->width, dw->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)(&(dw->image->data[0])) );
 		} 
-		CNOVRTextureLoadDataNow( dw->texture, dw->width, dw->height, 4, 0, (void*)(&(dw->image->data[0])), 1 );
+		//CNOVRTextureLoadDataNow( dw->texture, dw->width, dw->height, 4, 0, dw->mapptr, 1 );
+
+		//glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, dw->width, dw->height, GL_RGBA, GL_UNSIGNED_BYTE, (void*)(&(dw->image->data[0])) );
+
+		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, dw->pboid ); 
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER );
+
+		glBindTexture( GL_TEXTURE_2D, dw->textureid );
+		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, dw->width, dw->height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glBindTexture( GL_TEXTURE_2D, 0 );
+		dw->mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, 2048*2048*4, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
+//		dw->mapptr = glMapBuffer( GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY );
+		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 ); 
+
+
 		store->uniformset[frame_in_buffer*4+0] = dw->width;
 		store->uniformset[frame_in_buffer*4+1] = dw->height;
 		need_texture = 1;
@@ -350,15 +378,16 @@ void Render()
 			store->uniformset[i*4+3] = dw->ptry / (float)dw->height;
 		}
 	}
-
 	CNOVRRender( shader );
-	glUniform4fv( 19, MAX_DRAGGABLE_WINDOWS*4, store->uniformset ); glGetError(); //glGetError ignores the error if we aren't examining uniform #17
+	glUniform4fv( 19, MAX_DRAGGABLE_WINDOWS*4, store->uniformset );
+	glGetError(); //glGetError ignores the error if we aren't examining uniform #19
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
 		struct DraggableWindow * dw = &dwindows[i];
 		if( dw->windowtrack && store->windowpidof[i] >= 0 )
 		{
-			CNOVRRender( dw->texture );
+			glBindTexture( GL_TEXTURE_2D, dw->textureid );
+			//CNOVRRender( dw->texture );
 			CNOVRRender( dw->model );
 		}
 	}
@@ -400,6 +429,14 @@ void prerender_startup( void * tag, void * opaquev )
 		dw->focusblock.opaque = dw->model;
 		dw->focusblock.cb = DockableWindowFocusEvent;
 		dw->texture = CNOVRTextureCreate( 0, 0, 0 );
+		CNOVRTextureLoadDataNow( dw->texture, 1, 1, 4, 0, "xxxx", 1 );
+		dw->textureid = dw->texture->nTextureId;
+
+		glGenBuffers( 1, &dw->pboid );
+		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, dw->pboid ); //bind pbo
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, 2048*2048*4, NULL, GL_STREAM_DRAW);
+		dw->mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, 2048*2048*4, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
+		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 	}
 
 	store->initialized = 1;

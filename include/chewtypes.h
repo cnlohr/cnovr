@@ -12,6 +12,8 @@ typedef int32_t GLint32;
 typedef uint32_t GLuint;
 typedef char GLchar;
 typedef struct __GLsync *GLsync;
+typedef intptr_t GLsizeiptr;
+typedef intptr_t GLintptr;
 
 #ifndef GLDEBUGPROC
 typedef void (APIENTRY *GLDEBUGPROC)(
@@ -61,7 +63,26 @@ typedef void (APIENTRY *GLDEBUGPROC)(
 
 #define GL_SAMPLE_ALPHA_TO_COVERAGE			0x809E
 
+#define GL_READ_ONLY                      0x88B8
+#define GL_WRITE_ONLY                     0x88B9
+#define GL_READ_WRITE                     0x88BA
+#define GL_BUFFER_ACCESS                  0x88BB
+#define GL_BUFFER_MAPPED                  0x88BC
+#define GL_BUFFER_MAP_POINTER             0x88BD
+#define GL_STREAM_COPY                    0x88E2
+#define GL_STATIC_DRAW                    0x88E4
+#define GL_STATIC_READ                    0x88E5
+#define GL_STATIC_COPY                    0x88E6
+#define GL_DYNAMIC_DRAW                   0x88E8
+#define GL_DYNAMIC_READ                   0x88E9
+#define GL_DYNAMIC_COPY                   0x88EA
 
+#define GL_MAP_READ_BIT                   0x0001
+#define GL_MAP_WRITE_BIT                  0x0002
+#define GL_MAP_INVALIDATE_RANGE_BIT       0x0004
+#define GL_MAP_INVALIDATE_BUFFER_BIT      0x0008
+#define GL_MAP_FLUSH_EXPLICIT_BIT         0x0010
+#define GL_MAP_UNSYNCHRONIZED_BIT         0x0020
 
 
 #define GL_INVALID_FRAMEBUFFER_OPERATION 0x0506

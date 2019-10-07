@@ -60,7 +60,6 @@ void * chewGetProcAddress( const char *name );
 
 // Add the things you want here; DO NOT put ; at end of line.
 
-
 CHEWTYPEDEF( void, glGenVertexArrays, GLsizei n, GLuint *arrays )
 CHEWTYPEDEF( void, glBindVertexArray, GLuint array )
 CHEWTYPEDEF( void, glGenBuffers, GLsizei n, GLuint * buffers )
@@ -142,6 +141,8 @@ CHEWTYPEDEF( GLint, glGetUniformLocation, GLuint program, const GLchar *name )
 
 CHEWTYPEDEF( void *, glMapBuffer, GLenum target, GLenum access )
 CHEWTYPEDEF( void *, glMapNamedBuffer, GLuint buffer, GLenum access )
+CHEWTYPEDEF( void *, glMapBufferRange, GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access )
+
 CHEWTYPEDEF( GLboolean, glUnmapBuffer, GLenum target )
 
 #ifdef __cplusplus
