@@ -191,16 +191,15 @@ void start( const char * identifier )
 
 	store = CNOVRNamedPtrData( "examplecodestore", 0, sizeof( *store ) + 1024 );
 	printf( "Initializing %p\n", store );
-	store->initialized = 0;
+//	store->initialized = 0;
 	if( !store->initialized )
 	{
 		int i;
 		for( i = 0; i < MAX_SPINNERS; i++ )
 		{
-			printf( "%p\n",  &store->modelpose[i] );
 			pose_make_identity( &store->modelpose[i] );
 			store->modelpose[i].Scale = .2;
-
+			store->zapped[i] = 0;
 		}
 		store->initialized = 1;
 	}

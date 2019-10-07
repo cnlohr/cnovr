@@ -524,21 +524,58 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 						cnovr_point3d rrpObjectCenter;
 						float scalediff;
 
-						copy3d( fixed, fc->gplast[CNOVRINPUTDEV_LEFT] );
-						sub3d( rrpBegin, fc->gplast[CNOVRINPUTDEV_RIGHT], fixed );
-						sub3d( rrpEnd, grabposworldspaceRight, fixed );
-						scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
-						quatfrom2vectors( rot2AB, rrpBegin, rrpEnd );
-						scale3d( rrpEnd, rrpEnd, scalediff );
-
-						//Now, apply this rotation to the object center.
-						sub3d( rrpObjectCenter, m->pose->Pos, fixed );
-						quatrotatevector( rrpObjectCenter, rot2AB, rrpObjectCenter );
-						scale3d( rrpObjectCenter, rrpObjectCenter, scalediff );
-						add3d( m->pose->Pos, rrpObjectCenter, fixed );
-						m->pose->Scale *= scalediff;
-						//Now, apply the rotation to the quaternion.
-						quatrotateabout( m->pose->Rot, rot2AB, m->pose->Rot );
+						int relativemotion = 1;
+						int handfrom = 0;
+						if( relativemotion )
+						{
+							for( handfrom = 0; handfrom < 2; handfrom++ )
+							{
+								int hand0 = handfrom==0;
+								copy3d( fixed, fc->gplast[hand0?CNOVRINPUTDEV_LEFT:CNOVRINPUTDEV_RIGHT] );
+								sub3d( rrpBegin, fc->gplast[hand0?CNOVRINPUTDEV_RIGHT:CNOVRINPUTDEV_LEFT], fixed );
+								sub3d( rrpEnd, hand0?grabposworldspaceRight:grabposworldspaceLeft, fixed );
+								scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
+								quatfrom2vectors( rot2AB, rrpBegin, rrpEnd );
+								scale3d( rrpEnd, rrpEnd, scalediff );
+								//Now, apply this rotation to the object center.
+								sub3d( rrpObjectCenter, fc->pose_internal.Pos, fixed );
+								quatrotatevector( rrpObjectCenter, rot2AB, rrpObjectCenter );
+								scale3d( rrpObjectCenter, rrpObjectCenter, scalediff );
+								add3d( fc->pose_internal.Pos, rrpObjectCenter, fixed );
+								fc->pose_internal.Scale *= scalediff;
+								//Now, apply the rotation to the quaternion.
+								quatrotateabout( fc->pose_internal.Rot, rot2AB, fc->pose_internal.Rot );
+							}
+							memcpy( m->pose, &fc->pose_internal, sizeof( cnovr_pose ) );
+							copy3d( fc->gplast[CNOVRINPUTDEV_LEFT], grabposworldspaceLeft );
+							copy3d( fc->gplast[CNOVRINPUTDEV_RIGHT], grabposworldspaceRight );
+						}
+						else
+						{
+							//Currently behaves undesirably.
+							cnovr_pose cumulative_pose_change;
+							memcpy( &cumulative_pose_change, &fc->pose_internal, sizeof( cnovr_pose ) );
+							for( handfrom = 0; handfrom < 2; handfrom++ )
+							{
+								//Absolute control
+								int hand0 = handfrom==0;
+								copy3d( fixed, fc->gplast[hand0?CNOVRINPUTDEV_LEFT:CNOVRINPUTDEV_RIGHT] );
+								sub3d( rrpBegin, fc->gplast[hand0?CNOVRINPUTDEV_RIGHT:CNOVRINPUTDEV_LEFT], fixed );
+								sub3d( rrpEnd, hand0?grabposworldspaceRight:grabposworldspaceLeft, fixed );
+								scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
+								quatfrom2vectors( rot2AB, rrpBegin, rrpEnd );
+								scale3d( rrpEnd, rrpEnd, scalediff );
+								//Now, apply this rotation to the object center.
+								sub3d( rrpObjectCenter, cumulative_pose_change.Pos, fixed );
+								quatrotatevector( rrpObjectCenter, rot2AB, rrpObjectCenter );
+								scale3d( rrpObjectCenter, rrpObjectCenter, scalediff );
+								add3d( cumulative_pose_change.Pos, rrpObjectCenter, fixed );
+								cumulative_pose_change.Scale = cumulative_pose_change.Scale * scalediff;
+								//Now, apply the rotation to the quaternion.
+								quatrotateabout( cumulative_pose_change.Rot, rot2AB, cumulative_pose_change.Rot );
+							}
+							memcpy( m->pose, &cumulative_pose_change, sizeof( cnovr_pose ) );
+						}
 
 						//Sanity Check
 				//		scale3d( rrpEnd, rrpEnd, scalediff );
@@ -546,7 +583,7 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 				//		printf( " OUT: %f %f %f  -> %f %f %f\n", PFTHREE( rrpBegin ), PFTHREE(rrpEnd ) );
 
 						//Now, do exactly the same thing, but reverse the point roles.
-						copy3d( fixed, fc->gplast[CNOVRINPUTDEV_RIGHT] );
+				/*		copy3d( fixed, fc->gplast[CNOVRINPUTDEV_RIGHT] );
 						sub3d( rrpBegin, fc->gplast[CNOVRINPUTDEV_LEFT], fixed );
 						sub3d( rrpEnd, grabposworldspaceLeft, fixed );
 						scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
@@ -558,10 +595,8 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 						add3d( m->pose->Pos, rrpObjectCenter, fixed );
 						m->pose->Scale *= scalediff;
 						//Now, apply the rotation to the quaternion.
-						quatrotateabout( m->pose->Rot, rot2AB, m->pose->Rot );
+						quatrotateabout( m->pose->Rot, rot2AB, m->pose->Rot );*/
 
-						copy3d( fc->gplast[CNOVRINPUTDEV_LEFT], grabposworldspaceLeft );
-						copy3d( fc->gplast[CNOVRINPUTDEV_RIGHT], grabposworldspaceRight );
 						fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] = &prop->poseTip;
 					}
 				}
@@ -615,6 +650,11 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 			cnovr_point3d grabpos_conroller_space = { 0, 0, z };
 			apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_conroller_space );
 			unapply_pose_from_pose( fc->focusgrab[devid], &prop->poseTip, m->pose );
+
+			if( fc->twohandgrab_last[CNOVRINPUTDEV_LEFT] && fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] )
+			{
+				memcpy( &fc->pose_internal, m->pose, sizeof( cnovr_pose ) );
+			}
 			break;
 		}
 	}

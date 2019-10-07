@@ -108,6 +108,7 @@ typedef struct cnovr_model_focus_controller_t
 	float initial_grab_z[CNOVRINPUTDEVS];
 	cnovr_point3d gplast[CNOVRINPUTDEVS];
 	struct cnovr_model_t * mparent;
+	cnovr_pose pose_internal;
 } cnovr_model_focus_controller;
 
 // Focus Stuff

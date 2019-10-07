@@ -156,7 +156,7 @@ void InternalShutdownTCC( TCCInstance * tce )
 		CNOVRFocusRemoveTag( tce );
 		CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
 		CNOVRListDeleteTCCTag( tce );
-		cnptrset_foreach( o->tccobjects, i ) { printf( "Destroying %p  %p %p %p\n", i, nodei, nodei->parent, nodei->left ); CNOVRDeleteBase( ((cnovr_base*)i) ); }
+		cnptrset_foreach( o->tccobjects, i ) { CNOVRDeleteBase( ((cnovr_base*)i) ); }
 		cnptrset_destroy( o->tccobjects );
 		cnptrset_foreach( o->mutices, i ) OGDeleteMutex( (og_mutex_t)i );
 		cnptrset_destroy( o->mutices );
