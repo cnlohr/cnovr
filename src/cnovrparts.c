@@ -35,6 +35,7 @@ static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 	if( ths->nResolveFramebufferId ) glDeleteFramebuffers( 1, &ths->nResolveFramebufferId );
 	if( ths->nResolveTextureId ) glDeleteTextures( 1, &ths->nResolveTextureId );
 	if( ths->nDepthBufferId ) glDeleteRenderbuffers( 1, &ths->nDepthBufferId );
+	if( ths->nColorBufferId ) glDeleteRenderbuffers( 1, &ths->nColorBufferId );
 	if( ths->nRenderTextureId ) glDeleteTextures( 1, &ths->nRenderTextureId );
 	CNOVRListDeleteTag( ths );
 
@@ -54,30 +55,16 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	ret->base.header = &cnovr_rf_buffer_header;
 	ret->base.tccctx = TCCGetTag();
 
+	ret->multisample = multisample;
+
+	//XXX TODO: Figure out why we can't use depth buffers with multisamples.
+	int texmul = multisample?GL_TEXTURE_2D_MULTISAMPLE:GL_TEXTURE_2D;
+
+
 	glGenFramebuffers(1, &ret->nRenderFramebufferId );
 	glBindFramebuffer(GL_FRAMEBUFFER, ret->nRenderFramebufferId);
 
-	//XXX TODO: Figure out why we can't use depth buffers with multisamples.
 
-	glGenTextures(1, &ret->nRenderTextureId );
-	if( multisample )
-	{
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId );
-		glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample, GL_RGBA8, nWidth, nHeight, 1);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, ret->nRenderTextureId, 0);
-	}
-
-	glGenFramebuffers(1, &ret->nResolveFramebufferId );
-	glBindFramebuffer(GL_FRAMEBUFFER, ret->nResolveFramebufferId);
-
-	glGenTextures(1, &ret->nResolveTextureId );
-	glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId, 0);
-
-	//XXX TODO: this is wrong - we should be attaching the render buffer to the render framebuffer not here.
 	glGenRenderbuffers(1, &ret->nDepthBufferId);
 	glBindRenderbuffer(GL_RENDERBUFFER, ret->nDepthBufferId);
 	if( multisample )
@@ -88,16 +75,70 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 
 
 
-	// check FBO status
+	glGenTextures(1, &ret->nRenderTextureId );
+	glBindTexture(texmul, ret->nRenderTextureId );
+
+
+	glTexParameterf(texmul, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(texmul, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(texmul, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameterf(texmul, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(texmul, GL_GENERATE_MIPMAP, GL_TRUE);
+
+	if( multisample )
+	{
+		glTexImage2DMultisample(texmul, multisample, GL_RGBA8, nWidth, nHeight, GL_TRUE);
+	}
+	else
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	}
+
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texmul, ret->nRenderTextureId, 0);
+
+
+//	glGenRenderbuffers(1, &ret->nColorBufferId);
+//	glBindRenderbuffer(GL_RENDERBUFFER, ret->nColorBufferId);
+//	if( multisample )
+//		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_RGBA8, nWidth, nHeight );
+//	else
+//		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, nWidth, nHeight );
+//	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, ret->nColorBufferId );
+
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
 	{
+		printf( "Warning bad framebuffer setup (Render)\n" );
+	}
+
+
+	glGenFramebuffers(1, &ret->nResolveFramebufferId );
+	glBindFramebuffer(GL_FRAMEBUFFER, ret->nResolveFramebufferId);
+	glGenTextures(1, &ret->nResolveTextureId );
+	glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId, 0);
+
+	// check FBO status
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE)
+	{
+		printf( "Warning: Bad framebuffersetup (Resolve)\n" );
 		CNOVRRenderFrameBufferDelete( ret );
 		return 0;
 	}
 
+	printf( "Framebuffers set up\n" );
+
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
+	//XXX TODO : Remove me.  I think?
+	ret->resolveshader = CNOVRShaderCreate( "resolve" );
+	ret->resolvegeo = CNOVRModelCreate( 0, 4, GL_TRIANGLES );
+	CNOVRModelAppendMesh( ret->resolvegeo, 1, 1, 0, (cnovr_point3d){ 1, 1, 0 }, 0, 0 );
 	return ret;
 }
 
@@ -108,7 +149,8 @@ void CNOVRFBufferActivate( cnovr_rf_buffer * b )
 	b->origh = cnovrstate->iRTHeight;
 	int w = cnovrstate->iRTWidth = b->width;
 	int h = cnovrstate->iRTHeight = b->height;
-	glBindFramebuffer( GL_FRAMEBUFFER, b->nResolveFramebufferId );
+	if( b->multisample )  glEnable( GL_MULTISAMPLE );
+	glBindFramebuffer( GL_FRAMEBUFFER, b->nRenderFramebufferId );
  	glViewport(0, 0, w, h );
 }
 
@@ -119,6 +161,42 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b )
 	int h = cnovrstate->iRTHeight = b->origh;
  	glViewport(0, 0, w, h );
 }
+
+void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
+{
+
+#if 0
+	//Broken???!?
+	glBindFramebuffer( GL_FRAMEBUFFER, 0);
+	if( b->multisample ) glDisable( GL_MULTISAMPLE );
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, b->nRenderFramebufferId );
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, b->nResolveFramebufferId );
+	glBlitFramebuffer(0, 0, b->width, b->height, 0, 0, b->width, b->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+ 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );	
+#else
+
+	//glEnable( GL_MULTISAMPLE );
+	glBindFramebuffer( GL_FRAMEBUFFER, b->nResolveFramebufferId);
+	glActiveTexture(  GL_TEXTURE0 );
+	if( b->multisample )
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, b->nRenderTextureId );
+	else
+		glBindTexture(GL_TEXTURE_2D, b->nRenderTextureId );
+
+	CNOVRRender( b->resolveshader );
+	glUniform1i( 17, b->multisample );
+	CNOVRRender( b->resolvegeo );
+#endif
+
+	glBindFramebuffer( GL_FRAMEBUFFER, 0);
+
+	int w = cnovrstate->iRTWidth = b->origw;
+	int h = cnovrstate->iRTHeight = b->origh;
+ 	glViewport(0, 0, w, h );
+}
+
+
 
 // Just FYI to blit a buffer:
 //	glBindFramebuffer(GL_READ_FRAMEBUFFER, leftEyeDesc.m_nRenderFramebufferId);

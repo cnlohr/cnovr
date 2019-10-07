@@ -18,7 +18,8 @@ typedef struct cnovr_collide_results_t
 	float collidevs[4][4];
 } cnovr_collide_results;
 
-
+struct cnovr_shader_t;
+struct cnovr_model_t;
 struct cnovr_header_t;
 
 typedef struct cnovr_base_t
@@ -55,15 +56,20 @@ typedef struct cnovr_rf_buffer_t
 	GLuint nResolveFramebufferId;
 	GLuint nResolveTextureId;
 	GLuint nDepthBufferId;
+	GLuint nColorBufferId;
 	GLuint nRenderTextureId;
 
+	struct cnovr_shader_t *resolveshader;
+	struct cnovr_model_t * resolvegeo;  
 	int width, height;
 	int origw, origh; //For holding while activating buffer.
+	int multisample;
 } cnovr_rf_buffer;
 
 cnovr_rf_buffer * CNOVRRFBufferCreate( int w, int h, int multisample );
 void CNOVRFBufferActivate( cnovr_rf_buffer * b );
 void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
+void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b );
 
 ///////////////////////////////////////////////////////////////////////////////
 

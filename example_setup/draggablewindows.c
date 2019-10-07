@@ -231,9 +231,9 @@ void * GetTextureThread( void * v )
 
 //	ListWindows();
 //	AllocateNewWindow( 0, "/firefox", -1 );
-//	AllocateNewWindow( "Frame Timing", 0, -1 );
-//	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
-//	AllocateNewWindow( 0, "/xed", -1 );
+	AllocateNewWindow( "Frame Timing", 0, -1 );
+	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
+	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
 	while( !quitting )
@@ -341,7 +341,7 @@ void PostRender()
 				dw->lastheight = dw->height;
 			}
 			glBindTexture( GL_TEXTURE_2D, dw->textureid );
-			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, dw->width, dw->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (void*)(&(dw->image->data[0])) );
+			glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, dw->width, dw->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0 );
 		} 
 		//CNOVRTextureLoadDataNow( dw->texture, dw->width, dw->height, 4, 0, dw->mapptr, 1 );
 
@@ -352,6 +352,7 @@ void PostRender()
 
 		glBindTexture( GL_TEXTURE_2D, dw->textureid );
 		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, dw->width, dw->height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture( GL_TEXTURE_2D, 0 );
 		dw->mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, 2048*2048*4, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
 //		dw->mapptr = glMapBuffer( GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY );
@@ -431,6 +432,11 @@ void prerender_startup( void * tag, void * opaquev )
 		dw->texture = CNOVRTextureCreate( 0, 0, 0 );
 		CNOVRTextureLoadDataNow( dw->texture, 1, 1, 4, 0, "xxxx", 1 );
 		dw->textureid = dw->texture->nTextureId;
+		glBindTexture( GL_TEXTURE_2D, dw->textureid );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 
 		glGenBuffers( 1, &dw->pboid );
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER, dw->pboid ); //bind pbo

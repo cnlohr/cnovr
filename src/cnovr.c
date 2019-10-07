@@ -37,6 +37,8 @@ void InternalCNOVRFocusShutdown();
 void InternalCNOVRFocusUpdate();
 void InternalSetupNamedPtrs();
 
+#define MULTISAMPLE 4
+
 void HandleKey( int keycode, int bDown )
 {
 	if( (keycode == 27 || keycode == 65307) && bDown ) CNOVRShutdown( );
@@ -254,8 +256,8 @@ void CNOVRUpdate()
 			CNOVRDelete( cnovrstate->sterotargets[1] );
 	 
 			//Resize the render targets.
-			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 0 );
-			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, 0 );
+			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, MULTISAMPLE );
+			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, MULTISAMPLE );
 			cnovrstate->iEyeRenderWidth = iEyeRenderWidth;
 			cnovrstate->iEyeRenderHeight = iEyeRenderHeight;
 		}
@@ -268,7 +270,7 @@ void CNOVRUpdate()
 		if( iPreviewWidth != cnovrstate->iPreviewWidth || iPreviewHeight != cnovrstate->iPreviewHeight )
 		{
 			CNOVRDelete( cnovrstate->previewtarget );
-			cnovrstate->previewtarget = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, 0 );
+			cnovrstate->previewtarget = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, MULTISAMPLE );
 			cnovrstate->iPreviewWidth  = iPreviewWidth;
 			cnovrstate->iPreviewHeight = iPreviewHeight;
 		}
@@ -315,16 +317,17 @@ void CNOVRUpdate()
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 			root->base.header->Render( root );
 			CNOVRListCall( cnovrLRender, 0, 0); 
-			CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
+		//	CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
+			CNOVRFBufferBlitResolve( cnovrstate->sterotargets[i] );
 
 			Texture_t t;
+		//	t.handle = (void*)(uintptr_t)cnovrstate->sterotargets[i]->nRenderTextureId;
 			t.handle = (void*)(uintptr_t)cnovrstate->sterotargets[i]->nResolveTextureId;
 			t.eType = ETextureType_TextureType_OpenGL;
 			t.eColorSpace = EColorSpace_ColorSpace_Auto;
 			cnovrstate->oCompositor->Submit( EVREye_Eye_Left + i, &t, 0, 0 ); 
 		}
 	}
-
 
 	//XXX TODO: How do we know when we need to update the preview window?
 	//XXX TODO: blit renderbuffer to frame?  (as an alternative to a separate render view for preview)
