@@ -673,18 +673,28 @@ void quatfrom2vectors(FLT *q, const FLT *src, const FLT *dest) {
 		normalize3d(axis, axis);
 		quatfromaxisangle(q, axis, CNOVRPI);
 	} else {
+#if 1
+		//I'm 99% sure this is correct.
 		FLT s = FLT_SQRT((1 + d) * 2);
 		FLT invs = 1 / s;
-
 		FLT c[3];
 		cross3d(c, v0, v1);
-
 		q[0] = s * 0.5f;
 		q[1] = c[0] * invs;
 		q[2] = c[1] * invs;
 		q[3] = c[2] * invs;
-
+#else
+		//More naieve mechansim of calculating.  If you think the above code is dubious.
+		cnovr_point3d axis;
+		float angle;
+		cross3d( axis, v0, v1 );
+		normalize3d( axis, axis );
+		float dot = d;
+		angle = acos( dot );
+		quatfromaxisangle( q, axis, angle);
+#endif
 		quatnormalize(q, q);
+
 	}
 }
 

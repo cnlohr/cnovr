@@ -10,7 +10,7 @@ void main()
 	if( localpos.w > 0.5 ) 
 	{
 		colorOut = vec4( vec3 (
-			(mod( length( floor( mod( localpos.xyz * 100.0 + vec3( .5 ), vec3(2.0) ) ) ), 1.3 ) > 0.9)?1.0:0.0
+			(mod( length( floor( mod( localpos.xyz * 200.0 + vec3( .5 ), vec3(2.0) ) ) ), 1.3 ) > 0.9)?1.0:0.0
 		), 1.0);
 		return;
 	}

@@ -18,6 +18,10 @@ void main()
 	float aspect = pd.x / pd.y;
 	vec2 cursorpos = pd.zw;
 	vec2 dcp = (texcoords - cursorpos) * vec2( aspect, 1.0 );
-	float dcpl = clamp( 100.*length( dcp ), 0., 1. )*2.0-1.0;
+
+	float dcpl = 100.*length( dcp );
+	dcpl = (cos(dcpl*10.0)/dcpl + 0.4) + 1.0;
+	dcpl = (clamp( dcpl, 0., 1. )*2.0-1.0);	//Mouse cursor	
+	dcpl = clamp( dcpl, -1., 1. );
 	colorOut = vec4( ((texture( textures[0], texcoords.xy ).bgr*2.0-1.0) * dcpl )*0.5+0.5, 1.0 );
 }

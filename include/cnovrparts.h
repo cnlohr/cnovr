@@ -173,11 +173,12 @@ typedef struct cnovr_model_t
 	//Focus data TODO: We may be putting this into its own structure to minimize impact on the overall size fo cnovr_model.
 	cnovr_pose ** focusgrab; //array, [INPUTDEVS] //If set, currently dragging.
 	cnovrfocus_capture * focusevent; //Return collide events with this.
-	cnovr_pose * twohandgrab_first; //Points to pose inside focus controller
-	float twohandgrab_initialdist;
-	cnovr_point3d twohandgrab_space_delta;
-	cnovr_quat twohandgrab_q;
+	cnovr_pose * twohandgrab_last[CNOVRINPUTDEVS]; //Points to pose inside focus controller
 	float initial_grab_z[CNOVRINPUTDEVS];
+	cnovr_point3d gplast[CNOVRINPUTDEVS];
+//	float twohandgrab_initialdist;
+//	cnovr_point3d twohandgrab_space_delta;
+//	cnovr_quat twohandgrab_q;
 
 	uint8_t bIsLoading;
 	uint8_t bIsUploaded;

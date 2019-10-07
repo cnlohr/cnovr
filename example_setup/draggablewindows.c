@@ -220,9 +220,9 @@ void * GetTextureThread( void * v )
 
 
 //	ListWindows();
-	AllocateNewWindow( 0, "/firefox", -1 );
+//	AllocateNewWindow( 0, "/firefox", -1 );
 	AllocateNewWindow( "Frame Timing", 0, -1 );
-	AllocateNewWindow( "~/git/cnovr", 0, -1 );
+	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
 	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
