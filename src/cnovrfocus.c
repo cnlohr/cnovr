@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <openvr_capi.h>
+#include <string.h>
 
 typedef struct internal_focus_system_t
 {
@@ -428,4 +429,200 @@ void CNOVRFocusRemoveTag( void * tag )
 	OGUnlockMutex( FOCUS.mutFocus );
 	printf( "Tag removal complete.\n" );
 }
+
+
+static void ModelFocusCollideFunction(void * tag, void * opaquev )
+{
+	//XXX TODO: This needs to be optimized! There's a lot we can do to improve its performance.
+	cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
+	cnovr_model * m = tag;
+	if( !m ) return;
+	cnovr_model_focus_controller * fc = m->focuscontrol;
+	if( !fc ) return;
+	if( !fc->focusevent ) return;
+	cnovr_point3d start = { 0, 0, 0 };
+	cnovr_vec3d direction = { 0, 0, 1 };
+	cnovr_pose invertedxform;
+	pose_invert( &invertedxform, m->pose );
+	apply_pose_to_point( start, &p->poseTip, start);
+	apply_pose_to_point( start, &invertedxform, start);
+	apply_pose_to_point( direction, &p->poseTip, direction);
+	apply_pose_to_point( direction, &invertedxform, direction);
+	sub3d( direction, direction, start );
+	cnovr_collide_results res;
+	res.t = p->NewPassiveRealDistance;
+	int r = CNOVRModelCollide( m, start, direction, &res );
+	if( r >= 0 && res.t > 0 )
+	{
+		CNOVRFocusRespond( fc->focusevent, res.t );
+	}
+}
+
+void CNOVRModelSetInteractable( cnovr_model * m, cnovrfocus_capture * focusevent )
+{
+	cnovr_model_focus_controller * fc = m->focuscontrol;
+	if( !fc ) {
+		m->focuscontrol = fc = malloc( sizeof( cnovr_model_focus_controller ) );
+		memset( fc, 0, sizeof(*fc) );
+	}
+
+	if( fc->focusevent )
+	{
+		CNOVRListDeleteTag( m ); 
+	}
+
+	fc->focusevent = focusevent;
+
+	if( focusevent )
+	{
+		CNOVRListAdd( cnovrLCollide, m, ModelFocusCollideFunction );
+	}
+}
+
+void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, int event, int buttoninfo )
+{
+	int devid = prop->devid;
+	cnovr_model_focus_controller * fc = m->focuscontrol;
+	if( !fc ) return;
+
+
+	switch( event )
+	{
+		case CNOVRF_DOWNNOFOCUS:
+			if( buttoninfo == 3 ) CNOVRFocusAcquire( fc->focusevent, 1 );
+			break;
+		case CNOVRF_DRAG:
+			if( fc->focusgrab )
+			{
+				if( fc->focusgrab[CNOVRINPUTDEV_LEFT] && fc->focusgrab[CNOVRINPUTDEV_RIGHT] )
+				{
+					if( devid == CNOVRINPUTDEV_LEFT )
+					{
+						fc->twohandgrab_last[CNOVRINPUTDEV_LEFT] = &prop->poseTip;
+					}
+					else if( devid == CNOVRINPUTDEV_RIGHT && fc->twohandgrab_last[CNOVRINPUTDEV_LEFT] )
+					{
+						//XXX TODO: Try to make it absolute instead of progressive.
+
+						//Tricky: We're doing a two-hand grab.
+						cnovr_point3d grabpos_conroller_space1 = { 0, 0, fc->initial_grab_z[CNOVRINPUTDEV_LEFT] };
+						cnovr_point3d grabpos_conroller_space2 = { 0, 0, fc->initial_grab_z[CNOVRINPUTDEV_RIGHT] };
+						cnovr_point3d grabposworldspaceLeft;
+						cnovr_point3d grabposworldspaceRight;
+						apply_pose_to_point(grabposworldspaceLeft, fc->twohandgrab_last[CNOVRINPUTDEV_LEFT], grabpos_conroller_space1 );
+						apply_pose_to_point(grabposworldspaceRight, &prop->poseTip, grabpos_conroller_space2 );
+
+						//Ok, so we have two grab positions in world space.  How are we gonna do this?
+						//Piece-meal?
+						//First, fix fc->gplast[CNOVRINPUTDEV_LEFT].  Then
+						// Find transformation FROM grabposworldspace2 to fc->gplast[CNOVRINPUTDEV_RIGHT]
+						// Once transformation found, rotate object center, apply rotation.
+						cnovr_quat rot2AB;
+						cnovr_point3d fixed;
+						cnovr_point3d rrpBegin;
+						cnovr_point3d rrpEnd;
+						cnovr_point3d rrpObjectCenter;
+						float scalediff;
+
+						copy3d( fixed, fc->gplast[CNOVRINPUTDEV_LEFT] );
+						sub3d( rrpBegin, fc->gplast[CNOVRINPUTDEV_RIGHT], fixed );
+						sub3d( rrpEnd, grabposworldspaceRight, fixed );
+						scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
+						quatfrom2vectors( rot2AB, rrpBegin, rrpEnd );
+						scale3d( rrpEnd, rrpEnd, scalediff );
+
+						//Now, apply this rotation to the object center.
+						sub3d( rrpObjectCenter, m->pose->Pos, fixed );
+						quatrotatevector( rrpObjectCenter, rot2AB, rrpObjectCenter );
+						scale3d( rrpObjectCenter, rrpObjectCenter, scalediff );
+						add3d( m->pose->Pos, rrpObjectCenter, fixed );
+						m->pose->Scale *= scalediff;
+						//Now, apply the rotation to the quaternion.
+						quatrotateabout( m->pose->Rot, rot2AB, m->pose->Rot );
+
+						//Sanity Check
+				//		scale3d( rrpEnd, rrpEnd, scalediff );
+				//		quatrotatevector( rrpEnd, rot2AB, rrpBegin );
+				//		printf( " OUT: %f %f %f  -> %f %f %f\n", PFTHREE( rrpBegin ), PFTHREE(rrpEnd ) );
+
+						//Now, do exactly the same thing, but reverse the point roles.
+						copy3d( fixed, fc->gplast[CNOVRINPUTDEV_RIGHT] );
+						sub3d( rrpBegin, fc->gplast[CNOVRINPUTDEV_LEFT], fixed );
+						sub3d( rrpEnd, grabposworldspaceLeft, fixed );
+						scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
+						quatfrom2vectors( rot2AB, rrpBegin, rrpEnd );
+						//Now, apply this rotation to the object center.
+						sub3d( rrpObjectCenter, m->pose->Pos, fixed );
+						scale3d( rrpObjectCenter, rrpObjectCenter, scalediff );
+						quatrotatevector( rrpObjectCenter, rot2AB, rrpObjectCenter );
+						add3d( m->pose->Pos, rrpObjectCenter, fixed );
+						m->pose->Scale *= scalediff;
+						//Now, apply the rotation to the quaternion.
+						quatrotateabout( m->pose->Rot, rot2AB, m->pose->Rot );
+
+						copy3d( fc->gplast[CNOVRINPUTDEV_LEFT], grabposworldspaceLeft );
+						copy3d( fc->gplast[CNOVRINPUTDEV_RIGHT], grabposworldspaceRight );
+						fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] = &prop->poseTip;
+					}
+				}
+				else if( fc->focusgrab[devid] )
+				{
+					//Regular 1-hand grab.
+					float keepscale = m->pose->Scale;
+					cnovr_pose * p = fc->focusgrab[devid];
+					apply_pose_to_pose( m->pose, &prop->poseTip, p );
+					m->pose->Scale = keepscale;
+
+					//Just in case we click another controller, we also want to store what the other hand would be.
+					float z = fc->initial_grab_z[devid] = prop->NewPassiveRealDistance;
+					cnovr_point3d grabpos_conroller_space = { 0, 0, z };
+					apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_conroller_space );
+				}
+			}
+			break;
+		case CNOVRF_UPFOCUS:
+			CNOVRFocusAcquire( fc->focusevent, 0 );
+			break;
+		case CNOVRF_LOSTFOCUS:
+			if( fc->focusgrab && fc->focusgrab[devid] )
+			{
+				if( fc->twohandgrab_last[devid] ) fc->twohandgrab_last[devid] = 0;
+				fc->focusgrab[devid] = 0; //fc->twohandgrab_first = 0; //fc->twohandgrab_initialdist = -1;
+				//Make sure if we were doing a two-hand grab, we release both.
+				if( devid == CNOVRINPUTDEV_LEFT && fc->focusgrab[CNOVRINPUTDEV_RIGHT] )
+				{
+					unapply_pose_from_pose( fc->focusgrab[CNOVRINPUTDEV_RIGHT], fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT], m->pose );
+				}
+				if( devid == CNOVRINPUTDEV_RIGHT && fc->focusgrab[CNOVRINPUTDEV_LEFT] )
+				{
+					unapply_pose_from_pose( fc->focusgrab[CNOVRINPUTDEV_LEFT], fc->twohandgrab_last[CNOVRINPUTDEV_LEFT], m->pose );
+				}
+			}
+			break;
+		case CNOVRF_ACQUIREDFOCUS:
+		{
+			cnovr_pose * posein;
+			if( !fc->focusgrab ) fc->focusgrab = calloc( CNOVRINPUTDEVS, sizeof( cnovr_pose * ) );
+
+			fc->twohandgrab_last[devid] = &prop->poseTip;
+
+			cnovr_pose * poseout =  fc->focusgrab[devid];
+
+			if( !poseout )
+				poseout = fc->focusgrab[devid] = malloc( sizeof( cnovr_pose ) );
+
+			float z = fc->initial_grab_z[devid] = prop->NewPassiveRealDistance;
+			cnovr_point3d grabpos_conroller_space = { 0, 0, z };
+			apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_conroller_space );
+			unapply_pose_from_pose( fc->focusgrab[devid], &prop->poseTip, m->pose );
+			break;
+		}
+	}
+}
+
+
+
+
+
+
 

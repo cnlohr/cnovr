@@ -95,5 +95,27 @@ void CNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus );
 void CNOVRFocusRemoveTag( void * tag );
 cnovr_pose * CNOVRFocusGetTipPose( int device );
 
+
+// Subsystem designed to link cnovr_models and make them trackable.
+
+struct cnovr_model_t;
+typedef struct cnovr_model_focus_controller_t
+{
+	//Focus data TODO: We may be putting this into its own structure to minimize impact on the overall size fo cnovr_model.
+	cnovr_pose ** focusgrab; //array, [INPUTDEVS] //If set, currently dragging.
+	cnovrfocus_capture * focusevent; //Return collide events with this.
+	cnovr_pose * twohandgrab_last[CNOVRINPUTDEVS]; //Points to pose inside focus controller
+	float initial_grab_z[CNOVRINPUTDEVS];
+	cnovr_point3d gplast[CNOVRINPUTDEVS];
+	struct cnovr_model_t * mparent;
+} cnovr_model_focus_controller;
+
+// Focus Stuff
+
+void CNOVRModelSetInteractable( struct cnovr_model_t * m, cnovrfocus_capture * focusevent );
+void CNOVRModelHandleFocusEvent( struct cnovr_model_t * m, cnovrfocus_properties * prop, int event, int buttoninfo );
+
+
+
 #endif
 
