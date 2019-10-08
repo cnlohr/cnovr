@@ -163,8 +163,9 @@ static void example_scene_setup( void * tag, void * opaquev )
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
 		//spinner_n[i] = CNOVRNodeCreateSimple( 1 );
-		spinner_m[i] = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-		CNOVRModelAppendCube( spinner_m[i], (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
+		spinner_m[i] = CNOVRModelCreate( 0, 4, GL_TRIANGLES );
+		cnovr_point4d extra = { (rand()%256)/255.0, (rand()%256)/255.0, (rand()%256)/255.0, 0 };
+		CNOVRModelAppendCube( spinner_m[i], (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, &extra );
 		spinner_m[i]->pose = &store->modelpose[i];
 		spinner_m[i]->iOpaque = i;
 		focusblock[i].opaque = spinner_m[i];

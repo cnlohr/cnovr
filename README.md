@@ -7,23 +7,16 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
-NEWEST:
- * Make dragging be able to be two-handed nice.
- * Make example not lock as heavily as it does currently.
-
 NOW:
- * TCC Instances should have sustaining data options.
- * Unified mechanism to drag models.
+ * Stars.
 
 GAMEPLAN:
+ * Fix crashing, i.e. the symbol checker is bad, and crashing apps should not just keep executing.
+ * What about putting input capture into it's own thread and gate it?
  * Model Loading
  * Terminal
- * Drag windows
- * Windows mirroring
- * What about putting input capture into it's own thread and gate it?
 
 NEWER:
- * Fix multisample?
  * Get intended frame time.
  * Make some global "now" or delta timer.
  * Should lists be allowed to have "priorities"?
@@ -31,7 +24,7 @@ NEWER:
  * When shutting down TCC, the actual destruction should maybe happen a frame later to give TCC a chance to actually shutdown instead of us canceling threads mid-run.
  * Should models have a transform matrix?
 
-Mid future todo:
+oMid future todo:
  * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?
  * Fix Windows Crash Handler
 

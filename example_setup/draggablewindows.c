@@ -140,7 +140,7 @@ Window GetWindowIdBySubstring( const char * windownamematch, const char * window
     char * windowName = 0;
     
     if (status >= Success && numItems) {
-		printf( "There are %d windows\n", numItems );
+		//printf( "There are %d windows\n", numItems );
         for (int i = 0; i < numItems; ++i) {
 			if( !list[i] ) continue;
 			pidata = 0;
@@ -155,7 +155,7 @@ Window GetWindowIdBySubstring( const char * windownamematch, const char * window
 			int pid = (pidata)?( pidata[1] * 256 + pidata[0] ) : 0;
 
 	        if ( namestatus >= Success && windowName ) {
-				printf( "%s\n", windowName );
+				//printf( "%s\n", windowName );
 			}
 
 			if( windownamematch )
@@ -259,8 +259,6 @@ void * GetTextureThread( void * v )
 				ZPixmap, NULL, &shminfo, width, height); 
 
 			dw->image->data = shminfo.shmaddr;
-
-			printf( "Gen Image: %p\n", dw->image );
 		}
 	 
 		int rx, ry, wx, wy, mask;
