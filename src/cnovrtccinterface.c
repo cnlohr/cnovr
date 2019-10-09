@@ -85,7 +85,7 @@ typedef struct object_cleanup_t
 	cnptrset * threads;
 	cnptrset * semaphores;
 	cnptrset * tlses;
-	void * tcccrashdata;
+	//void * tcccrashdata;
 } object_cleanup;
 
 cnhashtable * objects_to_delete;
@@ -99,21 +99,23 @@ void InternalSetupTCCInterface()
 
 void * internal_tcc_crash_malloc( int size )
 {
-	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
-	if( c )
-		return c->tcccrashdata = malloc( size );
-	else
-		return malloc( size );
+//	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+//	if( c )
+//		return c->tcccrashdata = malloc( size );
+//	else
+//		return malloc( size );
+	return malloc( size );
 }
 
 void internal_tcc_crash_free( void * data )
 {
-	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
-	free( data );
-	if( c ) 
-	{
-		c->tcccrashdata = 0;
-	}
+//	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+//	free( data );
+//	if( c ) 
+//	{
+//		c->tcccrashdata = 0;
+//	}
+	free( data ); 
 }
 
 //This is a FINAL SHUTDOWN when the system is going down.  DO NOT call this unless you are totally ready for a shutdown.
@@ -153,7 +155,7 @@ void InternalBreakdownRestOfTCCInterface()
 			cnptrset_destroy( o->semaphores );
 			cnptrset_foreach( o->mallocedram, i ) free( i );
 			cnptrset_destroy( o->mallocedram );
-			if( o->tcccrashdata ) free( o->tcccrashdata ); //XXX TODO: This is temporarily a shim.  It can be simplified.
+			//if( o->tcccrashdata ) free( o->tcccrashdata ); //XXX TODO: This is temporarily a shim.  It can be simplified.
 			free( o );
 			CNHashDelete( objects_to_delete, tce );
 		}
@@ -191,7 +193,7 @@ void InternalShutdownTCC( TCCInstance * tce )
 		cnptrset_destroy( o->semaphores );
 		cnptrset_foreach( o->mallocedram, i ) free( i );
 		cnptrset_destroy( o->mallocedram );
-		if( o->tcccrashdata ) free( o->tcccrashdata );
+		//if( o->tcccrashdata ) free( o->tcccrashdata );
 		free( o );
 		CNHashDelete( objects_to_delete, tce );
 	}
