@@ -138,7 +138,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 */
-
+	srand( 0 );
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
 		//spinner_n[i] = CNOVRNodeCreateSimple( 1 );
