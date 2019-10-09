@@ -166,7 +166,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 	chewInit();
 
-	CNOVRCheck();
+	if( CNOVRCheck() ) ovrprintf( "Init GL check\n" );
 
 	if( has_vr )
 	{
@@ -244,6 +244,8 @@ void CNOVRUpdate()
 
 	//Waste some time...
 	CNFGHandleInput();
+
+	if( CNOVRCheck() ) ovrprintf( "Prerender Check\n" );
 
 	//Possibly update stereo target resolutions.
 	if( cnovrstate->has_ovr )
@@ -329,6 +331,8 @@ void CNOVRUpdate()
 		}
 	}
 
+	if( CNOVRCheck() ) ovrprintf( "Render Check\n" );
+
 	//XXX TODO: How do we know when we need to update the preview window?
 	//XXX TODO: blit renderbuffer to frame?  (as an alternative to a separate render view for preview)
 	if( cnovrstate->has_preview )
@@ -354,7 +358,7 @@ void CNOVRUpdate()
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 
-	CNOVRCheck();
+	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );
 
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
 #else
@@ -423,7 +427,6 @@ int CNOVRCheck()
 	GLenum e = glGetError();
 	if( e != GL_NO_ERROR )
 	{
-		ovrprintf( "CNOVRCheck() -> %d -> ", e );
 		if( e == GL_INVALID_ENUM ) ovrprintf( "GL_INVALID_ENUM\n" );
 		if( e == GL_INVALID_VALUE ) ovrprintf( "GL_INVALID_VALUE\n" );
 		if( e == GL_INVALID_OPERATION ) ovrprintf( "GL_INVALID_OPERATION\n" );
@@ -431,8 +434,12 @@ int CNOVRCheck()
 		if( e == GL_OUT_OF_MEMORY ) ovrprintf( "GL_OUT_OF_MEMORY\n" );
 		if( e == GL_STACK_UNDERFLOW ) ovrprintf( "GL_STACK_UNDERFLOW\n" );
 		if( e == GL_STACK_OVERFLOW ) ovrprintf( "GL_STACK_OVERFLOW\n" );
+		return e;
 	}
-	return e;
+	else
+	{
+		return 0;
+	}
 }
 
 

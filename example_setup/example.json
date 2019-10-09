@@ -12,7 +12,7 @@
 			]
 		},
 		{
-			"cfile" : "draggablewindows.c",
+			"_cfile" : "draggablewindows.c",
 			"identifier" : "dockable"
 		}
 	]

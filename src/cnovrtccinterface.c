@@ -477,6 +477,9 @@ static void TCC_mul128( ) { ovrprintf( "Unsupported function\n" ); }
 static void TCC__shiftright128( ) { ovrprintf( "Unsupported function\n" ); }
 static void TCC_umul128( ) { ovrprintf( "Unsupported function\n" ); }
 static void TCC__stosb( ) { ovrprintf( "Unsupported function\n" ); }
+
+static float TCCffloor( float x ) { return FLT_FLOOR(x); }
+
 #endif
 
 #define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
@@ -530,7 +533,6 @@ void InternalPopulateTCC( TCCInstance * tce )
 	extern void * CNFGGC;			TCCExportS( CNFGGC );
 	extern void * CNFGWindowGC;		TCCExportS( CNFGWindowGC );
 	extern void * CNFGVisual;		TCCExportS( CNFGVisual );
-#endif
 
 //X11
  	void XShmCreateImage(); 
@@ -540,6 +542,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( XShmAttach );
 	TCCExportS( XShmGetImage );
 //End X11
+#endif
 
 
 	TCCExportS( cnovrstate );
@@ -697,8 +700,9 @@ void InternalPopulateTCC( TCCInstance * tce )
 
 	TCCExportS( sin );
 	TCCExportS( cos );
-	TCCExportS( ffloor );
+	TCCExport( ffloor );
 	TCCExportS( floor );
+	TCCExportS( floorf );
 	TCCExportS( tan );
 	TCCExportS( atan2 );
 

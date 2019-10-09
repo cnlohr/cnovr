@@ -57,6 +57,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 	tcc_add_include_path( tce->state, "C:/tcc/include/winapi" );
 	tcc_add_include_path( tce->state, "C:/tcc/include" );
+	tcc_define_symbol( tce->state, "_MATH_H_", "1" );
 	tcc_define_symbol( tce->state, " __STDC_VERSION__", "199901L" ); //Ugh... Long story.
 #ifdef WIN32
 	tcc_define_symbol( tce->state, "WIN32", "1" );

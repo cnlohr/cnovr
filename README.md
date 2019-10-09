@@ -9,6 +9,9 @@ sudo apt-get install build-essential libgl1-mesa-dev
 
 NOW:
  * Stars.
+ * We got permission.
+ * Windows Windows
+ * Rawdraw 2 extra modes.
 
 GAMEPLAN:
  * Fix crashing, i.e. the symbol checker is bad, and crashing apps should not just keep executing.

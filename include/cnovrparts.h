@@ -78,6 +78,7 @@ typedef struct cnovr_shader_t
 	cnovr_base base;
 	GLuint nShaderID;
 	char * shaderfilebase;
+	char * prefix;
 
 	//Temporary list of all watched filenames.
 	//struct watchlist
@@ -89,6 +90,9 @@ typedef struct cnovr_shader_t
 
 //Call 'render' submethod to activate, and 'prerender' checks to see if anything is tainted.
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase );
+
+//"prefix" can be things like "#define xxx" or whatever you want to be at the top of the shader files.
+cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const char * prefix );
 
 ///////////////////////////////////////////////////////////////////////////////
 

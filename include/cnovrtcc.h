@@ -12,6 +12,12 @@ void stop( const char * id );	//called on reload and stop
 //These are provided.
 int printf( const char * format, ... );
 
+//Math functions
+double floor( double f );
+double sin( double f );
+double cos( double f );
+float floorf(float x);
+
 //from os_generic
 typedef void* og_thread_t;
 typedef void* og_mutex_t;

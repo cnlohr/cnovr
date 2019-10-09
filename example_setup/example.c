@@ -6,14 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-og_thread_t thdmax;
 const char * identifier;
 cnovr_shader * shader;
-cnovr_model * model;
 cnovr_texture * texture;
-cnovr_simple_node * node;
 
-#define MAX_SPINNERS 100
+#define MAX_SPINNERS 220
 cnovr_model * spinner_m[MAX_SPINNERS];
 //cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
@@ -58,9 +55,9 @@ int ExampleFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 		if( dragout->Rot[0] > .95 || dragout->Rot[0] < -.95 )
 		{
 			quatidentity( dragout->Rot );
-			dragout->Pos[0] = floor( dragout->Pos[0] * 10. ) / 10.;
-			dragout->Pos[1] = floor( dragout->Pos[1] * 10. ) / 10.;
-			dragout->Pos[2] = floor( dragout->Pos[2] * 10. ) / 10.;
+			dragout->Pos[0] = floorf( dragout->Pos[0] * 10. ) / 10.;
+			dragout->Pos[1] = floorf( dragout->Pos[1] * 10. ) / 10.;
+			dragout->Pos[2] = floorf( dragout->Pos[2] * 10. ) / 10.;
 		}
 	}
 	return 0;
@@ -69,25 +66,6 @@ int ExampleFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 
 
 int FocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
-
-void * my_thread( void * v )
-{
-	return 0;
-	while(1 )
-	{
-		//printf( "THREADS 10 %s %p\n", v, thdmax );
-		OGUSleep(10000);
-		if( !shutting_down )
-		{
-			node->pose.Pos[0] = (rand()%10 - 5)/10.;
-			node->pose.Pos[1] = (rand()%10 - 5)/10.;
-			node->pose.Pos[2] = (rand()%10 - 5)/10.;
-			node->pose.Scale = .1;
-		}
-	}
-	return 0;
-}
-
 
 void init( const char * identifier )
 {
@@ -109,6 +87,9 @@ void UpdateFunction( void * tag, void * opaquev )
 		cnovr_pose * pose = &store->modelpose[i];
 		float * zap = &store->zapped[i];
 //		spinner_n[i]->pose.Pos[1] = 2;
+
+//		printf( "%f %f %f %f %f\n", PFTHREE( pose->Pos ), *zap, dt );
+
 		if( *zap >= 1.0 ) { continue; } //spinner_n[i]->pose.Scale = .4;
 		if( *zap > 0 ) *zap -= .001;
 		if( *zap < 0 ) *zap = 0;
@@ -182,8 +163,6 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLRender, 0, RenderFunction );
 	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
-
-	thdmax = OGCreateThread( my_thread, (void*)identifier );
 }
 
 
@@ -217,13 +196,8 @@ void stop( const char * identifier )
 {
 	shutting_down = 1;
 	printf( "^^ Start stop\n" );
-	if( node )
-	{
-		CNOVRNodeRemoveObject( cnovrstate->pRootNode, node );
-	}
 
 	//OGCancelThread( thdmax );
-	printf( "Example stop %s ----%p %p\n", identifier, thdmax, &thdmax );
 	printf( "End stop\n" );
 }
 

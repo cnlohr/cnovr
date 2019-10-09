@@ -653,6 +653,7 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 
 			if( fc->twohandgrab_last[CNOVRINPUTDEV_LEFT] && fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] )
 			{
+				//Use this as the starting property for the two-handed grab.
 				memcpy( &fc->pose_internal, m->pose, sizeof( cnovr_pose ) );
 			}
 			break;

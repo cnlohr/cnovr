@@ -42,7 +42,7 @@ extern "C" {
 #define FLT_FABS__ fabsf
 #endif
 #define FLT_STRTO strtof
-
+#define FLT_FLOOR(x) ((float)((int)(x)))
 #else
 
 #define USE_DOUBLE 1
@@ -56,6 +56,7 @@ extern "C" {
 #define FLT_ATAN2 atan2
 #define FLT_FABS__ fabs
 #define FLT_STRTO strtod
+#define FLT_FLOOR ((double)((int)(x)))
 
 #endif
 

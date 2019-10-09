@@ -752,13 +752,20 @@ void unapply_pose_from_pose(cnovr_pose *poseout, const cnovr_pose *in_this_coord
 	//  (2) Unrotate quaternion.
 	//  (3) Unapply pose from point.
 	//No need to do any scaling difference.
-
+	inv.Scale = 1;
 	poseout->Scale = 1;
 	quatgetreciprocal(inv.Rot, in_this_coordinate_frame->Rot); 
 	quatrotateabout(poseout->Rot, inv.Rot, thing_youre_looking_at->Rot);
+//	printf( "PRESUB: %f %f %f %f - (%f %f %f) %f\n", PFTHREE( thing_youre_looking_at->Pos ), thing_youre_looking_at->Scale, PFTHREE( in_this_coordinate_frame->Pos ), in_this_coordinate_frame->Scale );
 	sub3d( inv.Pos, thing_youre_looking_at->Pos, in_this_coordinate_frame->Pos );
+//	printf( "INV: %f %f %f %f    %f %f %f %f\n", PFTHREE( inv.Pos ), inv.Scale, PFFOUR( inv.Rot ) );
 	quatrotatevector(inv.Pos, inv.Rot, inv.Pos);
+//	printf( "INV: %f %f %f %f    %f %f %f %f\n", PFTHREE( inv.Pos ), inv.Scale, PFFOUR( inv.Rot ) );
+
+	//XXX ??!?!?!?!??!
 	apply_pose_to_point(poseout->Pos, &inv, thing_youre_looking_at->Pos );
+	memcpy( poseout->Pos, inv.Pos, sizeof( inv.Pos ) );
+	printf( "APPLY: (%f %f %f) %f, (%f %f %f) %f, (%f %f %f) %f\n", PFTHREE( poseout->Pos ), poseout->Scale, PFTHREE(inv.Pos), inv.Scale, PFTHREE(thing_youre_looking_at->Pos), thing_youre_looking_at->Scale );
 }
 
 void pose_invert(cnovr_pose *poseout, const cnovr_pose *pose) {

@@ -83,7 +83,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glTexParameterf(texmul, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(texmul, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameterf(texmul, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(texmul, GL_GENERATE_MIPMAP, GL_TRUE);
+	//glTexParameteri(texmul, GL_GENERATE_MIPMAP, GL_TRUE);
 
 	if( multisample )
 	{
@@ -136,7 +136,9 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
 	//XXX TODO : Remove me.  I think?
-	ret->resolveshader = CNOVRShaderCreate( "resolve" );
+	char stbuf[128];
+	sprintf( stbuf, "#define MULTISAMPLES %d\n", multisample );
+	ret->resolveshader = CNOVRShaderCreateWithPrefix( "resolve", stbuf );
 	ret->resolvegeo = CNOVRModelCreate( 0, 4, GL_TRIANGLES );
 	CNOVRModelAppendMesh( ret->resolvegeo, 1, 1, 0, (cnovr_point3d){ 1, 1, 0 }, 0, 0 );
 	return ret;
@@ -145,6 +147,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 
 void CNOVRFBufferActivate( cnovr_rf_buffer * b )
 {
+	if( CNOVRCheck() ) ovrprintf( "PRE ACTIVAT\n" );
 	b->origw = cnovrstate->iRTWidth;
 	b->origh = cnovrstate->iRTHeight;
 	int w = cnovrstate->iRTWidth = b->width;
@@ -152,18 +155,22 @@ void CNOVRFBufferActivate( cnovr_rf_buffer * b )
 	if( b->multisample )  glEnable( GL_MULTISAMPLE );
 	glBindFramebuffer( GL_FRAMEBUFFER, b->nRenderFramebufferId );
  	glViewport(0, 0, w, h );
+	if( CNOVRCheck() ) ovrprintf( "POST ACTIVATE\n" );
 }
 
 void CNOVRFBufferDeactivate( cnovr_rf_buffer * b )
 {
+	if( CNOVRCheck() ) ovrprintf( "PRE DEACTIVATE\n" );
  	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	int w = cnovrstate->iRTWidth = b->origw;
 	int h = cnovrstate->iRTHeight = b->origh;
  	glViewport(0, 0, w, h );
+	if( CNOVRCheck() ) ovrprintf( "POST DEACTIVATE\n" );
 }
 
 void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 {
+	if( CNOVRCheck() ) ovrprintf( "PRE RESOLVE\n" );
 
 #if 0
 	//Broken???!?
@@ -178,14 +185,16 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 
 	//glEnable( GL_MULTISAMPLE );
 	glBindFramebuffer( GL_FRAMEBUFFER, b->nResolveFramebufferId);
-	glActiveTexture(  GL_TEXTURE0 );
+	glActiveTextureCHEW( GL_TEXTURE0 );
 	if( b->multisample )
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, b->nRenderTextureId );
 	else
 		glBindTexture(GL_TEXTURE_2D, b->nRenderTextureId );
 
+	if( CNOVRCheck() ) ovrprintf( "MIDDLE RESOLVE\n" );
 	CNOVRRender( b->resolveshader );
-	glUniform1i( 17, b->multisample );
+	if( CNOVRCheck() ) ovrprintf( "MIDDLE1 RESOLVE\n" );
+	if( CNOVRCheck() ) ovrprintf( "MIDDLE2 RESOLVE\n" );
 	CNOVRRender( b->resolvegeo );
 #endif
 
@@ -194,6 +203,7 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 	int w = cnovrstate->iRTWidth = b->origw;
 	int h = cnovrstate->iRTHeight = b->origh;
  	glViewport(0, 0, w, h );
+	if( CNOVRCheck() ) ovrprintf( "POST RESOLVE\n" );
 }
 
 
@@ -231,6 +241,7 @@ static void CNOVRShaderDelete( cnovr_shader * ths )
 	CNOVRListDeleteTag( ths );
 	CNOVRJobCancelAllTag( ths, 1 );
 	if( ths->nShaderID ) glDeleteProgram( ths->nShaderID );
+	if( ths->prefix ) free( ths->prefix );
 	//CNOVRShaderFileClearWatchlist( ths );
 	CNOVRFreeLater( ths->shaderfilebase );
 	CNOVRFreeLater( ths );
@@ -299,14 +310,14 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	//printf( "THS: %p\n", ths );
 	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
 	char * found = FileSearch( stfbGeo ); if( found ) strcpy( stfbGeo, found );
-	filedataGeo = stb_include_file( stfbGeo, "", "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
+	filedataGeo = stb_include_file( stfbGeo, ths->prefix, "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
 	//XXX TODO: Do we care about odd errors on geo?
 	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
 	found = FileSearch( stfbFrag ); if( found ) strcpy( stfbFrag, found );
-	filedataFrag = stb_include_file( stfbFrag, "", "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
+	filedataFrag = stb_include_file( stfbFrag, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
 	found = FileSearch( stfbVert ); if( found ) strcpy( stfbVert, found );
-	filedataVert = stb_include_file( stfbVert, "", "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
+	filedataVert = stb_include_file( stfbVert, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 
 	if( includeerrors2[0] )
 	{
@@ -418,12 +429,17 @@ cnovr_header cnovr_shader_header = {
 
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 {
+	return CNOVRShaderCreateWithPrefix( shaderfilebase, 0 );
+}
+
+cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const char * prefix )
+{
 	cnovr_shader * ret = malloc( sizeof( cnovr_shader ) );
 	memset( ret, 0, sizeof( *ret ) );
 	ret->base.header = &cnovr_shader_header;
 	ret->base.tccctx = TCCGetTag();
 	ret->shaderfilebase = strdup( shaderfilebase );
-
+	ret->prefix = prefix?strdup(prefix):0;
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
@@ -439,6 +455,7 @@ cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase )
 
 	return ret;
 }
+
 
 //////////////////////////////////////////////////////////////////////////////
 
