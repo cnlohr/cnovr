@@ -731,9 +731,9 @@ void apply_pose_to_point(cnovr_point3d pout, const cnovr_pose *pose, const cnovr
 
 void apply_pose_to_point_revorder(cnovr_point3d pout, const cnovr_pose *pose, const cnovr_point3d pin) {
 	cnovr_point3d tmp;
-	add3d( pout, tmp, pose->Pos);
+	add3d( tmp, pin, pose->Pos);
 	scale3d( tmp, tmp, pose->Scale );
-	quatrotatevector(tmp, pose->Rot, pin);
+	quatrotatevector(pout, pose->Rot, tmp);
 }
 
 void apply_pose_to_pose(cnovr_pose *pout, const cnovr_pose *lhs_pose, const cnovr_pose *rhs_pose) {
