@@ -122,7 +122,6 @@ void RenderFunction( void * tag, void * opaquev )
 		//Texture?
 		CNOVRRender( spinner_m[i] );
 	}
-
 }
 
 
@@ -139,7 +138,6 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 */
-	printf( "SETUP\n" );
 
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
@@ -156,8 +154,6 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 	texture = CNOVRTextureCreate( 0, 0, 0 ); //Set to all 0 to have the load control these details.
 	CNOVRTextureLoadFileAsync( texture, "test.png" );
-
-	printf( "Create done\n" );
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
@@ -188,17 +184,13 @@ void start( const char * identifier )
 	printf( "Example start %s(%p) + %p %p\n", identifier, identifier );
 
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
-
-	printf( "Example start OK %s + %p %p\n", identifier );
 }
 
 void stop( const char * identifier )
 {
 	shutting_down = 1;
-	printf( "^^ Start stop\n" );
-
 	//OGCancelThread( thdmax );
-	printf( "End stop\n" );
+	printf( "End Example stop\n" );
 }
 
 

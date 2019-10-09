@@ -514,7 +514,7 @@ void * thdfiletimechecker( void * v )
 					double origtime = k->time;
 					k->time = ft;
 					ftopscurrent = k;
-					if( k->time > 1 ) //Make sure this isn't a first-time catch.
+					if( origtime > 1 ) //Make sure this isn't a first-time catch.
 					{
 						filetimetagged * l;
 						filetimetagged * staged;

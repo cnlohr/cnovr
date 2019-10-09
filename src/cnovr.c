@@ -407,9 +407,7 @@ void CNOVRShutdown()
 
 	printf( "Closing cache system\n" );
 	CNOVRInternalStopCacheSystem();
-	printf( "NEXT\n" );
 	CNOVRListSystemDestroy();
-	printf( "NEXT2\n" );
 	CNOVRJobStop();
 
 	printf( "Cleanup complete\n" );

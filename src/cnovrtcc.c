@@ -25,8 +25,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	int r;
 	TCCInstance * tce = (TCCInstance *)tag;
 	int retryno = (intptr_t)opaquev;
-	printf( "Reloading: %p %p\n", tag, tce );
-	printf( "Reloading;%s\n", tce->tccfilename );
+//	printf( "Reloading: %p %p\n", tag, tce );
+	printf( "Reloading: %s [%p %p]\n", tce->tccfilename, tag, tce );
 	OGLockMutex( tccmutex );
 	if( tce->bDontCompile )
 	{
@@ -169,7 +169,8 @@ static void StopTCCInstance( TCCInstance * tcc )
 		TCCInvocation( tcc, tcc->stop( tcc->identifier ) );
 	}
 	InternalShutdownTCC( tcc );
-	tcccrash_deltag( (intptr_t)(void*)tcc->state );
+	printf( "Instance stopped\n" );
+//	tcccrash_deltag( (intptr_t)(void*)tcc->state );
 }
 #if 0
 static void DestroyTCC( TCCInstance * tcc )
@@ -198,6 +199,7 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->bFirst = 1;
 	ret->bClosing = 0;
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
+	CNOVRJobTack( cnovrQAsync, ReloadTCCInstance, ret, 0, 0 );
 	return ret;
 }
 
@@ -245,7 +247,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 	const char * tccsuitefile = cnovrtccsystem.suitefile;
 
 	CNOVRStopTCCSystem();
-	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
+//	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 
 	int filelen;
 	char * filestr = FileToString( tccsuitefile, &filelen );
@@ -265,7 +267,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 		while( i < l )
 		{
 			if( t->type != JSMN_STRING ) goto failout;
-			printf( "%s\n", jsmnstrdup( filestr, t->start, t->end ) );
+			//printf( "%s\n", jsmnstrdup( filestr, t->start, t->end ) );
 			if( strncmp( filestr + t->start, "searchfolders", t->end - t->start ) == 0 )
 			{
 				t = tokens + i++;
@@ -288,7 +290,6 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 				int arraylen = t->size;
 				t = tokens + i++;
 				int j;
-				printf( "CFILES %d\n", arraylen );
 				for( j = 0; j < arraylen; j++ )
 				{
 					char * cfile;
@@ -391,8 +392,9 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 	CNOVRStopTCCSystem();
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
 	cnovrtccsystem.suitefile = strdup( tccsuitefile );
-	printf( "STARTING (and adding list) %s %p\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
+	printf( "CNOVRStartTCCSystem( %s %p )\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
 	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
+	CNOVRJobTack( cnovrQAsync, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0, 0 );
 }
 
 void CNOVRStopTCCSystem()

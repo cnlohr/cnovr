@@ -17,21 +17,34 @@ void OGUnlockSafeMutices();
 
 //////////////////////////////////////////////////////////////////////////////
 
+//#define INVOCATEDEBUG(x) printf( "ICDBG %d\n", x ); 
+#define INVOCATEDEBUG(x)
+
 #define TCCInvocation( v, code ) \
 { \
+	INVOCATEDEBUG(1); \
 	OGSetTLS( tcctlstag, v ); \
+	INVOCATEDEBUG(2); \
 	if( !v || tcccrash_checkpoint() == 0 ) \
 	{ \
+		INVOCATEDEBUG(3); \
 		OGResetSafeMutices(); \
+		INVOCATEDEBUG(4); \
 		code; \
+		INVOCATEDEBUG(5); \
 	} \
 	else \
 	{ \
 		/* We're recovering from a crash */ \
+		INVOCATEDEBUG(6); \
 		OGUnlockSafeMutices(); \
+		INVOCATEDEBUG(7); \
 	} \
+	INVOCATEDEBUG(8); \
 	OGSetTLS( tcctlstag, 0 ); \
+	INVOCATEDEBUG(9); \
 	tcccrash_nullifycheckpoint(); \
+	INVOCATEDEBUG(10); \
 } \
 
 #define TCCGetTag() ((TCCInstance*)OGGetTLS( tcctlstag ))
