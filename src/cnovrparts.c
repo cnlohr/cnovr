@@ -1152,7 +1152,7 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 
 	{
 		float stage[4];
-		float stagen[3];
+		float stagen[4];
 
 		stagen[0] = 0;
 		stagen[1] = 0;
@@ -1323,7 +1323,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 {
 	int filelen;
 	char * file = FileToString( filename, &filelen );
-	char ** splits = SplitStrings( file, "\n", "\r", 1 );
+	char ** splits = SplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );
 
 	int flipv = 1;

@@ -221,8 +221,10 @@ char * FileToString( const char * fname, int * length )
 	return ret;
 }
 
-char ** SplitStrings( const char * line, char * split, char * white, bool merge_fields )
+char ** SplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
 {
+	if( elementcount ) *elementcount = 0;
+
 	if( !line || strlen( line ) == 0 )
 	{
 		char ** ret = malloc( sizeof( char * )  );
@@ -254,12 +256,13 @@ char ** SplitStrings( const char * line, char * split, char * white, bool merge_
 		if( c == 0 || ( ( is_split ) && ( !merge_fields || did_hit_not_white ) ) )
 		{
 			//Mark off new point.
-			lengths[elements-1] = thislengthconfirm + 1; //XXX BUGGY ... Or is bad it?  I can't tell what's wrong.  the "buggy" note was from a previous coding session.
+			lengths[elements-1] = (did_hit_not_white)?(thislengthconfirm + 1):0; //XXX BUGGY ... Or is bad it?  I can't tell what's wrong.  the "buggy" note was from a previous coding session.
 			ret[elements-1] = (char*)lstart + 0; //XXX BUGGY //I promise I won't change the value.
 			needed_bytes += thislengthconfirm + 1;
 			elements++;
 			ret = realloc( ret, elements * sizeof( char * )  );
 			lengths = realloc( lengths, elements * sizeof( int ) );
+			lengths[elements-1] = 0;
 			lstart = line;
 			thislength = 0;
 			thislengthconfirm = 0;
@@ -293,16 +296,19 @@ char ** SplitStrings( const char * line, char * split, char * white, bool merge_
 	} while ( c );
 
 	//Ok, now we have lengths, ret, and elements.
-	ret = realloc( ret, sizeof( char * ) * elements  + needed_bytes );
-	char * retend = ((char*)ret) + (sizeof( char * ) * elements);
+	ret = realloc( ret, ( sizeof( char * ) + 1 ) * elements  + needed_bytes );
+	char * retend = ((char*)ret) + ( (sizeof( char * )) * elements);
+	int lensum1 = 0;
 	for( i = 0; i < elements; i++ )
 	{
 		int len = lengths[i];
+		lensum1 += len + 1;
 		memcpy( retend, ret[i], len );
 		retend[len] = 0;
 		ret[i] = (i == elements-1)?0:retend;
 		retend += len + 1;
 	}
+	if( elementcount && elements ) *elementcount = elements;
 	free( lengths );
 	return ret;
 }
@@ -859,7 +865,7 @@ static void * CNOVRJobProcessor( void * v )
 		if( front )
 		{
 			if( staged->fn ) TCCInvocation( staged->tcctag, staged->fn( staged->tag, staged->opaquev ) );
-			
+
 			//If you were to cancel the job, spinlock until e->staged == 0.
 			staged->tag = 0;
 			staged->tcctag = 0;
@@ -940,9 +946,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		jq->is_staged = 1;
 		BackendDeleteJob( jq, front );
 		OGUnlockMutex( jq->mut );
-
 		if( staged->fn ) TCCInvocation( staged->tcctag, staged->fn( staged->tag, staged->opaquev ) );
-
 		jq->is_staged = 0;
 		staged->tag = 0;
 		staged->tcctag = 0;
@@ -953,7 +957,6 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q )
 		//This is probably a place worth peeking if there's a problem found with this code
 		//verify no race condition in your particular application/fitness
 		OGTSLockMutex( jq->mut );
-
 		while( OGGetSema( jq->pendingsem ) == 0 ) OGUnlockSema( jq->pendingsem ); 
 		OGUnlockMutex( jq->mut );
 		return 1;

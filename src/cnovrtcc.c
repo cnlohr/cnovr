@@ -23,8 +23,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 {
 	if( !tccmutex ) tccmutex = OGCreateMutex();
 	int r;
-	TCCInstance * tce = (TCCInstance *)tag;
-	int retryno = (intptr_t)opaquev;
+	TCCInstance * tce = (TCCInstance *)opaquev;
 //	printf( "Reloading: %p %p\n", tag, tce );
 	printf( "Reloading: %s [%p %p]\n", tce->tccfilename, tag, tce );
 	OGLockMutex( tccmutex );
@@ -104,10 +103,6 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	tce->start = (tcccbfn)tcc_get_symbol( tce->state, "start" );
 
 	printf( "Ok... Unlocking\n" );
-
-
-
-
 	OGUnlockMutex( tccmutex );
 
 	if( tce->bFirst && tce->init)
@@ -198,8 +193,10 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->bDynamicGen = bDynamicGen;
 	ret->bFirst = 1;
 	ret->bClosing = 0;
-	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, ret, 0 );
-	CNOVRJobTack( cnovrQAsync, ReloadTCCInstance, ret, 0, 0 );
+
+	//COMPLEX!!! We don't use the tag here, otherwise, the TCC system will try to close this event if it's trying to close out causing a deadlock.
+	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, 0, ret );
+	CNOVRJobTack( cnovrQAsync, ReloadTCCInstance, 0, ret, 0 );
 	return ret;
 }
 

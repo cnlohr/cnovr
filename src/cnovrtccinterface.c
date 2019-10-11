@@ -11,6 +11,9 @@
 #include <cnrbtree.h>
 #include <chew.h>
 
+
+#define MARKOGLockMutex( x )  OGLockMutex( x );
+#define MARKOGUnlockMutex( x ) OGUnlockMutex( x );
 ////////////////////////////////////////////////////////////////////////////////
 //
 // XXX TODO: Make a better mapping from TCCGetTag() to the cleanup object.
@@ -121,7 +124,7 @@ void internal_tcc_crash_free( void * data )
 //This is a FINAL SHUTDOWN when the system is going down.  DO NOT call this unless you are totally ready for a shutdown.
 void InternalBreakdownRestOfTCCInterface()
 {
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	CNOVRJobCancelAllTag( 0, 0 );
 	CNOVRListDeleteTCCTag( 0 );
 	printf( "BREAKING DOWN REST OF TCC Interface\n" );
@@ -170,8 +173,9 @@ void InternalShutdownTCC( TCCInstance * tce )
 {
 	printf( "Shutting down TCC Instance %p\n", tce );
 	tce->bClosing = 1;
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * o = CNHashGetValue( objects_to_delete, tce );
+	printf( "Got O %p\n", o );
 	if( o )
 	{
 		void * i;
@@ -181,7 +185,9 @@ void InternalShutdownTCC( TCCInstance * tce )
 		}
 		cnptrset_destroy( o->threads );
 		CNOVRFocusRemoveTag( tce );
+		MARKOGUnlockMutex( tccinterfacemutex );
 		CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
+		MARKOGLockMutex( tccinterfacemutex );
 		CNOVRListDeleteTCCTag( tce );
 		cnptrset_foreach( o->tccobjects, i ) { CNOVRDeleteBase( ((cnovr_base*)i) ); }
 		cnptrset_destroy( o->tccobjects );
@@ -200,10 +206,12 @@ void InternalShutdownTCC( TCCInstance * tce )
 	else
 	{
 		CNOVRFocusRemoveTag( tce );
+		MARKOGUnlockMutex( tccinterfacemutex );
 		CNOVRJobCancelAllTag( tce, 1 ); //XXX TODO XXX We need a way of cancelling the currently running operation so we CAN block.
+		MARKOGLockMutex( tccinterfacemutex );
 		CNOVRListDeleteTCCTag( tce );
 	}
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	printf( "Shutdown complete.\n" );
 }
 
@@ -247,10 +255,10 @@ og_thread_t TCCOGCreateThread( void * (routine)( void * ), void * parameter )
 	m->routine = routine;
 
 	og_thread_t ret = OGCreateThread( cnovr_internal_thread_starter, m );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->threads, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 
 
 	return ret;
@@ -259,126 +267,126 @@ og_thread_t TCCOGCreateThread( void * (routine)( void * ), void * parameter )
 void * TCCOGJoinThread( og_thread_t ot )
 {
 	og_thread_t ret = OGJoinThread( ot );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_remove( c->threads, ot );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 void TCCOGCancelThread( og_thread_t ot )
 {
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	OGCancelThread( ot );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_remove( c->threads, ot );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
 og_mutex_t TCCOGCreateMutex()
 {
 	og_mutex_t ret = OGCreateMutex();
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->mutices, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 void TCCOGDeleteMutex( og_mutex_t om )
 {
 	OGDeleteMutex( om );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_remove( c->mutices, om );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
 og_sema_t TCCOGCreateSema()
 {
 	og_sema_t ret = OGCreateSema();
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->semaphores, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 void TCCOGDeleteSema( og_sema_t os )
 {
 	OGDeleteSema( os );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_remove( c->semaphores, os );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
 og_tls_t TCCOGCreateTLS()
 {
 	og_sema_t ret = OGCreateTLS();
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tlses, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 static void TCCOGDeleteTLS( og_tls_t key )
 {
 	OGDeleteTLS( key );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_remove( c->tlses, key );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
 static cnovr_shader * TCCCNOVRShaderCreate( const char * shaderfilebase )
 {
 	cnovr_shader * ret = CNOVRShaderCreate( shaderfilebase );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 static cnovr_texture * TCCCNOVRTextureCreate( int w, int h, int chan )
 {
 	cnovr_texture * ret = CNOVRTextureCreate( w, h, chan );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 static cnovr_simple_node * TCCCNOVRNodeCreateSimple( int reserved_size )
 {
 	cnovr_simple_node * ret = CNOVRNodeCreateSimple( reserved_size );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int num_vbos, int rendertype )
 {
 	cnovr_model * ret = CNOVRModelCreate( initial_indices, num_vbos, rendertype );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	return ret;
 }
 
 static void TCCCNOVRDeleteBase( cnovr_base * b )
 {
 	CNOVRDeleteBase( b );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_remove( c->tccobjects, b );
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
 
@@ -515,7 +523,7 @@ static float TCCffloor( float x ) { return FLT_FLOOR(x); }
 void InternalPopulateTCC( TCCInstance * tce )
 {
 	printf( "InternalPopulateTCC { %p }\n", tce );
-	OGLockMutex( tccinterfacemutex );
+	MARKOGLockMutex( tccinterfacemutex );
 
 	TCCExport( realloc );
 	TCCExport( malloc );
@@ -734,7 +742,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( atan2 );
 
 #endif
-	OGUnlockMutex( tccinterfacemutex );
+	MARKOGUnlockMutex( tccinterfacemutex );
 	printf( "Populate done\n" );
 }
 

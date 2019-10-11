@@ -232,8 +232,8 @@ void * GetTextureThread( void * v )
 //	ListWindows();
 //	AllocateNewWindow( 0, "/firefox", -1 );
 	AllocateNewWindow( "Frame Timing", 0, -1 );
-	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
-	AllocateNewWindow( 0, "/xed", -1 );
+//	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
+//	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
 	while( !quitting )
@@ -407,6 +407,7 @@ int DockableWindowFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pr
 
 void prerender_startup( void * tag, void * opaquev )
 {
+	printf( "=== Prerender startup\n" );
 	int i;
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
@@ -453,36 +454,37 @@ void prerender_startup( void * tag, void * opaquev )
 	CNOVRListAdd( cnovrLPrerender, &handle, PreRender );
 	CNOVRListAdd( cnovrLUpdate, &handle, Update );
 	CNOVRListAdd( cnovrLPostRender, &handle, PostRender );
+	printf( "=== Prerender startup complete\n" );
 }
 
 void start( const char * identifier )
 {
-	printf( "Start\n" );
+	printf( "=== draggablewindows.c Start\n" );
 	store = CNOVRNamedPtrData( "draggablewindowsdata", 0, 1024 );
 //	store->initialized = 0;
 
-	printf( "Store: %p\n", store );
-	printf( "Dockables start %s(%p)\n", identifier, identifier );
+	printf( "=== Store: %p\n", store );
+	printf( "=== Dockables start %s(%p)\n", identifier, identifier );
 	CNOVRJobTack( cnovrQPrerender, prerender_startup, 0, 0, 0 );
-	printf( "Dockables start OK %s\n", identifier );
+	printf( "=== Dockables start OK %s\n", identifier );
 
 }
 
 void stop( const char * identifier )
 {
+	printf( "=== draggablewindows.c stop\n" );
 	CNOVRListDeleteTCCTag( 0 );
 
 	quitting = 1;
-	printf( "Joining\n" );
 	if( gtt ) 
 	{
-		printf( "actually joining\n" );
+		printf( "=== actually joining\n" );
 		OGJoinThread( gtt );
 	}
-	printf( "Stopped\n" );
+	printf( "=== Stopped\n" );
 
 	CNOVRListDeleteTag( &handle );
-	printf( "Dockables Destroying: %p %p\n" ,shader );
+	printf( "=== Dockables Destroying: %p %p\n" ,shader );
 	int i;
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
@@ -501,6 +503,6 @@ void stop( const char * identifier )
 
 
 	CNOVRDelete( shader );
-	printf( "Dockables End stop\n" );
+	printf( "=== Dockables End stop\n" );
 }
 

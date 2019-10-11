@@ -127,6 +127,7 @@ void RenderFunction( void * tag, void * opaquev )
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
+	printf( "+++ Example scene setup\n" );
 	int i;
 	shader = CNOVRShaderCreate( "assets/example" );
 /*
@@ -159,6 +160,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLRender, 0, RenderFunction );
 	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
+	printf( "+++ Example scene setup complete\n" );
 }
 
 
@@ -166,7 +168,7 @@ void start( const char * identifier )
 {
 
 	store = CNOVRNamedPtrData( "examplecodestore", 0, sizeof( *store ) + 1024 );
-	printf( "Initializing %p\n", store );
+	printf( "=== Initializing %p\n", store );
 //	store->initialized = 0;
 	if( !store->initialized )
 	{
@@ -181,16 +183,15 @@ void start( const char * identifier )
 	}
 
 	identifier = strdup(identifier);
-	printf( "Example start %s(%p) + %p %p\n", identifier, identifier );
-
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
+	printf( "=== Example start %s(%p) + %p %p\n", identifier, identifier );
 }
 
 void stop( const char * identifier )
 {
 	shutting_down = 1;
 	//OGCancelThread( thdmax );
-	printf( "End Example stop\n" );
+	printf( "=== End Example stop\n" );
 }
 
 

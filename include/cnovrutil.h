@@ -27,7 +27,7 @@ void * CNOVRNamedPtrData( const char * namedptr, const char * type, int size );
 //////////////////////////////////////////////////////////////////////////////
 
 char * FileToString( const char * fname, int * length );
-char ** SplitStrings( const char * line, char * split, char * white, bool merge_fields ); //You can just free(...) the return. it's safe.
+char ** SplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount ); //You can just free(...) the return. it's safe.
 int StringCompareEndingCase( const char * thing_to_search, const char * check_extension );
 
 //////////////////////////////////////////////////////////////////////////////
