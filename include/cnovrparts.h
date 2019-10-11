@@ -188,7 +188,7 @@ typedef struct cnovr_model_t
 
 //XXX TODO: Reorganize this.
 
-cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertype );
+cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype );
 
 
 void CNOVRModelSetNumVBOs( cnovr_model * m, int vbos );

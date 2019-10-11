@@ -213,7 +213,6 @@ void InternalCNOVRFocusUpdate()
 					TCCInvocation( props->capturedPassive->tcctag, props->capturedPassive->cb( CNOVRF_IN, props->capturedPassive, props, 0 ) );
 				}
 			}
-
 			if( ( cap = props->capturedFocus   ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_DRAG, cap, props, 0 ) ); }
 			if( ( cap = props->capturedPassive ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_MOTION, cap, props, 0 ) ); }
 			OGUnlockMutex( FOCUS.mutFocus );
@@ -246,7 +245,7 @@ void InternalCNOVRFocusUpdate()
 							if( FOCUS.rendermodelnames[ctrl] ) free(  FOCUS.rendermodelnames[ctrl] );
 							rmname = FOCUS.rendermodelnames[ctrl] = strdup( rmname );
 							cnovr_model * m = FOCUS.mdlRenderModels[ctrl];
-							if( !m ) m = FOCUS.mdlRenderModels[ctrl] = CNOVRModelCreate( 0, 0, GL_TRIANGLES );
+							if( !m ) m = FOCUS.mdlRenderModels[ctrl] = CNOVRModelCreate( 0, GL_TRIANGLES );
 							char rmname2[256];
 							sprintf( rmname2, "%s.rendermodel", rmname );
 							CNOVRModelLoadFromFileAsync( m, rmname2 );
@@ -276,8 +275,8 @@ void InternalCNOVRFocusShutdown()
 
 void InternalCNOVRFocusPrerenderStartup()
 {
-	FOCUS.mdlPointer = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
-	FOCUS.mdlHitPos = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
+	FOCUS.mdlPointer = CNOVRModelCreate( 0, GL_TRIANGLES );
+	FOCUS.mdlHitPos = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelAppendCube( FOCUS.mdlHitPos, (cnovr_point3d){ .0055, .0055, .0055 }, 0, 0 );
 	CNOVRModelAppendCube( FOCUS.mdlPointer, (cnovr_point3d){ .005, .005, CNOVRFOCUS_FAR }, 0, 0 );
 	FOCUS.shdPointer = CNOVRShaderCreate( "pointer" );	
@@ -479,10 +478,11 @@ void CNOVRModelSetInteractable( cnovr_model * m, cnovrfocus_capture * focusevent
 	}
 }
 
-void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, int event, int buttoninfo )
+
+void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo )
 {
 	int devid = prop->devid;
-	cnovr_model_focus_controller * fc = m->focuscontrol;
+//	cnovr_model_focus_controller * fc = m->focuscontrol;
 	if( !fc ) return;
 
 
@@ -546,7 +546,7 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 								//Now, apply the rotation to the quaternion.
 								quatrotateabout( fc->pose_internal.Rot, rot2AB, fc->pose_internal.Rot );
 							}
-							memcpy( m->pose, &fc->pose_internal, sizeof( cnovr_pose ) );
+							memcpy( pose, &fc->pose_internal, sizeof( cnovr_pose ) );
 							copy3d( fc->gplast[CNOVRINPUTDEV_LEFT], grabposworldspaceLeft );
 							copy3d( fc->gplast[CNOVRINPUTDEV_RIGHT], grabposworldspaceRight );
 						}
@@ -574,7 +574,7 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 								//Now, apply the rotation to the quaternion.
 								quatrotateabout( cumulative_pose_change.Rot, rot2AB, cumulative_pose_change.Rot );
 							}
-							memcpy( m->pose, &cumulative_pose_change, sizeof( cnovr_pose ) );
+							memcpy( pose, &cumulative_pose_change, sizeof( cnovr_pose ) );
 						}
 
 						//Sanity Check
@@ -589,13 +589,13 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 						scalediff = magnitude3d( rrpEnd ) / magnitude3d( rrpBegin );
 						quatfrom2vectors( rot2AB, rrpBegin, rrpEnd );
 						//Now, apply this rotation to the object center.
-						sub3d( rrpObjectCenter, m->pose->Pos, fixed );
+						sub3d( rrpObjectCenter, pose->Pos, fixed );
 						scale3d( rrpObjectCenter, rrpObjectCenter, scalediff );
 						quatrotatevector( rrpObjectCenter, rot2AB, rrpObjectCenter );
-						add3d( m->pose->Pos, rrpObjectCenter, fixed );
-						m->pose->Scale *= scalediff;
+						add3d( pose->Pos, rrpObjectCenter, fixed );
+						pose->Scale *= scalediff;
 						//Now, apply the rotation to the quaternion.
-						quatrotateabout( m->pose->Rot, rot2AB, m->pose->Rot );*/
+						quatrotateabout( pose->Rot, rot2AB, pose->Rot );*/
 
 						fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] = &prop->poseTip;
 					}
@@ -603,10 +603,10 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 				else if( fc->focusgrab[devid] )
 				{
 					//Regular 1-hand grab.
-					float keepscale = m->pose->Scale;
+					float keepscale = pose->Scale;
 					cnovr_pose * p = fc->focusgrab[devid];
-					apply_pose_to_pose( m->pose, &prop->poseTip, p );
-					m->pose->Scale = keepscale;
+					apply_pose_to_pose( pose, &prop->poseTip, p );
+					pose->Scale = keepscale;
 
 					//Just in case we click another controller, we also want to store what the other hand would be.
 					float z = fc->initial_grab_z[devid] = prop->NewPassiveRealDistance;
@@ -626,11 +626,11 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 				//Make sure if we were doing a two-hand grab, we release both.
 				if( devid == CNOVRINPUTDEV_LEFT && fc->focusgrab[CNOVRINPUTDEV_RIGHT] )
 				{
-					unapply_pose_from_pose( fc->focusgrab[CNOVRINPUTDEV_RIGHT], fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT], m->pose );
+					unapply_pose_from_pose( fc->focusgrab[CNOVRINPUTDEV_RIGHT], fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT], pose );
 				}
 				if( devid == CNOVRINPUTDEV_RIGHT && fc->focusgrab[CNOVRINPUTDEV_LEFT] )
 				{
-					unapply_pose_from_pose( fc->focusgrab[CNOVRINPUTDEV_LEFT], fc->twohandgrab_last[CNOVRINPUTDEV_LEFT], m->pose );
+					unapply_pose_from_pose( fc->focusgrab[CNOVRINPUTDEV_LEFT], fc->twohandgrab_last[CNOVRINPUTDEV_LEFT], pose );
 				}
 			}
 			break;
@@ -649,12 +649,12 @@ void CNOVRModelHandleFocusEvent( cnovr_model * m, cnovrfocus_properties * prop, 
 			float z = fc->initial_grab_z[devid] = prop->NewPassiveRealDistance;
 			cnovr_point3d grabpos_conroller_space = { 0, 0, z };
 			apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_conroller_space );
-			unapply_pose_from_pose( fc->focusgrab[devid], &prop->poseTip, m->pose );
+			unapply_pose_from_pose( fc->focusgrab[devid], &prop->poseTip, pose );
 
 			if( fc->twohandgrab_last[CNOVRINPUTDEV_LEFT] && fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] )
 			{
 				//Use this as the starting property for the two-handed grab.
-				memcpy( &fc->pose_internal, m->pose, sizeof( cnovr_pose ) );
+				memcpy( &fc->pose_internal, pose, sizeof( cnovr_pose ) );
 			}
 			break;
 		}

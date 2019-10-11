@@ -370,9 +370,9 @@ static cnovr_simple_node * TCCCNOVRNodeCreateSimple( int reserved_size )
 	return ret;
 }
 
-static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int num_vbos, int rendertype )
+static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int rendertype )
 {
-	cnovr_model * ret = CNOVRModelCreate( initial_indices, num_vbos, rendertype );
+	cnovr_model * ret = CNOVRModelCreate( initial_indices, rendertype );
 	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
@@ -504,6 +504,27 @@ void TCCCNOVRFocusRemoveTag( void * tag )
 	CNOVRFocusRemoveTag( TCCGetTag() );
 }
 
+char ** TCCSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
+{
+	char ** ret = TCCSplitStrings( line, split, white, merge_fields, elementcount );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
+char * TCCFileToString( const char * fname, int * length )
+{
+	char * ret = FileToString( fname, length );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
+void * TCCGetCurrentTag()
+{
+	return TCCGetTag();
+}
+
 #if defined( WINDOWS  ) || defined ( WIN32 ) || defined( WIN64 )
 //XXX TODO: I think we'll need these maybe?
 static void TCC_InterlockedExchangeAdd( ) { ovrprintf( "Unsupported function\n" );  }
@@ -530,6 +551,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( calloc );
 	TCCExport( free );
 	TCCExport( strdup );
+	TCCExportS( memcpy );
 	TCCExport( strndup );
 
 	TCCExportS( CNOVRAlertv );
@@ -558,6 +580,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( OGDeleteTLS );
 	TCCExportS( OGGetTLS );
 	TCCExportS( OGSetTLS );
+	TCCExport( GetCurrentTag );
 
 //Oddball things
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
@@ -585,6 +608,10 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( CNOVRNodeCreateSimple );
 	TCCExportS( CNOVRVBOTaint );
 	TCCExport( CNOVRModelCreate );
+	TCCExportS( CNOVRModelSetNumVBOs );
+	TCCExportS( CNOVRCreateVBO ); //XXX Hmm how would we track this?  Should this always be passed a model?
+	TCCExportS( CNOVRModelTaintIndices );
+	TCCExportS( CNOVRModelTackIndex );
 	TCCExportS( CNOVRModelRenderWithPose );
 	TCCExportS( CNOVRModelApplyTextureFromFileAsync );
 	TCCExportS( CNOVRModelAppendMesh );
@@ -595,7 +622,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRTextureLoadFileAsync );
 	TCCExportS( CNOVRModelAppendCube );
 	TCCExportS( CNOVRModelCollide );
-	TCCExportS( CNOVRModelHandleFocusEvent );
+	TCCExportS( CNOVRGeneralHandleFocusEvent );
 	TCCExportS( CNOVRModelSetInteractable );
  
 	TCCExportS( CNOVRNodeAddObject );
@@ -604,6 +631,10 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRNamedPtrData );
 	TCCExportS( CNOVRNamedPtrSave );
 	TCCExportS( CNOVRNamedPtrGet );
+
+
+	TCCExport( SplitStrings );
+	TCCExport( FileToString );
 
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );

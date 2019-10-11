@@ -139,7 +139,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	char stbuf[128];
 	sprintf( stbuf, "#define MULTISAMPLES %d\n", multisample );
 	ret->resolveshader = CNOVRShaderCreateWithPrefix( "resolve", stbuf );
-	ret->resolvegeo = CNOVRModelCreate( 0, 4, GL_TRIANGLES );
+	ret->resolvegeo = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelAppendMesh( ret->resolvegeo, 1, 1, 0, (cnovr_point3d){ 1, 1, 0 }, 0, 0 );
 	return ret;
 }
@@ -868,7 +868,7 @@ static void CNOVRModelRender( cnovr_model * m )
 	}
 
 //	glEnableClientState(GL_VERTEX_ARRAY);
-	glDrawElements( GL_TRIANGLES, m->iIndexCount, GL_UNSIGNED_INT, 0 );
+	glDrawElements( m->nRenderType, m->iIndexCount, GL_UNSIGNED_INT, 0 );
 //	glDisableClientState(GL_VERTEX_ARRAY);            // deactivate vertex position array
 	glBindBuffer( GL_ARRAY_BUFFER, 0 );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,  0);
@@ -882,7 +882,7 @@ cnovr_header cnovr_model_header = {
 };
 
 
-cnovr_model * CNOVRModelCreate( int initial_indices, int num_vbos, int rendertype )
+cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 {
 	cnovr_model * ret = malloc( sizeof( cnovr_model ) );
 	memset( ret, 0, sizeof( cnovr_model ) );

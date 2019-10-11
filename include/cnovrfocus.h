@@ -114,8 +114,61 @@ typedef struct cnovr_model_focus_controller_t
 // Focus Stuff
 
 void CNOVRModelSetInteractable( struct cnovr_model_t * m, cnovrfocus_capture * focusevent );
-void CNOVRModelHandleFocusEvent( struct cnovr_model_t * m, cnovrfocus_properties * prop, int event, int buttoninfo );
+//void CNOVRGeneralHandleFocusEvent( cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo );
+void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo );
 
+/* If you want to manually hook the event...
+
+	cnovr_model_focus_controller focuscontrol;
+
+	void CollisionChecker( void * tag, void * opaquev )
+	{
+		//(2)
+		cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
+		//tag is tag
+		//Use 'p' to figure out where the collision happened.
+		CNOVRFocusRespond( &focuscontrol, 60.0 ); //We're just returning 60.0
+	}
+
+	int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+	{
+		//(3)
+
+		//printf( "EVENT: %d %d %d\n", event, cap->opaque, buttoninfo );
+		void * tag = (tag*)cap->opaque;
+		int id = m->iOpaque;
+		switch( event )
+		{
+			case CNOVRF_DOWNNOFOCUS:
+				if( buttoninfo == 0 ) {  } //Catpured event, do something
+				break;
+			case CNOVRF_LOSTFOCUS:
+				//Do something
+				break;
+			case CNOVRF_ACQUIREDFOCUS:
+				//Do something
+				break;
+		}
+
+		CNOVRGeneralHandleFocusEvent( some_pose, prop, event, buttoninfo );
+
+		if( event == CNOVRF_DRAG )
+		{
+			cnovr_pose * dragout = &store->modelpose[id];
+		}
+		return 0;
+	}
+
+	cnovrfocus_capture focuseventdata { GetTag(), 0, 0, EventChecker };
+
+	setup
+	{
+		memset( &focuscontrol, 0, sizeof(focuscontrol) );
+		//if( fc->focusevent ) CNOVRListDeleteTag( tag ); 
+		focuscontrol->focusevent = &focuseventdata;
+		CNOVRListAdd( cnovrLCollide, tag, CollisionChecker );  //(1)
+	}
+*/
 
 
 #endif

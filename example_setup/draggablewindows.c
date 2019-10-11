@@ -395,7 +395,8 @@ void Render()
 
 int DockableWindowFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
-	CNOVRModelHandleFocusEvent( cap->opaque, prop, event, buttoninfo );
+	cnovr_model * m = (cnovr_model*)cap->opaque;
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
 	if( event == CNOVRF_LOSTFOCUS )
 	{
 		CNOVRNamedPtrSave( "draggablewindowsdata" );
@@ -415,7 +416,7 @@ void prerender_startup( void * tag, void * opaquev )
 
 		//XXX TODO: Wouldn't it be cool if we could make this a single render call?
 		//Not sure how we would handle the textures, though.
-		dw->model = CNOVRModelCreate( 0, 4, GL_TRIANGLES );
+		dw->model = CNOVRModelCreate( 0, GL_TRIANGLES );
 		cnovr_point4d extradata = { i, 0, 0, 0 };
 		CNOVRModelAppendMesh( dw->model, 1, 1, 1, (cnovr_point3d){ 1, 1, 0 }, 0, &extradata );
 		CNOVRModelAppendMesh( dw->model, 1, 1, 1, (cnovr_point3d){ -1, 1, 0. }, 0, &extradata );

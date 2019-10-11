@@ -4,6 +4,14 @@
 	],
 	"cfiles" : [
 		{
+			"cfile" : "draggablewindows.c",
+			"identifier" : "dockable"
+		},
+		{
+			"cfile" : "starfield/starfield.c",
+			"identifier" : "starfield"
+		},
+		{
 			"cfile" : "example.c",
 			"identifier" : "example1",
 			"additionalfiles" : [
@@ -11,10 +19,7 @@
 				"another2.h"
 			]
 		},
-		{
-			"cfile" : "draggablewindows.c",
-			"identifier" : "dockable"
-		}
+
 	]
 }
 

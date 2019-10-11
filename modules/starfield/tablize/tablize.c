@@ -136,7 +136,7 @@ Field   Do we care    Star data near
 			fprintf( stderr, "Warning constellationship line %d bad. [2]\n", i+ 1  );
 			continue;
 		}
-		fprintf( ffh, "\t{ {'%c', '%c', '%c'}, %d }\n", fields[0][0], fields[0][1], fields[0][2], expected_line_segs );
+		fprintf( ffh, "\t{ {'%c', '%c', '%c'}, %d },\n", fields[0][0], fields[0][1], fields[0][2], expected_line_segs );
 		int k;
 		outlinesegs += expected_line_segs * 2;
 		linesegs = realloc( linesegs, outlinesegs*4 );
