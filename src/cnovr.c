@@ -74,8 +74,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 	InternalSetupTCCInterface();
 	CNOVRListSystemInit();
-	FileSearchAddPath( "assets" ); //Base fallback (also initializes file search system)
-	FileSearchAddPath( "modules" ); //Base fallback (also initializes file search system)
+	CNOVRFileSearchAddPath( "assets" ); //Base fallback (also initializes file search system)
+	CNOVRFileSearchAddPath( "modules" ); //Base fallback (also initializes file search system)
 
 	ovrprintf( "Initializing Window.\n" );
 

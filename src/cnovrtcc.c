@@ -246,7 +246,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 
 	int filelen;
-	char * filestr = FileToString( tccsuitefile, &filelen );
+	char * filestr = CNOVRFileToString( tccsuitefile, &filelen );
 	jsmn_parser jp;
 	jsmntok_t tokens[1024];
 	jsmn_init( &jp );
@@ -274,7 +274,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 				{
 					t = tokens + i++;
 					char * st = jsmnstrdup( filestr, t->start, t->end );
-					FileSearchAddPath( st );
+					CNOVRFileSearchAddPath( st );
 					sb_push( cnovrtccsystem.searchfolders, strdup( st ) );
 				}
 			}
@@ -303,7 +303,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							if( t->type == JSMN_STRING && cfile == 0 )
 							{
 								char * tmp = jsmnstrdup( filestr, t->start, t->end );
-								tmp = FileSearch( tmp );
+								tmp = CNOVRFileSearch( tmp );
 								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
 								cfile = strdup( tmp );
 							}
@@ -341,7 +341,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 								t = tokens + i++;
 								if( t->type != JSMN_STRING ) goto failout;
 								char * tmp = jsmnstrdup( filestr, t->start, t->end );
-								tmp = FileSearch( tmp );
+								tmp = CNOVRFileSearch( tmp );
 								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
 								sb_push( additionalfiles, strdup( tmp ) );
 							}
@@ -429,7 +429,7 @@ void CNOVRStopTCCSystem()
 		int count = sb_count( cnovrtccsystem.searchfolders );
 		for( i = 0; i < count; i++ )
 		{
-			FileSearchRemovePath( cnovrtccsystem.searchfolders[i] );
+			CNOVRFileSearchRemovePath( cnovrtccsystem.searchfolders[i] );
 			free( cnovrtccsystem.searchfolders[i] );
 		}
 		sb_free( cnovrtccsystem.searchfolders );

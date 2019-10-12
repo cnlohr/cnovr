@@ -27,16 +27,16 @@ void * CNOVRNamedPtrData( const char * namedptr, const char * type, int size );
 
 //////////////////////////////////////////////////////////////////////////////
 
-char * FileToString( const char * fname, int * length );
-char ** SplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount ); //You can just free(...) the return. it's safe.
-int StringCompareEndingCase( const char * thing_to_search, const char * check_extension );
+char * CNOVRFileToString( const char * fname, int * length );
+char ** CNOVRSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount ); //You can just free(...) the return. it's safe.
+int CNOVRStringCompareEndingCase( const char * thing_to_search, const char * check_extension );
 
 //////////////////////////////////////////////////////////////////////////////
 
-char * FileSearch( const char * fname ); //Returns a thread-local reference.
-char * FileSearchAbsolute( const char * fname ); //Returns a thread-local reference.
-void FileSearchAddPath( const char * path ); //This function dups your string.
-void FileSearchRemovePath( const char * path );
+char * CNOVRFileSearch( const char * fname ); //Returns a thread-local reference.
+char * CNOVRFileSearchAbsolute( const char * fname ); //Returns a thread-local reference.
+void CNOVRFileSearchAddPath( const char * path ); //This function dups your string.
+void CNOVRFileSearchRemovePath( const char * path );
 
 //////////////////////////////////////////////////////////////////////////////
 

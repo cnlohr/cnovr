@@ -308,7 +308,7 @@ void InternalCNOVRFocusSetup()
 
 	if( cnovrstate->oInput )
 	{
-		char * manifestpath = FileSearchAbsolute( "default_actions.json" );
+		char * manifestpath = CNOVRFileSearchAbsolute( "default_actions.json" );
 		if( !manifestpath )
 		{
 			ovrprintf( "FAULT: Could not find action manifest path.\n" );

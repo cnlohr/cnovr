@@ -56,7 +56,7 @@ static void RenderFunction( void * tag, void * opaquev )
 	if( starpose->Scale < .01 ) starpose->Scale = .01;
 	float scales = starpose->Scale;
 	float fvu[4] = { 1., scales, 0., 0. };
-	printf( "%f\n", scales );
+	//printf( "%f\n", scales );
 	cnovr_pose outpose;
 	memcpy( &outpose, starpose, sizeof( cnovr_pose ) );
 	outpose.Scale = 1.0;
@@ -185,7 +185,7 @@ void start( const char * identifier )
 {
 	printf( "Loading stars\n" );
 	int len = 0;
-	database = (flat_star*)FileToString( "modules/starfield/tablize/flat_stars.dat", &len );
+	database = (flat_star*)CNOVRFileToString( "modules/starfield/tablize/flat_stars.dat", &len );
 	numstars = len/sizeof(flat_star);
 	printf( "Loaded %d bytes, %d stars\n", len, numstars );
 
@@ -198,6 +198,7 @@ void start( const char * identifier )
 	starfield_data1 = malloc( sizeof( float ) * 4 * numstars );
 	starfield_data2 = malloc( sizeof( float ) * 4 * numstars );
 
+	printf( "partX\n" );
 	int i;
 	for( i = 0; i < numstars; i++ )
 	{
@@ -214,8 +215,9 @@ void start( const char * identifier )
 		f2[3] = 1;
 	}
 
-	
+	printf( "Part 1 OK\n" );
 	starpose = NAMEDPTRTYPED( "starpose", cnovr_pose );
+	printf( "Starpose: %p\n", starpose );
 	if( starpose->Scale == 0 )
 	{
 		pose_make_identity( starpose );

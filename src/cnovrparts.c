@@ -309,14 +309,14 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	includeerrors2[0] = 0;
 	//printf( "THS: %p\n", ths );
 	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
-	char * found = FileSearch( stfbGeo ); if( found ) strcpy( stfbGeo, found );
+	char * found = CNOVRFileSearch( stfbGeo ); if( found ) strcpy( stfbGeo, found );
 	filedataGeo = stb_include_file( stfbGeo, ths->prefix, "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
 	//XXX TODO: Do we care about odd errors on geo?
 	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
-	found = FileSearch( stfbFrag ); if( found ) strcpy( stfbFrag, found );
+	found = CNOVRFileSearch( stfbFrag ); if( found ) strcpy( stfbFrag, found );
 	filedataFrag = stb_include_file( stfbFrag, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
-	found = FileSearch( stfbVert ); if( found ) strcpy( stfbVert, found );
+	found = CNOVRFileSearch( stfbVert ); if( found ) strcpy( stfbVert, found );
 	filedataVert = stb_include_file( stfbVert, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 
 	if( includeerrors2[0] )
@@ -443,13 +443,13 @@ cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const c
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
-	char * found = FileSearch( stfb );
+	char * found = CNOVRFileSearch( stfb );
 	CNOVRFileTimeAddWatch( found, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.frag", shaderfilebase );
-	found = FileSearch( stfb );
+	found = CNOVRFileSearch( stfb );
 	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.vert", shaderfilebase );
-	found = FileSearch( stfb );
+	found = CNOVRFileSearch( stfb );
 	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
 	CNOVRShaderFileChange( ret, 0 );
 
@@ -467,7 +467,7 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	OGUnlockMutex( t->mutProtect );
 
 	int x, y, chan;
-	const char * ffn = FileSearch( localfn );
+	const char * ffn = CNOVRFileSearch( localfn );
 	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 4 );
 	CNOVRFileTimeAddWatch( ffn, CNOVRTextureLoadFileTask, tag, 0 );
 	free( localfn );
@@ -1322,8 +1322,8 @@ struct TempObject
 static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 {
 	int filelen;
-	char * file = FileToString( filename, &filelen );
-	char ** splits = SplitStrings( file, "\n", "\r", 1, 0 );
+	char * file = CNOVRFileToString( filename, &filelen );
+	char ** splits = CNOVRSplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );
 
 	int flipv = 1;
@@ -1582,11 +1582,11 @@ void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump )
 	OGLockMutex( m->model_mutex );
 	char * filename = m->geofile;
 	int slen = strlen( filename );
-	if( StringCompareEndingCase( filename, ".obj" ) == 0 )
+	if( CNOVRStringCompareEndingCase( filename, ".obj" ) == 0 )
 	{
 		CNOVRModelLoadOBJ( m, filename );
 	}
-	else if( StringCompareEndingCase( filename, ".rendermodel" ) == 0 )
+	else if( CNOVRStringCompareEndingCase( filename, ".rendermodel" ) == 0 )
 	{
 		CNOVRModelLoadRenderModel( m, filename );
 	}

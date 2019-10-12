@@ -214,7 +214,7 @@ void InternalShutdownNamedPtrs()
 
 ////////////////////////////////////////////////////////////////////////////////
 
-char * FileToString( const char * fname, int * length )
+char * CNOVRFileToString( const char * fname, int * length )
 {
 	FILE * f = fopen( fname, "rb" );
 	if( !f ) return 0;
@@ -233,7 +233,7 @@ char * FileToString( const char * fname, int * length )
 	return ret;
 }
 
-char ** SplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
+char ** CNOVRSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
 {
 	if( elementcount ) *elementcount = 0;
 
@@ -325,7 +325,7 @@ char ** SplitStrings( const char * line, char * split, char * white, int merge_f
 	return ret;
 }
 
-int StringCompareEndingCase( const char * thing_to_search, const char * check_extension )
+int CNOVRStringCompareEndingCase( const char * thing_to_search, const char * check_extension )
 {
 	if( !thing_to_search || !check_extension ) return -1;
 	int tsclen = strlen( thing_to_search );
@@ -341,7 +341,7 @@ static og_tls_t   search_path_return;
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 #include <windows.h>
-int CheckFileExists(const char * szPath)
+static int CheckFileExists(const char * szPath)
 {
 	DWORD dwAttrib = GetFileAttributesA(szPath);
 
@@ -350,7 +350,7 @@ int CheckFileExists(const char * szPath)
 }
 #endif
 
-char * FileSearch( const char * fname )
+char * CNOVRFileSearch( const char * fname )
 {
 	#if !(defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 ))
 	struct stat sbuf;
@@ -393,9 +393,9 @@ char * FileSearch( const char * fname )
 	return cret;
 }
 
-char * FileSearchAbsolute( const char * fname )
+char * CNOVRFileSearchAbsolute( const char * fname )
 {
-	char * pathfound = FileSearch( fname );
+	char * pathfound = CNOVRFileSearch( fname );
 	int pathfoundlen = strlen( pathfound );
 	char * pathfoundrealloc = alloca( pathfoundlen+1 );
 	memcpy( pathfoundrealloc, pathfound, pathfoundlen+1 );
@@ -409,7 +409,7 @@ char * FileSearchAbsolute( const char * fname )
 }
 
 
-void FileSearchAddPath( const char * path )
+void CNOVRFileSearchAddPath( const char * path )
 {
 	TCCInstance * te = TCCGetTag();
 	if( te && te->bClosing ) return;
@@ -433,7 +433,7 @@ void FileSearchAddPath( const char * path )
 	OGTSUnlockMutex( search_paths_mutex );
 }
 
-void FileSearchRemovePath( const char * path )
+void CNOVRFileSearchRemovePath( const char * path )
 {
 	OGTSLockMutex( search_paths_mutex );
 	int i;

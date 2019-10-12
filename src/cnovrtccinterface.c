@@ -504,17 +504,17 @@ void TCCCNOVRFocusRemoveTag( void * tag )
 	CNOVRFocusRemoveTag( TCCGetTag() );
 }
 
-char ** TCCSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
+char ** TCCCNOVRSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
 {
-	char ** ret = TCCSplitStrings( line, split, white, merge_fields, elementcount );
+	char ** ret = CNOVRSplitStrings( line, split, white, merge_fields, elementcount );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->mallocedram, ret );
 	return ret;
 }
 
-char * TCCFileToString( const char * fname, int * length )
+char * TCCCNOVRFileToString( const char * fname, int * length )
 {
-	char * ret = FileToString( fname, length );
+	char * ret = CNOVRFileToString( fname, length );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
 	if( c ) cnptrset_insert( c->mallocedram, ret );
 	return ret;
@@ -633,8 +633,8 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRNamedPtrGet );
 
 
-	TCCExport( SplitStrings );
-	TCCExport( FileToString );
+	TCCExport( CNOVRSplitStrings );
+	TCCExport( CNOVRFileToString );
 
 	TCCExport( CNOVRJobTack );
 	TCCExport( CNOVRListAdd );

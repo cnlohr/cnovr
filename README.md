@@ -8,29 +8,23 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 NOW:
- * Make mechanism to delete objects later!!!
- * Stars.
- * We got permission.
  * Windows Windows
  * Rawdraw 2 extra modes.
 
 GAMEPLAN:
- * Fix crashing, i.e. the symbol checker is bad, and crashing apps should not just keep executing.
- * What about putting input capture into it's own thread and gate it?
+ * Make camera you can move around.
  * Model Loading
  * Terminal
 
 NEWER:
- * Get intended frame time.
  * Make some global "now" or delta timer.
  * Should lists be allowed to have "priorities"?
  * There should be some default shader for if a shader with a 0 id is activated, it can go to the default.
  * When shutting down TCC, the actual destruction should maybe happen a frame later to give TCC a chance to actually shutdown instead of us canceling threads mid-run.
  * Should models have a transform matrix?
 
-oMid future todo:
+Mid future todo:
  * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?
- * Fix Windows Crash Handler
 
 Distant-future todo:
  * Input animations: { "name": "/actions/m/anim", "type": "skeleton", "skeleton": "/skeleton/hand/right" }
