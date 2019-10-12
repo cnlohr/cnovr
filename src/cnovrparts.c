@@ -860,18 +860,16 @@ static void CNOVRModelRender( cnovr_model * m )
 		{
 			if( !m->pGeos[i]->bIsUploaded ) continue;
 			glBindBuffer( GL_ARRAY_BUFFER, m->pGeos[i]->nVBO );
-			glEnableVertexAttribArray( i ); //m->pGeos[i]->nVBO);
 			//glVertexPointer( m->pGeos[i]->iStride, GL_FLOAT, m->pGeos[i]->iStride, 0);    // last param is offset, not ptr
 			glVertexAttribPointer( i, m->pGeos[i]->iStride, GL_FLOAT, GL_FALSE, m->pGeos[i]->iStride*4, 0  );
-	
 		}
 	}
 
 //	glEnableClientState(GL_VERTEX_ARRAY);
 	glDrawElements( m->nRenderType, m->iIndexCount, GL_UNSIGNED_INT, 0 );
 //	glDisableClientState(GL_VERTEX_ARRAY);            // deactivate vertex position array
-	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,  0);
+//	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,  0);
 }
 
 

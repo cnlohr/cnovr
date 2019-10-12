@@ -188,6 +188,14 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		ovrprintf( "Debug installed\n" );
 	}
 
+	//More OpenGL Setup
+	int i;
+	for( i = 0; i < 8; i++ )
+	{
+		glEnableVertexAttribArray( i ); //m->pGeos[i]->nVBO);
+	}
+
+
 	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
 	printf( "Malloced State: %p;;; %p = %p\n", cnovrstate, &cnovrstate->pRootNode, cnovrstate->pRootNode );
 

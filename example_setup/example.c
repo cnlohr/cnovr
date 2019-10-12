@@ -118,6 +118,7 @@ void RenderFunction( void * tag, void * opaquev )
 	int i;
 	CNOVRRender( shader );
 	CNOVRRender( texture );
+
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
 		//Texture?
