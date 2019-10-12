@@ -5,7 +5,7 @@
 	"cfiles" : [
 		{
 			"cfile" : "draggablewindows.c",
-			"identifier" : "dockable"
+			"identifier" : "dockable",
 		},
 		{
 			"cfile" : "starfield/starfield.c",
@@ -17,7 +17,8 @@
 			"additionalfiles" : [
 				"another1.h",
 				"another2.h"
-			]
+			],
+			"disabled" : true,
 		},
 
 	]

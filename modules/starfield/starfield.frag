@@ -21,6 +21,17 @@ void main()
 	float mag = 5./extradata.x; //pow( extradata.x, 10. );
 	if( mag < .1 ) mag = .1;
 
-	vec3 rgb = mix( normalize( comprgb ), vec3(1.), .5 );
+	vec3 rgb;
+	if( props.x < 0.5 )
+	{
+		//Lines
+		mag *= 0.5;
+		rgb = mix( normalize( comprgb ), vec3(1.), .7 );
+	}
+	else
+	{
+		//stars
+		rgb = mix( normalize( comprgb ), vec3(1.), .4 );
+	}
 	colorOut = vec4( rgb, 1.0 ) * mag;
 }

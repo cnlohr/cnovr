@@ -47,6 +47,8 @@ void * OGGetTLS( og_tls_t key );
 void OGSetTLS( og_tls_t key, void * data );
 
 
+void * GetTCCTag();
+
 
 #else
 

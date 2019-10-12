@@ -104,6 +104,18 @@ char * jsmnstrdup( const char * data, int start, int end )
 	return ca->buffer;
 }
 
+int    jsmnintparse( const char * data, int start, int end )
+{
+	int len = end - start;
+	char buffer[len+1];
+	memcpy( buffer, data + start, len );
+	buffer[len] = 0;
+	if( strcmp( buffer, "true" ) == 0 ) return 1;
+	else return atoi( buffer );
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 static cnhashtable * namedptrtable;
@@ -532,10 +544,13 @@ void * thdfiletimechecker( void * v )
 							l = l->next;
 						}
 refresh_set:
+					printf( "%s\n", e->key );
+
 						e = htFileTimeCacher->elements + i; //Tricky: If the loop is hit, and we have a table alteration within the loop, the array could become corrupt.
 						front = ((filetimedata*)e->data);
 						staged = &ftstaged;
 						l = k->front;
+						printf( "L: %p\n", l );
 						while( l )
 						{
 							staged->tag = l->tag;

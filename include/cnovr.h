@@ -50,6 +50,7 @@ struct cnovrstate_t
 	struct VR_IVRCompositor_FnTable * oCompositor;
 	struct VR_IVRInput_FnTable * oInput;
 
+	//These are things like lighthouses, HMD, controllers, etc.
 	struct TrackedDevicePose_t * openvr_renderposes;
 	struct TrackedDevicePose_t * openvr_trackedposes;
 	cnovr_pose * pRenderPoses;

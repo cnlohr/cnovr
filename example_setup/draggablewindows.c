@@ -451,7 +451,7 @@ void prerender_startup( void * tag, void * opaquev )
 
 	shader = CNOVRShaderCreate( "draggablewindow" );
 
-	CNOVRListAdd( cnovrLRender, &handle, Render );
+	CNOVRListAdd( cnovrLRender2, &handle, Render );
 	CNOVRListAdd( cnovrLPrerender, &handle, PreRender );
 	CNOVRListAdd( cnovrLUpdate, &handle, Update );
 	CNOVRListAdd( cnovrLPostRender, &handle, PostRender );

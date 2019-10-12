@@ -520,7 +520,7 @@ char * TCCFileToString( const char * fname, int * length )
 	return ret;
 }
 
-void * TCCGetCurrentTag()
+void * TCCGetTCCTag()
 {
 	return TCCGetTag();
 }
@@ -580,7 +580,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( OGDeleteTLS );
 	TCCExportS( OGGetTLS );
 	TCCExportS( OGSetTLS );
-	TCCExport( GetCurrentTag );
+	TCCExport( GetTCCTag );
 
 //Oddball things
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )

@@ -319,7 +319,11 @@ void CNOVRUpdate()
 			glViewport(0, 0, width, height );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 			root->base.header->Render( root );
-			CNOVRListCall( cnovrLRender, 0, 0); 
+			CNOVRListCall( cnovrLRender0, 0, 0); 
+			CNOVRListCall( cnovrLRender1, 0, 0); 
+			CNOVRListCall( cnovrLRender2, 0, 0); 
+			CNOVRListCall( cnovrLRender3, 0, 0); 
+			CNOVRListCall( cnovrLRender4, 0, 0); 
 		//	CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 			CNOVRFBufferBlitResolve( cnovrstate->sterotargets[i] );
 
@@ -354,7 +358,11 @@ void CNOVRUpdate()
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		root->base.header->Render( root );
-		CNOVRListCall( cnovrLRender, 0, 0); 
+		CNOVRListCall( cnovrLRender0, 0, 0); 
+		CNOVRListCall( cnovrLRender1, 0, 0); 
+		CNOVRListCall( cnovrLRender2, 0, 0); 
+		CNOVRListCall( cnovrLRender3, 0, 0); 
+		CNOVRListCall( cnovrLRender4, 0, 0); 
 		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}

@@ -17,6 +17,7 @@ typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 int tasprintf( char ** out, const char * format, ... );
 int tvasprintf( char ** out, const char * format, va_list ap );
 char * jsmnstrdup( const char * data, int start, int end );
+int    jsmnintparse( const char * data, int start, int end );
 
 //Not sure if we need this feature.
 void * CNOVRNamedPtrGet( const char * namedptr, const char * type );
@@ -79,7 +80,11 @@ typedef enum
 	cnovrLUpdate,
 	cnovrLPrerender,
 	cnovrLCollide,
-	cnovrLRender,
+	cnovrLRender0,
+	cnovrLRender1,
+	cnovrLRender2,
+	cnovrLRender3,
+	cnovrLRender4,
 	cnovrLPostRender,
 	cnovrLMAX,
 } cnovrRunList;

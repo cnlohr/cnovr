@@ -765,7 +765,7 @@ void unapply_pose_from_pose(cnovr_pose *poseout, const cnovr_pose *in_this_coord
 	//XXX ??!?!?!?!??!
 	apply_pose_to_point(poseout->Pos, &inv, thing_youre_looking_at->Pos );
 	memcpy( poseout->Pos, inv.Pos, sizeof( inv.Pos ) );
-	printf( "APPLY: (%f %f %f) %f, (%f %f %f) %f, (%f %f %f) %f\n", PFTHREE( poseout->Pos ), poseout->Scale, PFTHREE(inv.Pos), inv.Scale, PFTHREE(thing_youre_looking_at->Pos), thing_youre_looking_at->Scale );
+//	printf( "APPLY: (%f %f %f) %f, (%f %f %f) %f, (%f %f %f) %f\n", PFTHREE( poseout->Pos ), poseout->Scale, PFTHREE(inv.Pos), inv.Scale, PFTHREE(thing_youre_looking_at->Pos), thing_youre_looking_at->Scale );
 }
 
 void pose_invert(cnovr_pose *poseout, const cnovr_pose *pose) {

@@ -46,7 +46,7 @@ int ExampleFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 			break;
 	}
 
-	CNOVRGeneralHandleFocusEvent(  m->focuscontrol, m->pose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
 
 	if( event == CNOVRF_DRAG )
 	{
@@ -159,7 +159,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
-	CNOVRListAdd( cnovrLRender, 0, RenderFunction );
+	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
 	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
 	printf( "+++ Example scene setup complete\n" );
 }

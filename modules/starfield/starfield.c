@@ -4,8 +4,10 @@
 #include <cnovrutil.h>
 #include <cnovrmath.h>
 #include <string.h>
+#include <cnovrtcc.h>
 #include <chew.h>
 #include "flat_stars.h"
+#include <cnovr.h>
 
 cnovr_model * model;
 cnovr_shader * shader;
@@ -16,6 +18,9 @@ float * starfield_data1;	//ascention, declination, parallax [1]
 float * starfield_data2;   //magnitude, bvcolor, vicolor [1]
 flat_star * database;
 int numstars = 0;
+cnovr_pose * starpose;
+int do_centering;
+
 //typedef struct __attribute__((__packed__)) {
 //uint32_t rascention_bams;
 //int32_t declination_bams;
@@ -25,42 +30,107 @@ int numstars = 0;
 //int16_t vicolor_mag1000;
 //} flat_star;
 
+static void UpdateFunction( void * tag, void * opaquev )
+{
+	if( do_centering || 1)
+	{
+		//Get average point between two controllers and drag stars to that.
+		cnovr_point3d runningpoint;
+
+//cnovr_pose * CNOVRFocusGetTipPose( int device );
+		add3d( runningpoint, CNOVRFocusGetTipPose(2)->Pos, CNOVRFocusGetTipPose(1)->Pos );
+		scale3d( runningpoint, runningpoint, 0.5 );
+		//Running point is now our target.
+		sub3d( runningpoint, starpose->Pos, runningpoint );
+		scale3d( runningpoint, runningpoint, 0.1 );
+		sub3d( starpose->Pos, starpose->Pos, runningpoint );
+	}
+
+}
 
 static void RenderFunction( void * tag, void * opaquev )
 {
 	if( !model || !shader ) return;
 	CNOVRRender( shader );
-	cnovr_pose pident;
-	pose_make_identity( &pident );
-	float scales = 100000;
+	float scales = starpose->Scale;
 	float fvu[4] = { 1., scales, 0., 0. };
 
+	cnovr_pose outpose;
+	memcpy( &outpose, starpose, sizeof( cnovr_pose ) );
+	outpose.Scale = 1.0;
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-	glDisable( GL_DEPTH_TEST);
+	glDepthFunc( GL_ALWAYS );
 	glPointSize( 4 );
 	glUniform4fv( 19, 1, fvu );
-	CNOVRModelRenderWithPose( model, &pident );
-	glLineWidth(.5);
+	CNOVRModelRenderWithPose( model, &outpose );
+	glLineWidth(.3);
 	fvu[0] = 0;
 	glUniform4fv( 19, 1, fvu );
-	CNOVRModelRenderWithPose( modelConst, &pident );
+	CNOVRModelRenderWithPose( modelConst, &outpose );
 
+	glDepthFunc( GL_LESS );
 	glEnable( GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
 }
 
-//typedef struct { char cname[3]; uint8_t lines; } constellation;
-//constellation constellations[] = {
+///////////////////////////////////////////////////////////////////
+cnovr_model_focus_controller focuscontrol;
 
+void CollisionChecker( void * tag, void * opaquev )
+{
+	//(2)
+	cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
+	//tag is tag
+	//Use 'p' to figure out where the collision happened.
+	CNOVRFocusRespond( focuscontrol.focusevent, 100.0 ); //We're just returning 100.0
+}
+
+int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	//(3)
+	void * tag = (void *)cap->opaque;
+
+	if( event == CNOVRF_DRAG )
+	{
+		//Make effective pole length very short
+		prop->capturedPassiveDistance = 0;	
+		prop->NewPassiveRealDistance = 0;
+	}
+
+	CNOVRGeneralHandleFocusEvent( &focuscontrol, starpose, prop, event, buttoninfo );
+	if( ( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS ) && buttoninfo == 2 )
+	{
+		do_centering = 1;
+	}
+	if( ( event == CNOVRF_UPNOFOCUS || event == CNOVRF_UPFOCUS ) && buttoninfo == 2 )
+	{
+		do_centering = 0;
+	}
+
+	return 0;
+}
+
+cnovrfocus_capture focuseventdata = { 0, 0, 0, EventChecker };
+
+void SetupFocusHandler()
+{
+	memset( &focuscontrol, 0, sizeof(focuscontrol) );
+	//if( fc->focusevent ) CNOVRListDeleteTag( tag ); 
+	focuseventdata.tcctag = GetTCCTag();
+	focuscontrol.focusevent = &focuseventdata;
+	CNOVRListAdd( cnovrLCollide, /*Tag*/0, CollisionChecker );  //(1)
+}
+
+////////////////////////////////////////////////////////////////////
 
 static void starfield_setup( void * tag, void * opaquev )
 {
 	shader = CNOVRShaderCreate( "starfield/starfield" );
 	//shaderConst = CNOVRShaderCreate( "starfield/constellations" );
-	CNOVRListAdd( cnovrLRender, 0, RenderFunction );
-
+	CNOVRListAdd( cnovrLRender0, 0, RenderFunction );
+	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	int constellationlines = sizeof( constellationsegs ) / sizeof( constellationsegs[0] ) / 2;
 
 	modelConst = CNOVRModelCreate( 0, GL_LINES );
@@ -95,6 +165,7 @@ static void starfield_setup( void * tag, void * opaquev )
 	CNOVRVBOTaint( model->pGeos[0] );
 	CNOVRVBOTaint( model->pGeos[1] );
 	CNOVRModelTaintIndices( model );
+	SetupFocusHandler();
 }
 
 void CNOVRGenericSetInteractable( cnovr_model * m, void * tag, cnovr_model_focus_controller ** fcptr, cnovr_cb_fn collisioncheck, cnovrfocus_capture * focusevent )
@@ -137,6 +208,14 @@ void start( const char * identifier )
 		f2[1] = ((double)s->bvcolor_mag1000)/1000.0;
 		f2[2] = ((double)s->vicolor_mag1000)/1000.0;
 		f2[3] = 1;
+	}
+
+	
+	starpose = NAMEDPTRTYPED( "starpose", cnovr_pose );
+	if( starpose->Scale == 0 )
+	{
+		pose_make_identity( starpose );
+		starpose->Scale = 10000;
 	}
 
 	CNOVRJobTack( cnovrQPrerender, starfield_setup, 0, 0, 0 );

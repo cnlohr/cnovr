@@ -203,7 +203,6 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 void DestroyTCCInstance( TCCInstance * tcc )
 {
 	if( !tccmutex ) tccmutex = OGCreateMutex();
-
 	CNOVRFileTimeRemoveTagged( tcc, 1 );
 	StopTCCInstance( tcc );
 
@@ -244,7 +243,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 	const char * tccsuitefile = cnovrtccsystem.suitefile;
 
 	CNOVRStopTCCSystem();
-//	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
+	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 
 	int filelen;
 	char * filestr = FileToString( tccsuitefile, &filelen );
@@ -291,6 +290,7 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 				{
 					char * cfile;
 					char * identifier;
+					int disabled = 0;
 					char ** additionalfiles = 0;
 					cfile = 0;
 					identifier = 0;
@@ -306,6 +306,17 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 								tmp = FileSearch( tmp );
 								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
 								cfile = strdup( tmp );
+							}
+							else goto failout;
+						}
+						else if( t->type == JSMN_STRING && strncmp( filestr + t->start, "disabled", t->end - t->start ) == 0 )
+						{
+							t = tokens + i++;
+							if( t->type == JSMN_PRIMITIVE )
+							{
+								//char * tmp = jsmnstrdup( filestr, t->start, t->end );
+								//printf( "~~~~~~~~~~~~TMP: %s\n", tmp );
+								disabled = jsmnintparse( filestr, t->start, t->end );
 							}
 							else goto failout;
 						}
@@ -346,6 +357,8 @@ static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							break;
 						}
 					}
+
+					if( disabled ) continue;
 
 					if( !cfile || !identifier )
 					{
@@ -390,7 +403,7 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
 	cnovrtccsystem.suitefile = strdup( tccsuitefile );
 	printf( "CNOVRStartTCCSystem( %s %p )\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
-	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
+	CNOVRFileTimeAddWatch( cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 	CNOVRJobTack( cnovrQAsync, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0, 0 );
 }
 

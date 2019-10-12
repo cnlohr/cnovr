@@ -368,7 +368,7 @@ void InternalCNOVRFocusSetup()
 		}
 	}
 
-	CNOVRListAdd( cnovrLRender, &FOCUS, FocusSystemRender );
+	CNOVRListAdd( cnovrLRender2, &FOCUS, FocusSystemRender );
 	CNOVRJobTack( cnovrQPrerender, InternalCNOVRFocusPrerenderStartup, &FOCUS, 0, 1 );
 }
 
@@ -616,7 +616,7 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 			}
 			break;
 		case CNOVRF_UPFOCUS:
-			CNOVRFocusAcquire( fc->focusevent, 0 );
+			if( buttoninfo == 3 ) CNOVRFocusAcquire( fc->focusevent, 0 );
 			break;
 		case CNOVRF_LOSTFOCUS:
 			if( fc->focusgrab && fc->focusgrab[devid] )
