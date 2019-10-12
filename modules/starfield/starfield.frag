@@ -18,8 +18,10 @@ layout(location = 8) uniform sampler2D textures[];
 void main()
 {
 	//float mag = (14.-extradata.x)/14.;
+
 	float mag = 5./extradata.x; //pow( extradata.x, 10. );
-	if( mag < .1 ) mag = .1;
+
+	if( mag < .3 ) mag = .3;
 
 	vec3 rgb;
 	if( props.x < 0.5 )
@@ -27,6 +29,7 @@ void main()
 		//Lines
 		mag *= 0.5;
 		rgb = mix( normalize( comprgb ), vec3(1.), .7 );
+		if( mag > 0.6 ) mag = 0.6;
 	}
 	else
 	{
@@ -34,4 +37,5 @@ void main()
 		rgb = mix( normalize( comprgb ), vec3(1.), .4 );
 	}
 	colorOut = vec4( rgb, 1.0 ) * mag;
+	//if( gl_FragDepth > 0.999 ) gl_FragDepth = 0.999;
 }

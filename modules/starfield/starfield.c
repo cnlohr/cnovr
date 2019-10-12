@@ -32,7 +32,7 @@ int do_centering;
 
 static void UpdateFunction( void * tag, void * opaquev )
 {
-	if( do_centering || 1)
+	if( do_centering )
 	{
 		//Get average point between two controllers and drag stars to that.
 		cnovr_point3d runningpoint;
@@ -52,9 +52,11 @@ static void RenderFunction( void * tag, void * opaquev )
 {
 	if( !model || !shader ) return;
 	CNOVRRender( shader );
+	if( starpose->Scale > 100000 ) starpose->Scale = 100000;
+	if( starpose->Scale < .01 ) starpose->Scale = .01;
 	float scales = starpose->Scale;
 	float fvu[4] = { 1., scales, 0., 0. };
-
+	printf( "%f\n", scales );
 	cnovr_pose outpose;
 	memcpy( &outpose, starpose, sizeof( cnovr_pose ) );
 	outpose.Scale = 1.0;
@@ -62,6 +64,8 @@ static void RenderFunction( void * tag, void * opaquev )
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 	glDepthFunc( GL_ALWAYS );
+    glEnable(GL_DEPTH_CLAMP);
+
 	glPointSize( 4 );
 	glUniform4fv( 19, 1, fvu );
 	CNOVRModelRenderWithPose( model, &outpose );

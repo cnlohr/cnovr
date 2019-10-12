@@ -17,7 +17,7 @@ void main()
 	r *= props.y;
 
 	if( r < 0 ) r *= -1;
-	if( r > 90. ) r = 80.;
+	//if( r > 90. ) r = 80.;
 	vec3 posout = vec3( 
 		cos(position.x) * cos(position.y), 
 		sin( position.y ),
@@ -25,6 +25,8 @@ void main()
 	 ) * r;
 	gl_Position = umPerspective * umView * umModel * vec4(posout.xyz,1.0);
 
+//	if( gl_Position.z/gl_Position.w ) gl_Position.z = gl_Position.w;
+//	if( gl_Position.w > 10.0 ) gl_Position.w = gl_Position.w / gl_Position.z;
 	localpos = posout.xyz;
 	extradata = extra;
 

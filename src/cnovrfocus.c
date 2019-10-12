@@ -278,7 +278,7 @@ void InternalCNOVRFocusPrerenderStartup()
 	FOCUS.mdlPointer = CNOVRModelCreate( 0, GL_TRIANGLES );
 	FOCUS.mdlHitPos = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelAppendCube( FOCUS.mdlHitPos, (cnovr_point3d){ .0055, .0055, .0055 }, 0, 0 );
-	CNOVRModelAppendCube( FOCUS.mdlPointer, (cnovr_point3d){ .005, .005, CNOVRFOCUS_FAR }, 0, 0 );
+	CNOVRModelAppendCube( FOCUS.mdlPointer, (cnovr_point3d){ .002, .002, CNOVRFOCUS_FAR }, 0, 0 );
 	FOCUS.shdPointer = CNOVRShaderCreate( "pointer" );	
 	FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
 }
