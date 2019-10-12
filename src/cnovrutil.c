@@ -544,13 +544,10 @@ void * thdfiletimechecker( void * v )
 							l = l->next;
 						}
 refresh_set:
-					printf( "%s\n", e->key );
-
 						e = htFileTimeCacher->elements + i; //Tricky: If the loop is hit, and we have a table alteration within the loop, the array could become corrupt.
 						front = ((filetimedata*)e->data);
 						staged = &ftstaged;
 						l = k->front;
-						printf( "L: %p\n", l );
 						while( l )
 						{
 							staged->tag = l->tag;
