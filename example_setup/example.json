@@ -23,7 +23,7 @@
 		},
 		{
 			"cfile" : "picturealbum/picturealbum.c",
-			"identifier" : "starsermon/albumfolder",
+			"identifier" : "starsermon/albumfolder;2",
 			"disabled" : false,
 		},
 	]

@@ -112,6 +112,7 @@ typedef struct cnovr_texture_t
 	uint8_t bTaintData;
 	uint8_t bLoading;
 	uint8_t bFileChangeFlag;
+	uint8_t bCalculateMipMaps;
 
 	og_mutex_t mutProtect;
 } cnovr_texture;

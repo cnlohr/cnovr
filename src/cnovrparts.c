@@ -469,11 +469,10 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	int x, y, chan;
 	const char * ffn = CNOVRFileSearch( localfn );
 	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 4 );
-	chan = 4;
-	printf( "Got data for chan: %d\n", chan );
+	chan = 4; //XXX TODO: figure out why stbi_ works this way.  It says 3 on .jpg's but it actually has 4 bpp.
 	CNOVRFileTimeAddWatch( ffn, CNOVRTextureLoadFileTask, tag, 0 );
+	printf( "Registering FileTime watch %s\n", ffn );
 	free( localfn );
-
 
 	if( data )
 	{
@@ -510,7 +509,14 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 		t->nFormat,
 		t->nType,
 		t->data );
+	if( t->bCalculateMipMaps )
+	{
+		void glGenerateMipmap( 	GLenum target);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		printf( "Generating Mip Map\n" );
+	}
 	glBindTexture( GL_TEXTURE_2D, 0 );
+
 	OGUnlockMutex( t->mutProtect );
 }
 

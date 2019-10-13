@@ -20,6 +20,10 @@ cnovr_model * palette_m;
 cnovrfocus_capture palettecapture;
 int widths[MAX_PICTURES];
 int heights[MAX_PICTURES];
+char picturestorename[160];
+
+//Bitfield of what outputs NOT to draw on.
+int rendermask = 0;
 
 struct staticstore
 {
@@ -38,8 +42,8 @@ int PictureFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 
 	if( event == CNOVRF_LOSTFOCUS )
 	{
-		printf( "Saving picture album\n" );
-		CNOVRNamedPtrSave( "picturealbum" );
+		printf( "Saving picture album:\"%s\"\n", picturestorename );
+		CNOVRNamedPtrSave( picturestorename );
 	}
 
 	if( id != -1 )
@@ -103,13 +107,11 @@ void UpdateFunction( void * tag, void * opaquev )
 					stage = &geoextra->pVertices[((x + y*2) * 4)+side*16];
 					CNOVRVBOTaint( geo );
 				}
-
-				cnovr_texture * t = picture_m[i]->pTextures[0];
 				glBindTexture( GL_TEXTURE_2D, t->nTextureId );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-				glGenerateMipmap(GL_TEXTURE_2D);
 				glBindTexture( GL_TEXTURE_2D, 0 );
+
 			}
 		}
 
@@ -142,6 +144,8 @@ void UpdateFunction( void * tag, void * opaquev )
 
 void RenderFunction( void * tag, void * opaquev )
 {
+	if( (1<<cnovrstate->eyeTarget) & rendermask ) return;
+
 	int i;
 	CNOVRRender( shader );
 	CNOVRRender( palette_m );
@@ -160,7 +164,6 @@ static cnovr_model * make_genobj( int i, float gscalex, float gscaley )
 	cnovr_point4d extradata = { i, 0, 0, 0 };
 	CNOVRModelAppendMesh( ret, 1, 1, 1, (cnovr_point3d){  gscalex, gscaley, 0 }, 0, &extradata );
 	CNOVRModelAppendMesh( ret, 1, 1, 1, (cnovr_point3d){ -gscalex, gscaley, 0 }, 0, &extradata );
-
 	return ret;
 }
 
@@ -185,7 +188,7 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 
 	//////// INITIALIZE STORE ////////
 	printf( "Initializing Store\n" );
-	store->initialized = 0;
+//	store->initialized = 0;
 	if( !store->initialized )
 	{
 		pose_make_identity( &store->palettepose );
@@ -216,10 +219,13 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 		char * file = filelist[i];
 		int fnamelen = strlen( file );
 
+		char fncheck[CNOVR_MAX_PATH];
+		snprintf( fncheck, CNOVR_MAX_PATH-1 ,"%s/%s", albumpath, file );
+
 		int k;
 		for( k = 0; k < MAX_PICTURES; k++ )
 		{
-			if( strcmp( store->filename[k], file ) == 0 )
+			if( strcmp( store->filename[k], fncheck ) == 0 )
 			{
 				//found it!
 				break;
@@ -231,7 +237,7 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 		if( store->filename[k][0] == 0 )
 		{
 			//Empty - populate
-			snprintf( store->filename[k], sizeof(store->filename[k]) ,"%s/%s", albumpath, file );
+			strcpy( store->filename[k], fncheck );
 			store->filefound[k] = 1;
 		}
 		else
@@ -274,6 +280,11 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 		char * fname = store->filename[i];
 		if( fname[0] == 0 ) continue;
 		CNOVRModelApplyTextureFromFileAsync( picture_m[i], fname );
+		cnovr_texture * t;
+		if( picture_m[i]->pTextures && (t=picture_m[i]->pTextures[0]) )
+		{
+			t->bCalculateMipMaps = 1;
+		}
 	}
 
 	UpdateFunction(0,0);
@@ -286,12 +297,29 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 
 void start( const char * identifier )
 {
-	char picturestorename[128];
-	sprintf( picturestorename, "picturealbumstore_%s", identifier );
+	int len = sprintf( picturestorename, "picturealbumstore_%s", identifier );
+	int kx=0;
+	for( kx = 0; kx < len; kx++ )
+	{
+		char cv = picturestorename[kx];
+		if( cv == '/' || cv == '\\' || cv == '.' ) picturestorename[kx] = '_';
+	}
 	store = CNOVRNamedPtrData( picturestorename, 0, sizeof( *store ) + 4096 );
 	printf( "=== Initializing Picture Album %p\n", store );
 
-	albumpath = strdup(identifier);
+	int elementout = 0;
+	char ** identifierstrings = CNOVRSplitStrings( identifier, ";", "", 0, &elementout ); //You can just free(...) the return. it's safe.
+	printf( "Identifier with elements: %d %s\n", elementout, identifier );
+	if( elementout < 1 )
+	{
+		printf( "ERROR: Need an identifier for the picture album\n" );
+		return;
+	}
+	if( elementout > 1 )
+	{
+		rendermask = atoi( identifierstrings[1] );
+	}
+	albumpath = identifierstrings[0];
 	CNOVRJobTack( cnovrQPrerender, picturealbum_scene_setup, 0, 0, 0 );
 	printf( "=== Picture Album start %s(%p)\n", identifier, identifier );
 }

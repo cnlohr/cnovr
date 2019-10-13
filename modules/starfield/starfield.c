@@ -21,6 +21,11 @@ int numstars = 0;
 cnovr_pose * starpose;
 int do_centering;
 
+float galaxyalpha = 0;
+int galaxyalphachange = 0;
+cnovr_model * galaxyimage;
+cnovr_pose  galaxyimagepose;
+cnovr_shader * galaxyshader;
 //typedef struct __attribute__((__packed__)) {
 //uint32_t rascention_bams;
 //int32_t declination_bams;
@@ -32,6 +37,14 @@ int do_centering;
 
 static void UpdateFunction( void * tag, void * opaquev )
 {
+	static double start;
+	double now = OGGetAbsoluteTime();
+	if( start < 1 ) start = now;
+
+	int i;
+	double framedt = now - start;
+	start = now;
+
 	if( do_centering )
 	{
 		//Get average point between two controllers and drag stars to that.
@@ -46,6 +59,9 @@ static void UpdateFunction( void * tag, void * opaquev )
 		sub3d( starpose->Pos, starpose->Pos, runningpoint );
 	}
 
+	galaxyalpha += galaxyalphachange * framedt;
+	if( galaxyalpha < 0 ) galaxyalpha = 0;
+	if( galaxyalpha > 1 ) galaxyalpha = 1;
 }
 
 static void RenderFunction( void * tag, void * opaquev )
@@ -68,15 +84,40 @@ static void RenderFunction( void * tag, void * opaquev )
 
 	glPointSize( 4 );
 	glUniform4fv( 19, 1, fvu );
-	CNOVRModelRenderWithPose( model, &outpose );
+	CNOVRModelRenderWithPose( model, &outpose ); //Stars
 	glLineWidth(.3);
 	fvu[0] = 0;
 	glUniform4fv( 19, 1, fvu );
-	CNOVRModelRenderWithPose( modelConst, &outpose );
+	CNOVRModelRenderWithPose( modelConst, &outpose ); //Constellations
+
+	//Galaxy image.
+	if( galaxyalpha > 0.0 )
+	{
+		cnovr_pose galaxylocalpose;
+		galaxylocalpose.Pos[0] = -5;
+		galaxylocalpose.Pos[1] = -20;
+		galaxylocalpose.Pos[2] = -40;
+
+		galaxylocalpose.Rot[0] = 0.707;
+		galaxylocalpose.Rot[1] = -.4;
+		galaxylocalpose.Rot[2] = -0.707;
+		galaxylocalpose.Rot[3] = 0;
+		galaxylocalpose.Scale = 1.0;
+
+		cnovr_pose outpose;
+		apply_pose_to_pose( &outpose, starpose, &galaxylocalpose );
+		outpose.Scale *= 100;
+//		outpose.Pos[0] += .025;
+//		outpose.Pos[1] -= .035;
+		CNOVRRender( galaxyshader );
+		fvu[0] = galaxyalpha;
+		glUniform4fv( 19, 1, fvu );
+		CNOVRModelRenderWithPose( galaxyimage, &outpose );
+	}
 
 	glDepthFunc( GL_LESS );
 	glEnable( GL_DEPTH_TEST);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -104,13 +145,27 @@ int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * p
 	}
 
 	CNOVRGeneralHandleFocusEvent( &focuscontrol, starpose, prop, event, buttoninfo );
-	if( ( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS ) && buttoninfo == 2 )
+	if( ( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS ) )
 	{
-		do_centering = 1;
+		if( buttoninfo == CTRLA_TRIGGER )
+		{
+			do_centering = 1;
+		}
+		if( buttoninfo == CTRLA_BUTTONB )
+		{
+			galaxyalphachange = (prop->devid==2)?1:-1;
+		}
 	}
-	if( ( event == CNOVRF_UPNOFOCUS || event == CNOVRF_UPFOCUS ) && buttoninfo == 2 )
+	if( ( event == CNOVRF_UPNOFOCUS || event == CNOVRF_UPFOCUS ) )
 	{
-		do_centering = 0;
+		if( buttoninfo == CTRLA_TRIGGER )
+		{
+			do_centering = 0;
+		}
+		if( buttoninfo == CTRLA_BUTTONB )
+		{
+			galaxyalphachange = 0;
+		}
 	}
 
 	return 0;
@@ -125,6 +180,17 @@ void SetupFocusHandler()
 	focuseventdata.tcctag = GetTCCTag();
 	focuscontrol.focusevent = &focuseventdata;
 	CNOVRListAdd( cnovrLCollide, /*Tag*/0, CollisionChecker );  //(1)
+}
+
+
+//Temporary, probably going to add something like it to the engine.
+static cnovr_model * make_genobj( int i, float gscalex, float gscaley )
+{
+	cnovr_model * ret = CNOVRModelCreate( 0, GL_TRIANGLES );
+	cnovr_point4d extradata = { i, 0, 0, 0 };
+	CNOVRModelAppendMesh( ret, 1, 1, 1, (cnovr_point3d){  gscalex, gscaley, 0 }, 0, &extradata );
+	CNOVRModelAppendMesh( ret, 1, 1, 1, (cnovr_point3d){ -gscalex, gscaley, 0 }, 0, &extradata );
+	return ret;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -169,6 +235,12 @@ static void starfield_setup( void * tag, void * opaquev )
 	CNOVRVBOTaint( model->pGeos[0] );
 	CNOVRVBOTaint( model->pGeos[1] );
 	CNOVRModelTaintIndices( model );
+
+	galaxyshader = CNOVRShaderCreate( "starfield/galaxy" );
+	galaxyimage = make_genobj( 0, 1, 1 );
+	pose_make_identity( &galaxyimagepose );
+	CNOVRModelApplyTextureFromFileAsync( galaxyimage, "starfield/Milky_Way_Galaxy.jpg" );
+
 	SetupFocusHandler();
 }
 
@@ -198,7 +270,6 @@ void start( const char * identifier )
 	starfield_data1 = malloc( sizeof( float ) * 4 * numstars );
 	starfield_data2 = malloc( sizeof( float ) * 4 * numstars );
 
-	printf( "partX\n" );
 	int i;
 	for( i = 0; i < numstars; i++ )
 	{

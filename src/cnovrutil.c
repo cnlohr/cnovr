@@ -408,7 +408,7 @@ char ** CNOVRSplitStrings( const char * line, char * split, char * white, int me
 		ret[i] = (i == elements-1)?0:retend;
 		retend += len + 1;
 	}
-	if( elementcount && elements ) *elementcount = elements;
+	if( elementcount && elements ) *elementcount = (thislength==0)?(elements-1):elements;
 	free( lengths );
 	return ret;
 }

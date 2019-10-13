@@ -4,7 +4,7 @@
 #include <cnovr.h>
 #include <cnovrutil.h>
 
-int main()
+int main( int argc, char ** argv )
 {
 	if( CNOVRInit( "test", 640, 480, 0 ) )
 	{
@@ -12,7 +12,7 @@ int main()
 		return -1;
 	}
 
-	CNOVRStartTCCSystem( "example_setup/example.json" );
+	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example_setup/example.json" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	cnovr_model * model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );
