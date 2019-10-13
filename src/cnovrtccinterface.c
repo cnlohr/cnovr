@@ -504,6 +504,14 @@ void TCCCNOVRFocusRemoveTag( void * tag )
 	CNOVRFocusRemoveTag( TCCGetTag() );
 }
 
+char ** TCCCNOVRFolderListing( const char * folder, int * numentries )
+{
+	char ** ret = CNOVRFolderListing( folder, numentries );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag() );
+	if( c ) cnptrset_insert( c->mallocedram, ret );
+	return ret;
+}
+
 char ** TCCCNOVRSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount )
 {
 	char ** ret = CNOVRSplitStrings( line, split, white, merge_fields, elementcount );
@@ -632,7 +640,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( CNOVRNamedPtrSave );
 	TCCExportS( CNOVRNamedPtrGet );
 
-
+	TCCExport( CNOVRFolderListing );
 	TCCExport( CNOVRSplitStrings );
 	TCCExport( CNOVRFileToString );
 

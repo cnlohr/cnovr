@@ -71,7 +71,7 @@ int AllocateNewWindow( const char * name, const char * matchingwindowpname, int 
 {
 	int pid;
 	Window wnd = GetWindowIdBySubstring( name, matchingwindowpname, pidmatch, &pid );
-	printf( "GOT WINDOW: %d / %d\n", wnd, pid );
+	//printf( "GOT WINDOW: %d / %d\n", wnd, pid );
 	if( !wnd )
 	{
 		printf( "Can't find window name %s\n", name );
@@ -102,7 +102,7 @@ int AllocateNewWindow( const char * name, const char * matchingwindowpname, int 
 
 	printf( "SET INTERACTABLE: %p %p\n", dw->model, &dw->focusblock );
 	CNOVRModelSetInteractable( dw->model, &dw->focusblock );
-
+	printf( "Window Allocated\n" );
 	return i;
 }
 

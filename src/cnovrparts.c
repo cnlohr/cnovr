@@ -469,6 +469,8 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	int x, y, chan;
 	const char * ffn = CNOVRFileSearch( localfn );
 	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 4 );
+	chan = 4;
+	printf( "Got data for chan: %d\n", chan );
 	CNOVRFileTimeAddWatch( ffn, CNOVRTextureLoadFileTask, tag, 0 );
 	free( localfn );
 

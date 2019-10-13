@@ -4,7 +4,7 @@
 	],
 	"cfiles" : [
 		{
-			"cfile" : "draggablewindows.c",
+			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable",
 			"disabled" : false,
 		},
@@ -19,9 +19,13 @@
 				"another1.h",
 				"another2.h"
 			],
+			"disabled" : true,
+		},
+		{
+			"cfile" : "picturealbum/picturealbum.c",
+			"identifier" : "starsermon/albumfolder",
 			"disabled" : false,
 		},
-
 	]
 }
 

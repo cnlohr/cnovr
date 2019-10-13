@@ -13,6 +13,9 @@
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 #include <windows.h>
+#else
+#include <dirent.h>
+#include <sys/stat.h>
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -214,6 +217,91 @@ void InternalShutdownNamedPtrs()
 
 ////////////////////////////////////////////////////////////////////////////////
 
+char ** CNOVRFolderListing( const char * path, int * elements )
+{
+	struct linkedstrlist
+	{
+		struct linkedstrlist * next;
+		int len;	//Including null terminator.
+		char str[1];
+	};
+	struct linkedstrlist head;
+	head.str[0] = 0;
+	head.len = 0;
+	head.next = 0;
+	int entries = 0;
+	int needed_bytes = 1;
+	struct linkedstrlist * tail = &head;
+#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
+	//Currently untested in Windows
+	WIN32_FIND_DATA ffd;
+	HANDLE hFind = INVALID_HANDLE_VALUE;
+	hFind = FindFirstFile( path, &ffd);
+	if( INVALID_HANDLE_VALUE != hFind )
+	{
+		do
+		{
+			if( !( ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) ) 
+			{
+				// filesize.LowPart = ffd.nFileSizeLow;
+				// filesize.HighPart = ffd.nFileSizeHigh;
+				// filesize.QuadPart
+				int len = strlen( ffd.cFileName ) + 1;
+				struct linkedstrlist * next = alloca( len + sizeof( struct linkedstrlist ) );
+				memcpy( next->str, ffd.cFileName );
+				next->next = 0;
+				next->len = len;
+				tail->next = next;
+				tail = next;
+				needed_bytes += len;
+				entries++;
+
+			}
+		} while (FindNextFile(hFind, &ffd) != 0);
+		FindClose(hFind);
+	}
+#else
+	struct dirent *dir;
+	DIR * d = opendir( path );
+	char full_path[CNOVR_MAX_PATH];
+	if (d)
+	{
+		while ((dir = readdir(d)) != NULL)
+		{
+			//Condition to check regular file.
+			if( dir->d_type == DT_REG )
+			{
+				int len = strlen( dir->d_name ) + 1;
+				struct linkedstrlist * next = alloca( len + sizeof( struct linkedstrlist ) );
+				memcpy( next->str, dir->d_name, len );
+				next->next = 0;
+				next->len = len;
+				tail->next = next;
+				tail = next;
+				needed_bytes += len;
+				entries++;
+			}
+		}
+		closedir(d);
+	}
+#endif
+	*elements = entries;
+	tail = &head;
+	char ** ret = malloc( (entries+1) * sizeof( char* ) + needed_bytes );
+	char * data = ((char*)ret) + (entries+1) * sizeof( char* );
+	int i;
+	for( i = 0; i < entries; i++ )
+	{
+		tail = tail->next;
+		ret[i] = data;
+		int len = tail->len;
+		memcpy( data, tail->str, len );
+		data += len;
+	}
+	ret[i] = 0;
+	return ret;
+}
+
 char * CNOVRFileToString( const char * fname, int * length )
 {
 	FILE * f = fopen( fname, "rb" );
@@ -358,7 +446,7 @@ char * CNOVRFileSearch( const char * fname )
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
-	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+1 ) ) ); }
+	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+3 ) ) ); }
 
 	int fnamelen = strlen( fname );
 
@@ -397,7 +485,7 @@ char * CNOVRFileSearchAbsolute( const char * fname )
 {
 	char * pathfound = CNOVRFileSearch( fname );
 	int pathfoundlen = strlen( pathfound );
-	char * pathfoundrealloc = alloca( pathfoundlen+1 );
+	char * pathfoundrealloc = alloca( pathfoundlen+2 );
 	memcpy( pathfoundrealloc, pathfound, pathfoundlen+1 );
 	char * cret = OGGetTLS( search_path_return );
 #if defined( WIN32 ) || defined( WINDOWS ) || defined( WIN64 )

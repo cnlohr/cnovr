@@ -15,6 +15,7 @@ GAMEPLAN:
  * Make camera you can move around.
  * Model Loading
  * Terminal
+ * Make textures + shaders instancable, i.e. you make a new shader that's the same as an old one, it re-uses the object #.
 
 NEWER:
  * Make some global "now" or delta timer.

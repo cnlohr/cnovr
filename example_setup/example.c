@@ -16,10 +16,6 @@ cnovr_model * spinner_m[MAX_SPINNERS];
 int shutting_down;
 cnovrfocus_capture focusblock[MAX_SPINNERS];
 
-int draggingid[CNOVRINPUTDEVS] = { -1, -1, -1 };
-cnovr_pose draggingpose[CNOVRINPUTDEVS]; //Pose of object relative to tip.
-
-
 struct staticstore
 {
 	int initialized;

@@ -118,8 +118,8 @@
                   }
                },
                "parameters" : {
-                  "force_hold_threshold" : "0.6",
-                  "force_release_threshold" : "0.5",
+                  "force_hold_threshold" : "0.8",
+                  "force_release_threshold" : "0.7",
                   "force_input" : "force"
                },
                "mode" : "button",

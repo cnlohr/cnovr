@@ -134,6 +134,9 @@ int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * p
 {
 	//(3)
 	void * tag = (void *)cap->opaque;
+
+	//You can intercept events here and return to prevent them from being passed to CNOVRGeneralHandleFocusEvent
+
 	CNOVRGeneralHandleFocusEvent( &focuscontrol, &some_pose, prop, event, buttoninfo );
 	return 0;
 }
