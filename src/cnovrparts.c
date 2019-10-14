@@ -468,16 +468,23 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 
 	int x, y, chan;
 	const char * ffn = CNOVRFileSearch( localfn );
-	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 4 );
-	chan = 4; //XXX TODO: figure out why stbi_ works this way.  It says 3 on .jpg's but it actually has 4 bpp.
+	chan = 4;
+	x = 0;
+	y = 0;
+	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 0 );
 	CNOVRFileTimeAddWatch( ffn, CNOVRTextureLoadFileTask, tag, 0 );
-	printf( "Registering FileTime watch %s\n", ffn );
 	free( localfn );
-
 	if( data )
 	{
 		CNOVRTextureLoadDataAsync( t, x, y, chan, 0, data );
 		t->bLoading = 0;
+	}
+	else
+	{
+		ovrprintf( "WARNING: stbi_load( %s, ... ) failed. Is it saving? Trying again.\n", ffn );
+		CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, t, 0, 0 );
+		CNOVRJobTack( cnovrQAsync, CNOVRTextureLoadFileTask, t, 0, 1 ); //If one's already going, let it finish.
+
 	}
 
 }
@@ -509,11 +516,16 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 		t->nFormat,
 		t->nType,
 		t->data );
+
 	if( t->bCalculateMipMaps )
 	{
 		void glGenerateMipmap( 	GLenum target);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		printf( "Generating Mip Map\n" );
+	}
+	else
+	{
+		printf( "Loaded, no mipmaps\n" );
 	}
 	glBindTexture( GL_TEXTURE_2D, 0 );
 

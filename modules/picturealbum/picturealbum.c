@@ -58,6 +58,16 @@ int PictureFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 				break;
 		}
 	}
+	else
+	{
+		if( event == CNOVRF_DOWNNOFOCUS && buttoninfo == CTRLA_TRIGGER )
+		{
+			int i;
+			for( i = 0; i < MAX_PICTURES;i++ )
+				store->pinned[i] = .999;
+			return 0;
+		} //Catpured event (Return), So, we return the cell to it's place on the palette.
+	}
 	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
 	return 0;
 }
@@ -90,7 +100,7 @@ void UpdateFunction( void * tag, void * opaquev )
 				int side, x, y;
 				int rows = 1;
 				int cols = 1;
-				float aspect = t->width / ((float)t->height + 1.0);
+				float aspect = ((float)t->height + 1.0) / t->width;
 				widths[i] = t->width;
 				heights[i] = t->height;
 				for( side = 0; side < 2; side++ )
@@ -98,8 +108,8 @@ void UpdateFunction( void * tag, void * opaquev )
 				for( x = 0; x <= cols; x++ )
 				{
 					float * stage = &geo->pVertices[((x + y*2) * 3)+side*12];
-					stage[0] = aspect * (side?(x/(float)rows):(1-x/(float)rows));
-					stage[1] = y/(float)cols;
+					stage[0] = (side?(x/(float)rows):(1-x/(float)rows));
+					stage[1] = aspect * y/(float)cols;
 					stage[0] = (stage[0] - 0.5)*2.0;
 					stage[1] = (stage[1] - 0.5)*2.0;
 					stage[2] = 0;
@@ -127,14 +137,14 @@ void UpdateFunction( void * tag, void * opaquev )
 
 		cnovr_point3d targetcenter;
 		{
-			cnovr_point3d localcenter = { (i % ALBUM_W)*2 - (ALBUM_W-1), (i/ALBUM_W)*2 - (ALBUM_H-1), .1 };
+			cnovr_point3d localcenter = { (i % ALBUM_W)*2 - (ALBUM_W-1), -(i/ALBUM_W)*2 + (ALBUM_H-1), .1 };
 			scale3d( localcenter, localcenter, 1.0/(ALBUM_W+1) );
 			apply_pose_to_point( targetcenter, &store->palettepose, localcenter );
 		}
 		pose->Pos[0] = cnovr_lerp( targetcenter[0], pose->Pos[0], z );
 		pose->Pos[1] = cnovr_lerp( targetcenter[1], pose->Pos[1], z );
 		pose->Pos[2] = cnovr_lerp( targetcenter[2], pose->Pos[2], z );
-		pose->Scale = cnovr_lerp( pose->Scale, store->palettepose.Scale/(ALBUM_W-1)/2.0, 1.-z );
+		pose->Scale = cnovr_lerp( pose->Scale, store->palettepose.Scale/(ALBUM_W-1)*0.7, 1.-z );
 		quatslerp( pose->Rot, store->palettepose.Rot, pose->Rot, z );
 	}
 
