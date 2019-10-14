@@ -471,7 +471,8 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	chan = 4;
 	x = 0;
 	y = 0;
-	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 0 );
+	stbi_uc * data = stbi_load( ffn, &x, &y, &chan, 4 );
+	chan = 4;	//XXX UGH No idea why stbi_load does weird stuff if we don't specifically request 4.
 	CNOVRFileTimeAddWatch( ffn, CNOVRTextureLoadFileTask, tag, 0 );
 	free( localfn );
 	if( data )
@@ -521,11 +522,10 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 	{
 		void glGenerateMipmap( 	GLenum target);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		printf( "Generating Mip Map\n" );
 	}
 	else
 	{
-		printf( "Loaded, no mipmaps\n" );
+		//
 	}
 	glBindTexture( GL_TEXTURE_2D, 0 );
 

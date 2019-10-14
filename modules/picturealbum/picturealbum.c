@@ -5,13 +5,15 @@
 #include <cnovrutil.h>
 #include <stdlib.h>
 #include <string.h>
+#define CNRBTREE_IMPLEMENTATION
+#include "cntools/cnrbtree/cnrbtree.h"
 
 int shutting_down;
 cnovr_shader * shader;
 const char * albumpath;
 
-#define ALBUM_W 8
-#define ALBUM_H 8
+#define ALBUM_W 7
+#define ALBUM_H 7
 #define MAX_PICTURES (ALBUM_H*ALBUM_W)
 
 cnovr_model * picture_m[MAX_PICTURES];
@@ -108,8 +110,8 @@ void UpdateFunction( void * tag, void * opaquev )
 				for( x = 0; x <= cols; x++ )
 				{
 					float * stage = &geo->pVertices[((x + y*2) * 3)+side*12];
-					stage[0] = (side?(x/(float)rows):(1-x/(float)rows));
-					stage[1] = aspect * y/(float)cols;
+					stage[0] = ((side?(x/(float)rows):(1-x/(float)rows))) / ((aspect>1)?aspect:1);
+					stage[1] = ((aspect<1)?aspect:1) * y/(float)cols;
 					stage[0] = (stage[0] - 0.5)*2.0;
 					stage[1] = (stage[1] - 0.5)*2.0;
 					stage[2] = 0;
@@ -220,44 +222,54 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 		store->filefound[i] = 0;
 	}
 
-	int filecount = 0;
-	printf( "Listing files in folder %s\n", albumpath );
-	char ** filelist = CNOVRFolderListing( albumpath, &filecount );
-	printf( "Populating %d Images\n", filecount );
-	for( i = 0; i < filecount; i++ )
+
 	{
-		char * file = filelist[i];
-		int fnamelen = strlen( file );
-
-		char fncheck[CNOVR_MAX_PATH];
-		snprintf( fncheck, CNOVR_MAX_PATH-1 ,"%s/%s", albumpath, file );
-
-		int k;
-		for( k = 0; k < MAX_PICTURES; k++ )
+		int filecount = 0;
+		printf( "Listing files in folder %s\n", albumpath );
+		char ** filelist = CNOVRFolderListing( albumpath, &filecount );
+		cnstrset * sortset = cnstrset_create();
+		for( i = 0; i < filecount; i++ )
 		{
-			if( strcmp( store->filename[k], fncheck ) == 0 )
+			cnstrset_insert( sortset, filelist[i] );
+		}
+		free( filelist );
+
+		printf( "Populating %d Images\n", filecount );
+		char * file;
+		cnstrset_foreach( sortset, file )
+		{
+	//		char * file = filelist[i];
+			int fnamelen = strlen( file );
+
+			char fncheck[CNOVR_MAX_PATH];
+			snprintf( fncheck, CNOVR_MAX_PATH-1 ,"%s/%s", albumpath, file );
+
+			int k;
+			for( k = 0; k < MAX_PICTURES; k++ )
 			{
-				//found it!
-				break;
+				if( strcmp( store->filename[k], fncheck ) == 0 )
+				{
+					//found it!
+					break;
+				}
+				if( !store->filename[k][0] ) break;
 			}
-			if( !store->filename[k][0] ) break;
-		}
 
-		if( k == MAX_PICTURES ) break;
-		if( store->filename[k][0] == 0 )
-		{
-			//Empty - populate
-			strcpy( store->filename[k], fncheck );
-			store->filefound[k] = 1;
+			if( k == MAX_PICTURES ) break;
+			if( store->filename[k][0] == 0 )
+			{
+				//Empty - populate
+				strcpy( store->filename[k], fncheck );
+				store->filefound[k] = 1;
+			}
+			else
+			{
+				//File was found here, we have it in our list, no need to do anything else.
+				store->filefound[k] = 1;
+			}
 		}
-		else
-		{
-			//File was found here, we have it in our list, no need to do anything else.
-			store->filefound[k] = 1;
-		}
+		cnstrset_destroy( sortset );
 	}
-
-	free( filelist );
 
 	//Clear out any files which weren't found in the list.
 	for( i = 0; i < MAX_PICTURES; i++ )
