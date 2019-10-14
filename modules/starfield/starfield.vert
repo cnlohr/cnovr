@@ -31,7 +31,7 @@ void main()
 	extradata = extra;
 
 	float mag = 2.5*(15.-extradata.x)/14.;
-	gl_PointSize = mag;
+	gl_PointSize = mag+0.6; //XXXX Not as good for VR but better for presentations.
 
 	float bv = extradata.y;
 	float vi = extradata.x;

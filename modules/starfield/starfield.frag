@@ -24,17 +24,24 @@ void main()
 	if( mag < .3 ) mag = .3;
 
 	vec3 rgb;
-	if( props.x < 0.5 )
+	if( extradata.w < -2. )
 	{
-		//Lines
-		mag *= 0.5;
-		rgb = mix( normalize( comprgb ), vec3(1.), .7 );
-		if( mag > 0.6 ) mag = 0.6;
+		rgb = extradata.rgb;
 	}
 	else
 	{
-		//stars
-		rgb = mix( normalize( comprgb ), vec3(1.), .4 );
+		if( props.x < 0.5 )
+		{
+			//Lines
+			mag *= 0.5;
+			rgb = mix( normalize( comprgb ), vec3(1.), .7 );
+			if( mag > 0.6 ) mag = 0.6;
+		}
+		else
+		{
+			//stars
+			rgb = mix( normalize( comprgb ), vec3(1.), .4 );
+		}
 	}
 	colorOut = vec4( rgb, 1.0 ) * mag;
 	//if( gl_FragDepth > 0.999 ) gl_FragDepth = 0.999;

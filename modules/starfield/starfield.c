@@ -14,6 +14,7 @@ cnovr_shader * shader;
 cnovr_model * modelConst;
 //cnovr_shader * shaderConst;
 
+#define MAX_SCALE 500000
 float * starfield_data1;	//ascention, declination, parallax [1]
 float * starfield_data2;   //magnitude, bvcolor, vicolor [1]
 flat_star * database;
@@ -68,7 +69,7 @@ static void RenderFunction( void * tag, void * opaquev )
 {
 	if( !model || !shader ) return;
 	CNOVRRender( shader );
-	if( starpose->Scale > 100000 ) starpose->Scale = 100000;
+	if( starpose->Scale > MAX_SCALE ) starpose->Scale = MAX_SCALE;
 	if( starpose->Scale < .01 ) starpose->Scale = .01;
 	float scales = starpose->Scale;
 	float fvu[4] = { 1., scales, 0., 0. };
@@ -85,7 +86,7 @@ static void RenderFunction( void * tag, void * opaquev )
 	glPointSize( 4 );
 	glUniform4fv( 19, 1, fvu );
 	CNOVRModelRenderWithPose( model, &outpose ); //Stars
-	glLineWidth(.3);
+	glLineWidth(.8);
 	fvu[0] = 0;
 	glUniform4fv( 19, 1, fvu );
 	CNOVRModelRenderWithPose( modelConst, &outpose ); //Constellations
@@ -258,7 +259,7 @@ void start( const char * identifier )
 	printf( "Loading stars\n" );
 	int len = 0;
 	database = (flat_star*)CNOVRFileToString( "modules/starfield/tablize/flat_stars.dat", &len );
-	numstars = len/sizeof(flat_star);
+	numstars = len/sizeof(flat_star) + 10; //the +10 is our sun + planets.
 	printf( "Loaded %d bytes, %d stars\n", len, numstars );
 
 	if( !database )
@@ -271,7 +272,7 @@ void start( const char * identifier )
 	starfield_data2 = malloc( sizeof( float ) * 4 * numstars );
 
 	int i;
-	for( i = 0; i < numstars; i++ )
+	for( i = 0; i < numstars-10; i++ )
 	{
 		flat_star * s = database + i;
 		float * f1 = starfield_data1 + i * 4;
@@ -286,13 +287,52 @@ void start( const char * identifier )
 		f2[3] = 1;
 	}
 
+
+	float * f1 = starfield_data1 + i * 4;
+	float * f2 = starfield_data2 + i * 4;
+	f1[0] = 0;
+	f1[1] = 0;
+	f1[2] = 200000000000.0;	//to get mas *sun*
+	f1[3] = -1;
+	f2[0] = 1;
+	f2[1] = 1;
+	f2[2] = 0;
+	f2[3] = -1;
+
+	int p = 0;
+	for( p = 0; p < 9; p++ )
+	{
+		float PlanetRGBdata[4*9] = {
+			.4, .4, .4,  0.000001877,
+			1, 1, .15, 0.000003507,
+			0, 0, 1,  0.000004848,
+			1, .03, .02,0.000007387,
+			.0001, 1, 1, 0.00002523,
+			1, .9, .1,0.00004646,
+			1, 1, 1,  0.00009303,
+			0, .4, 1, 0.0001457,
+			1, 1, 1,  0.00019140,
+		};
+		i++;
+		f1 = starfield_data1 + i * 4;
+		f2 = starfield_data2 + i * 4;
+		f1[0] = rand();
+		f1[1] = (p==8)?.2:0;
+		f1[2] = 1000./PlanetRGBdata[p*4+3] /*Distance to earth in parsecs*/;	//to get mas (TODO: Check to see if this is right!)  It's just by the seat of my pants.
+		f1[3] = 1;
+		f2[0] = PlanetRGBdata[p*4+0];
+		f2[1] = PlanetRGBdata[p*4+1];
+		f2[2] = PlanetRGBdata[p*4+2];
+		f2[3] = -4;
+	}
+
 	printf( "Part 1 OK\n" );
 	starpose = NAMEDPTRTYPED( "starpose", cnovr_pose );
 	printf( "Starpose: %p\n", starpose );
 	if( starpose->Scale == 0 )
 	{
 		pose_make_identity( starpose );
-		starpose->Scale = 10000;
+		starpose->Scale = MAX_SCALE;
 	}
 
 	CNOVRJobTack( cnovrQPrerender, starfield_setup, 0, 0, 0 );
