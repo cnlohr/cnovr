@@ -85,12 +85,13 @@ typedef struct cnovrfocus_properties_t
 	//This is transitory information stored when excuting the collision list.  Don't mess with it unless you know what you're doing.
 	cnovrfocus_capture * NewCapturedPassive;
 	float NewPassiveRealDistance;
+	float NewPassiveProps[4];
 } cnovrfocus_properties;
 
 //Ugh this is awkward.  Need to fix.
 
 //YOU own the 'ce' object. We just store it for you.
-void CNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance );
+void CNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance, float * fdprops );
 void CNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus );
 void CNOVRFocusRemoveTag( void * tag );
 cnovr_pose * CNOVRFocusGetTipPose( int device );

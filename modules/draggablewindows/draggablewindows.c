@@ -48,6 +48,9 @@ struct DraggableWindow
 	uint8_t * mapptr;
 	cnovrfocus_capture focusblock;
 	int ptrx, ptry;
+
+	int mptrx, mptry;
+	int setptr;
 };
 
 
@@ -207,6 +210,16 @@ success:
 	return ret;
 }
 
+void CheatMouseDown( Display * display, Window window, int button )
+{
+	//https://gist.github.com/pioz/726474
+	// Create and setting up the event
+	char ctspr[128];
+	sprintf( ctspr, "xdotool click %d", button+1 );
+	printf( "Calling: %s\n", ctspr );
+	system( ctspr );
+}
+
 //void FinishedBufferEvent( void * tag, void * opaque )
 //{
 //	DraggableWindow * dw = (DraggableWindow*)opaque;
@@ -230,9 +243,9 @@ void * GetTextureThread( void * v )
 
 
 //	ListWindows();
-//	AllocateNewWindow( 0, "/firefox", -1 );
-	AllocateNewWindow( "Frame Timing", 0, -1 );
-//	AllocateNewWindow( ": ~/git/cnovr", 0, -1 );
+	AllocateNewWindow( 0, "/firefox", -1 );
+//	AllocateNewWindow( "Frame Timing", 0, -1 );
+	AllocateNewWindow( ": ~/Fonts", 0, -1 );
 //	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
@@ -286,6 +299,19 @@ void * GetTextureThread( void * v )
 			frame_in_buffer = current_window_check;
 		}
 
+		//Send a mouse click, if we need to.
+		if( dw->setptr )
+		{
+		    XWarpPointer(localdisplay, None, dw->windowtrack, 0, 0, 0, 0, dw->mptrx, dw->mptry);
+			if( dw->setptr > 1 )
+			{
+				//Based on https://www.linuxquestions.org/questions/programming-9/simulating-a-mouse-click-594576/
+				printf( "Sending click %d\n", dw->setptr );
+				CheatMouseDown( localdisplay, dw->windowtrack, dw->setptr-2 );
+			}
+			dw->setptr = 0;
+		}
+
 		//No way we'd need to be woken up faster than this.
 		OGUSleep( 2000 );
 	}
@@ -329,7 +355,7 @@ void PostRender()
 				stage[1] = y/(float)cols;
 				stage[0] = (stage[0] - 0.5)*2.0;
 				stage[1] = (stage[1] - 0.5)*2.0;
-				stage[2] = 0;
+				stage[2] = (side)*0.1 - 0.05;
 
 				stage = &geoextra->pVertices[((x + y*2) * 4)+side*16];
 				//printf( "Extra: %f %f %f %f %f\n", stage[0], stage[1], stage[2], stage[3] );
@@ -396,6 +422,25 @@ void Render()
 int DockableWindowFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	cnovr_model * m = (cnovr_model*)cap->opaque;
+//	printf( "Event: %d  %f %f %f %d\n", event, PFTHREE( prop->NewPassiveProps ), buttoninfo );
+
+	if( event == CNOVRF_MOTION || event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS )
+	{
+		int i;
+		struct DraggableWindow * dw = 0;
+		for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
+		{
+			if( dwindows[i].model == m ) { dw = &dwindows[i]; break; }
+		}
+		if( dw && !dw->setptr )
+		{
+			dw->mptrx = (1.0-prop->NewPassiveProps[0]) * dw->width;
+			dw->mptry = (prop->NewPassiveProps[1]) * dw->height;
+			dw->setptr = (event == CNOVRF_MOTION)?1:(buttoninfo+2);
+		}
+	}
+
+
 	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
 	if( event == CNOVRF_LOSTFOCUS )
 	{
@@ -416,6 +461,7 @@ void prerender_startup( void * tag, void * opaquev )
 
 		//XXX TODO: Wouldn't it be cool if we could make this a single render call?
 		//Not sure how we would handle the textures, though.
+		//XXX JUST FYI!!! All of this gets blown away on the first render.  This is more just for allocating the space.
 		dw->model = CNOVRModelCreate( 0, GL_TRIANGLES );
 		cnovr_point4d extradata = { i, 0, 0, 0 };
 		CNOVRModelAppendMesh( dw->model, 1, 1, 1, (cnovr_point3d){ 1, 1, 0 }, 0, &extradata );

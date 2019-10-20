@@ -26,6 +26,7 @@ int main()
 	int i;
 	char * l;
 	FILE * flatstars = fopen( "flat_stars.dat", "wb" );
+	FILE * flatstarscsv = fopen( "flat_stars.csv", "w" );
 
 	// http://cdsarc.u-strasbg.fr/ftp/I/311/ReadMe says:
 	/*
@@ -64,6 +65,11 @@ Field   Do we care    Star data near
 26				 172-276 15F7.2 ---      UW      Upper-triangular weight matrix (G1)
 	*/
 
+/* Interesting links:
+	* https://stackoverflow.com/questions/21977786/star-b-v-color-index-to-apparent-rgb-color
+*/
+
+
 #define RECSTR( w, x ) const char * w = #x; x
 
 	RECSTR( flatstartype, typedef struct __attribute__((__packed__)) { \
@@ -94,9 +100,11 @@ Field   Do we care    Star data near
 		s.magnitude_mag1000 = ( tmp = atof( fields[19] ) ) * 1000;
 		s.bvcolor_mag1000 = ( tmp = atof( fields[23] ) ) * 1000;
 		s.vicolor_mag1000 = ( tmp = atof( fields[25] ) ) * 1000;
+		fprintf( flatstarscsv, "%s,%f,%f,%s,%s,%s,%s\n", fields[0], atof( fields[4] )/6.28318530718*360.0, atof( fields[5] )/6.28318530718*360.0, fields[6], fields[19], fields[23], fields[25] );
 		fwrite( &s, sizeof(s), 1, flatstars ); outstars++;
 	}
 	fclose( flatstars );
+	fclose( flatstarscsv );
 	free( filelines );
 	free( hipdat );
 	printf( "Wrote out %d stars\n", outstars );

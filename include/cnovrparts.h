@@ -15,7 +15,7 @@ typedef struct cnovr_collide_results_t
 	int whichmesh;
 	int whichvert;
 	float collidepos[3];
-	float collidevs[4][4];
+	float collidevs[4];
 } cnovr_collide_results;
 
 struct cnovr_shader_t;

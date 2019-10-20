@@ -487,10 +487,10 @@ char * TCCstrdup(const char * str )
 	return ret;
 }
 
-void TCCCNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance )
+void TCCCNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance, float * fdprops )
 {
 	ce->tag = TCCGetTag();
-	CNOVRFocusRespond( ce, realdistance );
+	CNOVRFocusRespond( ce, realdistance, fdprops );
 }
 
 void TCCCNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus )

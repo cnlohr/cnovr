@@ -56,6 +56,7 @@ int PictureFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 				if( buttoninfo == CTRLA_TRIGGER ) { store->pinned[id] = .999; return 0; } //Catpured event (Return), So, we return the cell to it's place on the palette.
 				break;
 			case CNOVRF_ACQUIREDFOCUS:
+				if( store->pinned[id] < .9 ) store->modelpose[id].Scale *= 2.0;
 				store->pinned[id] = 1;
 				break;
 		}

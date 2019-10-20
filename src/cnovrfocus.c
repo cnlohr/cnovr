@@ -375,7 +375,7 @@ void InternalCNOVRFocusSetup()
 
 //This is still kind of awkward.  Probably could use some fixing.
 //Also, considerin switching it up so parts of this function live as a #define for speed.
-void CNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance )
+void CNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance, float * fdprops )
 {
 	int cdevid = FOCUS.current_devid;
 	if( cdevid < 0 ) return;
@@ -384,6 +384,7 @@ void CNOVRFocusRespond( cnovrfocus_capture * ce, float realdistance )
 	{
 		fp->NewCapturedPassive = ce;
 		fp->NewPassiveRealDistance = realdistance;
+		if( fdprops ) memcpy( fp->NewPassiveProps, fdprops, sizeof( fp->NewPassiveProps ) );
 	}
 }
 
@@ -453,7 +454,7 @@ static void ModelFocusCollideFunction(void * tag, void * opaquev )
 	int r = CNOVRModelCollide( m, start, direction, &res );
 	if( r >= 0 && res.t > 0 )
 	{
-		CNOVRFocusRespond( fc->focusevent, res.t );
+		CNOVRFocusRespond( fc->focusevent, res.t, res.collidevs );
 	}
 }
 

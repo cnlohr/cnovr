@@ -86,7 +86,7 @@ static void RenderFunction( void * tag, void * opaquev )
 	glPointSize( 4 );
 	glUniform4fv( 19, 1, fvu );
 	CNOVRModelRenderWithPose( model, &outpose ); //Stars
-	glLineWidth(.8);
+	glLineWidth(1.2); //Better for presentation, normal is best with 0.8
 	fvu[0] = 0;
 	glUniform4fv( 19, 1, fvu );
 	CNOVRModelRenderWithPose( modelConst, &outpose ); //Constellations
@@ -130,7 +130,7 @@ void CollisionChecker( void * tag, void * opaquev )
 	cnovrfocus_properties * p = (cnovrfocus_properties*)opaquev;
 	//tag is tag
 	//Use 'p' to figure out where the collision happened.
-	CNOVRFocusRespond( focuscontrol.focusevent, 100.0 ); //We're just returning 100.0
+	CNOVRFocusRespond( focuscontrol.focusevent, 100.0, 0 ); //We're just returning 100.0
 }
 
 int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )

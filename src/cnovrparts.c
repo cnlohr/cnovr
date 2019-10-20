@@ -1268,7 +1268,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				sub3d( v20, v2, v0 ); //!?!?!
 				cross3d( N, v20, v10 );
 			}
-			normalize3d( N, N );
+			float Ax2 = magnitude3d( N );
+			scale3d( N, N, 1/Ax2 );
+			//normalize3d( N, N );
 			float D = dot3d(N, v0);
 			float t = -( dot3d( N, start ) + D) / dot3d( N, direction ); 
 			float Phit[3];
@@ -1289,15 +1291,19 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				cross3d( C1, C1tmp, v21 );
 				cross3d( C2, C2tmp, v02 );
 			}
-			//C1-2 are busted here.
+
+			//C1-2 are busted (?) here. Their magnitude is weird.  Almost like it's squared or something?
+			float t0 = dot3d( N, C0 );
+			float t1 = dot3d( N, C1 );
+			float t2 = dot3d( N, C2 );
 
 //			printf( "C0: %f %f %f  C1: %f %f %f   C2: %f %f %f   N: %f %f %f  %f\n", PFTHREE( C0 ), PFTHREE( C1 ), PFTHREE( C2 ), PFTHREE( N ), t );
-			if( dot3d( N, C0 ) < 0 ||
-				dot3d( N, C1 ) < 0 ||
-				dot3d( N, C2 ) < 0 ) continue;
+			if( t0 < 0 ||
+				t1 < 0 ||
+				t2 < 0 ) continue;
 
 
-			//Else: We have a hit.
+			//Else: We have a hit.  This doesn't happen for all that many polys, so time isn't as critical here.
 			if( t < r->t )
 			{
 				r->t = t;
@@ -1305,8 +1311,30 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				r->whichvert = j;
 				copy3d( r->collidepos, Phit );
 
-				//Now, do barycentric coordinates to get the rest of the info here.
-				//XXX TODO TODO.
+				if( m->iGeos > 1 )
+				{
+					t0/=Ax2;
+					t1/=Ax2;
+					t2/=Ax2;
+
+					//{ t0, t1, t2 } are the barycentric coordinates. 
+					int stride1 = m->pGeos[1]->iStride;
+					float * vd1 = m->pGeos[1]->pVertices;
+					float * tx0 = vd1 + i0 * stride1;
+					float * tx1 = vd1 + i1 * stride1;
+					float * tx2 = vd1 + i2 * stride1;
+					float * txo = r->collidevs;
+					int j;
+					for( j = 0; j < stride1; j++ )
+					{
+						txo[j] = tx0[j] * t1 + tx1[j] * t2 + tx2[j] * t0;
+					}
+					for( ; j < sizeof(r->collidevs) / sizeof(r->collidevs[0]); j++ )
+					{
+						txo[j] = 0;
+					}
+					//printf( "%f * (%f %f %f)  %f * (%f %f %f)  %f * (%f %f %f)\n", t1, PFTHREE( tx0 ), t2, PFTHREE( tx1 ), t0, PFTHREE( tx2 ) );
+				}
 				ret = i;
 			}
 		}
