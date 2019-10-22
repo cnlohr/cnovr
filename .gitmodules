@@ -13,4 +13,4 @@
 [submodule "lib/tinycc"]
 	path = lib/tinycc
 	shallow = true
-	url = git://repo.or.cz/tinycc.git
+	url = https://repo.or.cz/tinycc.git
