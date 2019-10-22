@@ -11,6 +11,7 @@
 		{
 			"cfile" : "starfield/starfield.c",
 			"identifier" : "starfield"
+			"disabled" : true,
 		},
 		{
 			"cfile" : "example.c",
@@ -23,7 +24,7 @@
 		},
 		{
 			"cfile" : "picturealbum/picturealbum.c",
-			"identifier" : "starsermon/albumfolder;2",
+			"identifier" : "assets",
 			"disabled" : false,
 		},
 	]

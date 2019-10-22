@@ -236,7 +236,13 @@ char ** CNOVRFolderListing( const char * path, int * elements )
 	//Currently untested in Windows
 	WIN32_FIND_DATA ffd;
 	HANDLE hFind = INVALID_HANDLE_VALUE;
-	hFind = FindFirstFile( path, &ffd);
+	int pathlen = strlen( path );
+	char wildcardpath[pathlen+3];
+	memcpy( wildcardpath, path, pathlen );
+	wildcardpath[pathlen+0] = '/';
+	wildcardpath[pathlen+1] = '*';
+	wildcardpath[pathlen+2] = '\0';
+	hFind = FindFirstFile( wildcardpath, &ffd);
 	if( INVALID_HANDLE_VALUE != hFind )
 	{
 		do
@@ -247,15 +253,14 @@ char ** CNOVRFolderListing( const char * path, int * elements )
 				// filesize.HighPart = ffd.nFileSizeHigh;
 				// filesize.QuadPart
 				int len = strlen( ffd.cFileName ) + 1;
-				struct linkedstrlist * next = alloca( len + sizeof( struct linkedstrlist ) );
-				memcpy( next->str, ffd.cFileName );
+				struct linkedstrlist * next = malloc( len + sizeof( struct linkedstrlist ) );	//alloca broken in windows?
+				memcpy( next->str, ffd.cFileName, len );
 				next->next = 0;
 				next->len = len;
 				tail->next = next;
 				tail = next;
 				needed_bytes += len;
 				entries++;
-
 			}
 		} while (FindNextFile(hFind, &ffd) != 0);
 		FindClose(hFind);
@@ -292,7 +297,11 @@ char ** CNOVRFolderListing( const char * path, int * elements )
 	int i;
 	for( i = 0; i < entries; i++ )
 	{
-		tail = tail->next;
+		struct linkedstrlist * next = tail->next;
+#if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
+		if( tail != &head ) free( tail );
+#endif
+		tail = next;
 		ret[i] = data;
 		int len = tail->len;
 		memcpy( data, tail->str, len );

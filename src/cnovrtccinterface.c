@@ -560,6 +560,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExport( free );
 	TCCExport( strdup );
 	TCCExportS( memcpy );
+	TCCExportS( memset );
 	TCCExport( strndup );
 
 	TCCExportS( CNOVRAlertv );
@@ -740,15 +741,62 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( glBufferData );
 	TCCExportS( glMapBuffer );
 	TCCExportS( glUniform4fv );
+	TCCExportS( glUniform4fvCHEW );
 	TCCExportS( glBindTexture );
 	TCCExportS( glTexImage2D );
-
+	TCCExportS( glGenerateMipmapCHEW );
+	TCCExportS( glEnable );
+	TCCExportS( glBlendFunc );
+	TCCExportS( glPointSize );
+	TCCExportS( glDepthFunc );
+	TCCExportS( glLineWidth );
+	TCCExportS( glTexParameteri );
+	TCCExportS( glGetError );
+	TCCExportS( glTexSubImage2D );
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
+	TCCExportS( _vsnprintf );
+	TCCExportS( _vsnwprintf );
 
 	TCCExportS( _stricmp );
 	TCCExportS( _strnicmp );
 	
+	TCCExportS( strstr );	
+	TCCExportS( strcmp );
+	TCCExportS( strlen );
+	TCCExportS( strcpy );
+	TCCExportS( snprintf );
+	TCCExportS( sprintf );
+	TCCExportS( atoi );
+
+
+	tcc_add_symbol( tce->state, "_findfirst64", FindFirstFileA );
+	TCCExportS( strncpy );
+	tcc_add_symbol( tce->state, "_findnext64", FindNextFile );
+	TCCExportS( EnumWindows );
+	TCCExportS( EnumDesktopWindows );
+	TCCExportS( GetWindowThreadProcessId );
+	TCCExportS( GetWindowTextA );
+	TCCExportS( OpenProcess );
+	tcc_add_symbol( tce->state, "QueryFullProcessImageNameA", GetProcAddress( LoadLibrary("kernel32.dll"), "QueryFullProcessImageNameA" ) );
+	TCCExportS( GetModuleFileNameA );
+
+	TCCExportS( CloseHandle );
+	TCCExportS( CreateCompatibleDC );
+	TCCExportS( GetDC );
+	TCCExportS( GetSystemMetrics );
+	TCCExportS( CreateCompatibleBitmap );
+	TCCExportS( SelectObject );
+	TCCExportS( ReleaseDC );
+	TCCExportS( DeleteObject );
+	TCCExportS( DeleteDC );
+	TCCExportS( GetWindowRect );
+	TCCExportS( GetDesktopWindow );
+	TCCExportS( BitBlt );
+	TCCExportS( GetDIBits );
+	TCCExportS( GetClassNameA );
+	TCCExportS( GetCursorPos );
+
 	TCCExport( _InterlockedExchangeAdd );
 	TCCExport( _InterlockedExchangeAdd64 );
 	TCCExport( _mul128 );
@@ -771,6 +819,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	TCCExportS( ldexp );
 	TCCExportS( hypot );
 	TCCExportS( rand );
+	TCCExportS( srand );
 
 	TCCExportS( sin );
 	TCCExportS( cos );

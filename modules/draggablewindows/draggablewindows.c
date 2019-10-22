@@ -8,15 +8,52 @@
 #include <cnovrutil.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <chew.h>
+
+#ifdef WINDOWS
+
+
+#define SRCCOPY (DWORD)0x00CC0020 /* dest = source */
+#define SM_CYVIRTUALSCREEN 79
+#define SM_CXVIRTUALSCREEN 78
+HDC GetDC(HWND hWnd);
+HDC CreateCompatibleDC(HDC hdc);
+int GetSystemMetrics(int nIndex);
+HBITMAP CreateCompatibleBitmap(HDC hdc, int cx, int cy);
+HGDIOBJ SelectObject(HDC     hdc,HGDIOBJ h);
+int ReleaseDC(HWND hWnd,HDC  hDC);
+BOOL DeleteObject(HGDIOBJ ho);
+BOOL DeleteDC(HDC hdc);
+int GetWindowTextA(HWND  hWnd,LPSTR lpString,int   nMaxCount);
+BOOL QueryFullProcessImageNameA(HANDLE hProcess,DWORD  dwFlags,LPSTR  lpExeName,PDWORD lpdwSize);
+
+typedef BOOL CALLBACK WNDENUMPROC(HWND hwnd,LPARAM lParam);
+BOOL EnumWindows(WNDENUMPROC lpEnumFunc,LPARAM      lParam);
+/*
+	//https://stackoverflow.com/questions/5069104/fastest-method-of-screen-capturing-on-windows
+	hdc = GetDC(NULL); // get the desktop device context
+	HDC hDest = CreateCompatibleDC(hdc); // create a device context to use yourself
+	int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+	int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	HBITMAP hbDesktop = CreateCompatibleBitmap( hdc, width, height);
+	SelectObject(hDest, hbDesktop);
+	BitBlt(hDest, 0,0, width, height, hdc, 0, 0, SRCCOPY);
+	ReleaseDC(NULL, hdc);
+	DeleteObject(hbDesktop);
+	DeleteDC(hDest);
+*/
+#define Window HWND
+
+#else
+#include <unistd.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
-#include <errno.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <chew.h>
+#endif
 
 int handle;
 
@@ -29,16 +66,25 @@ og_thread_t gtt;
 
 int frame_in_buffer = -1;
 int need_texture = 1;
+#ifndef WINDOWS
 XShmSegmentInfo shminfo;
 Display * localdisplay;
+#endif
 int quitting;
 
 #define MAX_DRAGGABLE_WINDOWS 16
 
 struct DraggableWindow
 {
+#ifdef WINDOWS
+	HWND windowtrack;
+	HDC image;
+	HBITMAP hbdesktop;
+	HDC hdcoutput;
+#else
 	Window windowtrack;
 	XImage * image;
+#endif
 	int width, height;
 	int lastwidth, lastheight;
 	cnovr_model * model;
@@ -109,6 +155,100 @@ int AllocateNewWindow( const char * name, const char * matchingwindowpname, int 
 	return i;
 }
 
+#ifdef WINDOWS
+
+void CheatMouseDown( Window window, int button ) { }
+
+struct WindowSearchStruct
+{
+	const char * windownamematch;
+	const char * windowmatchexename;
+	int matchpid;
+
+	HWND bestwnd;
+	int bestpid;
+	int w, h;
+};
+
+HWND desktopwindow;
+
+BOOL CALLBACK WNDENUMPROCThis(HWND hwnd, LPARAM lParam)
+{
+	struct WindowSearchStruct * match = (struct WindowSearchStruct*)lParam;
+	DWORD dwProcessId;
+	char windowname[256];
+	GetWindowThreadProcessId(  hwnd, &dwProcessId );
+	GetWindowTextA( hwnd, windowname, sizeof( windowname )-1 );
+	HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, dwProcessId );
+	char exename[256];
+	DWORD exenamesize = sizeof( exename )-1;
+	if( h && QueryFullProcessImageNameA(h, 0, exename, &exenamesize ) )
+	{
+		//Ok
+	}
+	else
+	{
+		exename[0] = 0;
+	}
+    CloseHandle(h);
+
+	char hwndclassname[256];
+	GetClassName( hwnd, hwndclassname, sizeof( hwndclassname ) - 1 );
+
+	RECT rect;
+	GetWindowRect( hwnd, &rect );
+	int lx = rect.right;
+	int ly = rect.bottom;
+
+	if( ( hwnd == desktopwindow && match->windownamematch && strcmp( match->windownamematch, "ROOTWINDOW" ) == 0 ) ||
+		( match->windownamematch && strstr( windowname, match->windownamematch ) != 0 ) ||
+		( match->windowmatchexename && strstr( exename, match->windowmatchexename ) != 0 ) ||
+		( match->windowmatchexename && strstr( hwndclassname, match->windowmatchexename ) != 0 ) ||
+		( match->matchpid != -1 && match->matchpid == dwProcessId ) )
+	{
+		if( lx * ly > match->w * match->h )
+		{
+			match->bestwnd = hwnd;
+			match->bestpid = dwProcessId;
+			match->w = lx;
+			match->h = ly;
+		}
+	}
+ 
+	return 1;
+}
+
+Window GetWindowIdBySubstring( const char * windownamematch, const char * windowmatchexename, int matchpid, int * pidout )
+{
+	if( !desktopwindow )
+	{
+		desktopwindow = GetDesktopWindow();
+	}
+	printf( "------------------------- CHECKING: %s %s %d\n", windownamematch, windowmatchexename, matchpid );
+	struct WindowSearchStruct match;
+	match.windownamematch = windownamematch;
+	match.windowmatchexename = windowmatchexename;
+	match.matchpid = matchpid;
+	match.bestwnd = (HWND)-1;
+	match.w = 0;
+	match.h = 0;
+	match.bestpid = 0;
+	WNDENUMPROCThis( desktopwindow, (LPARAM)&match );
+	EnumDesktopWindows(NULL, WNDENUMPROCThis, (LPARAM)&match );
+	if( match.bestwnd != (HWND)-1 )
+	{
+		printf( "Found window %d %d %d %d\n", match.bestwnd, match.bestpid, match.w, match.h );
+		*pidout = match.bestpid;
+		return match.bestwnd;
+	}
+	else
+	{
+		return (HWND)0;
+	}
+}
+
+#else
+	
 int Xerrhandler(Display * d, XErrorEvent * e)
 {
 	printf( "XShmGetImage error\n" );
@@ -210,8 +350,9 @@ success:
 	return ret;
 }
 
-void CheatMouseDown( Display * display, Window window, int button )
+void CheatMouseDown( Window window, int button )
 {
+	//Use localdisplay
 	//https://gist.github.com/pioz/726474
 	// Create and setting up the event
 	char ctspr[128];
@@ -219,6 +360,8 @@ void CheatMouseDown( Display * display, Window window, int button )
 	printf( "Calling: %s\n", ctspr );
 	system( ctspr );
 }
+
+#endif
 
 //void FinishedBufferEvent( void * tag, void * opaque )
 //{
@@ -228,6 +371,9 @@ void CheatMouseDown( Display * display, Window window, int button )
 
 void * GetTextureThread( void * v )
 {
+#ifdef WINDOWS
+	//No special initialization needed on Windows.
+#else
 	XInitThreads();
 	localdisplay = XOpenDisplay(NULL);
 	XSetErrorHandler(Xerrhandler);
@@ -240,15 +386,82 @@ void * GetTextureThread( void * v )
 	shminfo.shmaddr = shmat(shminfo.shmid, 0, 0);
 	shminfo.readOnly = False;
 	XShmAttach(localdisplay, &shminfo);
-
+#endif
 
 //	ListWindows();
-	AllocateNewWindow( 0, "/firefox", -1 );
+//	AllocateNewWindow( 0, "firefox", -1 );
+//	AllocateNewWindow( 0, "notepad++", -1 );
 //	AllocateNewWindow( "Frame Timing", 0, -1 );
-	AllocateNewWindow( ": ~/Fonts", 0, -1 );
+//	AllocateNewWindow( ": ~/Fonts", 0, -1 );
 //	AllocateNewWindow( 0, "/xed", -1 );
 	AllocateNewWindow( "ROOTWINDOW", 0, -1 );
 
+
+#ifdef WINDOWS
+	while( !quitting )
+	{
+		if( !need_texture ) { OGUSleep( 2000 ); continue; }
+		current_window_check = (current_window_check+1)%MAX_DRAGGABLE_WINDOWS;
+		struct DraggableWindow * dw = &dwindows[current_window_check];
+		if( !dw->windowtrack ) { if( current_window_check == 0 ) OGUSleep( 2000 ); continue; }
+		
+		RECT rect;
+		GetWindowRect( dw->windowtrack, &rect );
+		int lx = rect.right - rect.left;
+		int ly = rect.bottom - rect.top;
+
+		int taint = 0;
+		if( lx != dw->width ) taint = 1;
+		if( ly != dw->height ) taint = 1;
+		int width = dw->width = lx;
+		int height = dw->height = ly;
+
+		if( !dw->image )
+		{
+			taint = 1;
+			dw->image = GetDC( dw->windowtrack ); // get the desktop device context
+			dw->hdcoutput = CreateCompatibleDC( dw->image ); // create a device context to use yourself
+			dw->hbdesktop = CreateCompatibleBitmap( dw->image , width, height);
+		}
+		else if( taint )
+		{
+			DeleteObject( dw->hbdesktop );
+		}
+
+		if( taint )
+		{
+			dw->hbdesktop = CreateCompatibleBitmap( dw->image , width, height);
+		}
+	 
+	 
+	 	SelectObject(dw->hdcoutput, dw->hbdesktop);
+		BitBlt(dw->hdcoutput, 0,0, width, height, dw->image, 0, 0, SRCCOPY);
+		BITMAPINFOHEADER bmi = {0};
+		bmi.biSize = sizeof(BITMAPINFOHEADER);
+		bmi.biPlanes = 1;
+		bmi.biBitCount = 32;
+		bmi.biWidth = width;
+		bmi.biHeight = -height;
+		bmi.biCompression = BI_RGB;
+		bmi.biSizeImage = width * height;
+		GetDIBits(dw->hdcoutput, dw->hbdesktop, 0, height, dw->mapptr, (BITMAPINFO*)&bmi, DIB_RGB_COLORS);
+
+		POINT p;
+		GetCursorPos( &p );
+		{
+			dw->ptrx = p.x;
+			dw->ptry = p.y;
+		}
+
+
+		frame_in_buffer = current_window_check;
+
+		//No way we'd need to be woken up faster than this.
+		OGUSleep( 2000 );
+		
+		
+	}
+#else
 	while( !quitting )
 	{
 		if( !need_texture ) { OGUSleep( 2000 ); continue; }
@@ -316,7 +529,9 @@ void * GetTextureThread( void * v )
 		OGUSleep( 2000 );
 	}
 	printf( "Closing display\n" );
-	XCloseDisplay( localdisplay );
+	XCloseDisplay( localdisplay );	
+#endif
+
 	printf( "Closing thraed\n" );
 	return 0;
 }
@@ -376,7 +591,7 @@ void PostRender()
 
 		glBindTexture( GL_TEXTURE_2D, dw->textureid );
 		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, dw->width, dw->height, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-		glGenerateMipmap(GL_TEXTURE_2D);
+		glGenerateMipmapCHEW(GL_TEXTURE_2D);
 		glBindTexture( GL_TEXTURE_2D, 0 );
 		dw->mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, 2048*2048*4, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
 //		dw->mapptr = glMapBuffer( GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY );
@@ -539,7 +754,18 @@ void stop( const char * identifier )
 		CNOVRDelete( dw->model );
 		CNOVRDelete( dw->texture );
 	}
+	
+#ifdef WINDOWS
 
+	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
+	{
+		struct DraggableWindow * dw = &dwindows[i];
+		ReleaseDC(NULL, dw->image);
+		DeleteObject(dw->hbdesktop);
+		DeleteDC(dw->hdcoutput);
+	}
+
+#else
 	//Freeing shmem
 	if( shminfo.shmid >= 0 )
 	{
@@ -547,7 +773,7 @@ void stop( const char * identifier )
 		/* 'remove' shared memory segment */
 		shmctl(shminfo.shmid, IPC_RMID, NULL);
 	}
-
+#endif
 
 	CNOVRDelete( shader );
 	printf( "=== Dockables End stop\n" );

@@ -43,15 +43,17 @@ extern "C" {
 #include <GL/gl.h>
 #include "chewtypes.h"
 
+#ifndef chew_FUN_EXPORT
 #define chew_FUN_EXPORT extern
+#endif
 
 #define CHEWTYPEDEF( ret, name, ... ) \
 typedef ret (STDCALL *name##_t)( __VA_ARGS__ );	\
-extern  name##_t	name;
+chew_FUN_EXPORT name##_t	name;
 
 #define CHEWTYPEDEF2( ret, name, usename, ... ) \
 typedef ret (STDCALL *usename##_t)( __VA_ARGS__ );	\
-extern  usename##_t	usename;
+chew_FUN_EXPORT usename##_t	usename;
 
 void chewInit();
 void * chewGetProcAddress( const char *name );
@@ -84,6 +86,8 @@ CHEWTYPEDEF2( void, glSampleCoverage, glSampleCoverageCHEW, GLfloat value, GLboo
 
 CHEWTYPEDEF( void, glDebugMessageCallback, GLDEBUGPROC callback, const void * userParam )
 CHEWTYPEDEF( void, glDebugMessageControl, GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled )
+
+CHEWTYPEDEF2( void, glGenerateMipmap, glGenerateMipmapCHEW, GLuint index )
 
 CHEWTYPEDEF( void, glGenFramebuffers, GLsizei n, GLuint * framebuffers )
 CHEWTYPEDEF( void, glGenRenderbuffers, GLsizei n, GLuint * renderbuffers )
@@ -129,6 +133,7 @@ CHEWTYPEDEF( void, glUniform1fv, GLint location, GLsizei count, const GLfloat *v
 CHEWTYPEDEF( void, glUniform2fv, GLint location, GLsizei count, const GLfloat *value )
 CHEWTYPEDEF( void, glUniform3fv, GLint location, GLsizei count, const GLfloat *value )
 CHEWTYPEDEF( void, glUniform4fv, GLint location, GLsizei count, const GLfloat *value )
+CHEWTYPEDEF2( void, glUniform4fv, glUniform4fvCHEW, GLint location, GLsizei count, const GLfloat *value )
 CHEWTYPEDEF( void, glUniform1iv, GLint location, GLsizei count, const GLint *value )
 CHEWTYPEDEF( void, glUniform2iv, GLint location, GLsizei count, const GLint *value )
 CHEWTYPEDEF( void, glUniform3iv, GLint location, GLsizei count, const GLint *value )

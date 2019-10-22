@@ -520,8 +520,7 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 
 	if( t->bCalculateMipMaps )
 	{
-		void glGenerateMipmap( 	GLenum target);
-		glGenerateMipmap(GL_TEXTURE_2D);
+		glGenerateMipmapCHEW(GL_TEXTURE_2D);
 	}
 	else
 	{

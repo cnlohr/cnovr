@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <cnovrtcc.h>
 #include <cnovrparts.h>
 #include <cnovrfocus.h>
@@ -5,6 +6,7 @@
 #include <cnovrutil.h>
 #include <stdlib.h>
 #include <string.h>
+
 #define CNRBTREE_IMPLEMENTATION
 #include "cntools/cnrbtree/cnrbtree.h"
 
@@ -228,6 +230,7 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 		int filecount = 0;
 		printf( "Listing files in folder %s\n", albumpath );
 		char ** filelist = CNOVRFolderListing( albumpath, &filecount );
+		printf( "OK\n" );
 		cnstrset * sortset = cnstrset_create();
 		for( i = 0; i < filecount; i++ )
 		{
@@ -239,8 +242,11 @@ static void picturealbum_scene_setup( void * tag, void * opaquev )
 		char * file;
 		cnstrset_foreach( sortset, file )
 		{
-	//		char * file = filelist[i];
 			int fnamelen = strlen( file );
+			if( strstr( file, ".png" ) == 0 && 
+				strstr( file, ".PNG" ) == 0 && 
+				strstr( file, ".jpg" ) == 0 && 
+				strstr( file, ".JPG" ) == 0 ) continue;
 
 			char fncheck[CNOVR_MAX_PATH];
 			snprintf( fncheck, CNOVR_MAX_PATH-1 ,"%s/%s", albumpath, file );
