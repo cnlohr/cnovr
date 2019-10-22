@@ -1,12 +1,16 @@
 [submodule "rawdraw"]
 	path = rawdraw
+	shallow = true
 	url = https://github.com/cnlohr/rawdraw
 [submodule "cntools"]
 	path = cntools
+	shallow = true
 	url = https://github.com/cnlohr/cntools
 [submodule "openvr"]
 	path = openvr
 	url = https://github.com/ValveSoftware/openvr
+	shallow = true
 [submodule "lib/tinycc"]
 	path = lib/tinycc
+	shallow = true
 	url = git://repo.or.cz/tinycc.git
