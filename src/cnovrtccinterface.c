@@ -543,293 +543,304 @@ static void TCC_umul128( ) { ovrprintf( "Unsupported function\n" ); }
 static void TCC__stosb( ) { ovrprintf( "Unsupported function\n" ); }
 
 static float TCCffloor( float x ) { return FLT_FLOOR(x); }
-
+#else
+//Oddball things
+extern void * CNFGDisplay;
+extern void * CNFGWindow;
+extern void * CNFGPixmap;
+extern void * CNFGGC;	
+extern void * CNFGWindowGC;
+extern void * CNFGVisual;
+void XShmCreateImage(); 
+void XShmAttach();
+void XShmGetImage();
 #endif
 
-#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
-#define TCCExportS( x ) tcc_add_symbol( tce->state, #x, &x );
+//#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
+//#define TCCExportS( x ) tcc_add_symbol( tce->state, #x, &x );
+
+#define TCCExport( x ) { #x, &TCC##x },
+#define TCCExportS( x ) { #x, &x },
+
+struct ImportList
+{
+	const char * SymName;
+	void * SymPlace;
+};
+
+ const struct ImportList ILSYMS[] = {
+	TCCExport( realloc )
+	TCCExport( malloc )
+	TCCExport( calloc )
+	TCCExport( free )
+	TCCExport( strdup )
+	TCCExportS( memcpy )
+	TCCExportS( memset )
+	TCCExport( strndup )
+
+	TCCExportS( CNOVRAlertv )
+	TCCExportS( CNOVRAlert )
+	
+	TCCExportS( puts )
+	TCCExport( printf )
+
+	TCCExportS( OGSleep )
+	TCCExportS( OGUSleep )
+	TCCExportS( OGGetAbsoluteTime )
+	TCCExportS( OGGetFileTime )
+	TCCExport( OGCreateThread )
+	TCCExport( OGJoinThread )
+	TCCExport( OGCancelThread )
+	TCCExport( OGCreateMutex )
+	TCCExportS( OGLockMutex )
+	TCCExportS( OGUnlockMutex )
+	TCCExport( OGDeleteMutex )
+	TCCExport( OGCreateSema )
+	TCCExportS( OGGetSema )
+	TCCExportS( OGLockSema )
+	TCCExportS( OGUnlockSema )
+	TCCExport( OGDeleteSema )
+	TCCExport( OGCreateTLS )
+	TCCExport( OGDeleteTLS )
+	TCCExportS( OGGetTLS )
+	TCCExportS( OGSetTLS )
+	TCCExport( GetTCCTag )
+	TCCExportS( cnovrstate )
+	TCCExport( CNOVRNodeCreateSimple )
+	TCCExportS( CNOVRVBOTaint )
+	TCCExport( CNOVRModelCreate )
+	TCCExportS( CNOVRModelSetNumVBOs )
+	TCCExportS( CNOVRCreateVBO )
+	TCCExportS( CNOVRModelTaintIndices )
+	TCCExportS( CNOVRModelTackIndex )
+	TCCExportS( CNOVRModelRenderWithPose )
+	TCCExportS( CNOVRModelApplyTextureFromFileAsync )
+	TCCExportS( CNOVRModelAppendMesh )
+	TCCExport( CNOVRTextureCreate )
+	TCCExport( CNOVRShaderCreate )
+	TCCExport( CNOVRDeleteBase )
+	TCCExportS( CNOVRTextureLoadDataNow )
+	TCCExportS( CNOVRTextureLoadFileAsync )
+	TCCExportS( CNOVRModelAppendCube )
+	TCCExportS( CNOVRModelCollide )
+	TCCExportS( CNOVRGeneralHandleFocusEvent )
+	TCCExportS( CNOVRModelSetInteractable )
+	TCCExportS( CNOVRNodeAddObject )
+	TCCExportS( CNOVRNodeRemoveObject )
+	TCCExportS( CNOVRNamedPtrData )
+	TCCExportS( CNOVRNamedPtrSave )
+	TCCExportS( CNOVRNamedPtrGet )
+	TCCExport( CNOVRFolderListing )
+	TCCExport( CNOVRSplitStrings )
+	TCCExport( CNOVRFileToString )
+	TCCExport( CNOVRJobTack )
+	TCCExport( CNOVRListAdd )
+	TCCExport( CNOVRListDeleteTCCTag )
+	TCCExportS( CNOVRListDeleteTag )
+	TCCExport( CNOVRFocusRespond )
+	TCCExport( CNOVRFocusAcquire )
+	TCCExport( CNOVRFocusRemoveTag )
+	TCCExportS( CNOVRFocusGetTipPose )
+	TCCExportS( cnovr_interpolate )
+	TCCExportS( cross3d )
+	TCCExportS( sub3d )
+	TCCExportS( add3d )
+	TCCExportS( scale3d )
+	TCCExportS( invert3d )
+	TCCExportS( mag3d )
+	TCCExportS( normalize3d )
+	TCCExportS( center3d )
+	TCCExportS( mean3d )
+	TCCExportS( dot3d )
+	TCCExportS( compare3d )
+	TCCExportS( copy3d )
+	TCCExportS( magnitude3d )
+	TCCExportS( dist3d )
+	TCCExportS( anglebetween3d )
+	TCCExportS( rotatearoundaxis )
+	TCCExportS( angleaxisfrom2vect )
+	TCCExportS( axisanglefromquat )
+	TCCExportS( quatdist )
+	TCCExportS( quatdifference )
+	TCCExportS( quatset )
+	TCCExportS( quatiszero )
+	TCCExportS( quatsetnone )
+	TCCExportS( quatcopy )
+	TCCExportS( quatfromeuler )
+	TCCExportS( quattoeuler )
+	TCCExportS( quatfromaxisangle )
+	TCCExportS( quatfromaxisanglemag )
+	TCCExportS( quattoaxisanglemag )
+	TCCExportS( quatmagnitude )
+	TCCExportS( quatinvsqmagnitude )
+	TCCExportS( quatnormalize )
+	TCCExportS( quattomatrix )
+	TCCExportS( quatfrommatrix )
+	TCCExportS( quatgetconjugate )
+	TCCExportS( findnearestaxisanglemag )
+	TCCExportS( quatconjugateby )
+	TCCExportS( quatgetreciprocal )
+	TCCExportS( quatfind )
+	TCCExportS( quatrotateabout )
+	TCCExportS( quatmultiplyrotation )
+	TCCExportS( quatscale )
+	TCCExportS( quatdivs )
+	TCCExportS( quatsub )
+	TCCExportS( quatadd )
+	TCCExportS( quatinnerproduct )
+	TCCExportS( quatouterproduct )
+	TCCExportS( quatevenproduct )
+	TCCExportS( quatoddproduct )
+	TCCExportS( quatslerp )
+	TCCExportS( quatrotatevector )
+	TCCExportS( eulerrotatevector )
+	TCCExportS( quatfrom2vectors )
+	TCCExportS( eulerfrom2vectors )
+	TCCExportS( apply_pose_to_point )
+	TCCExportS( apply_pose_to_pose )
+	TCCExportS( unapply_pose_from_pose )
+	TCCExportS( pose_invert )
+	TCCExportS( pose_to_matrix44 )
+	TCCExportS( matrix44_to_pose )
+	TCCExportS( matrix44copy )
+	TCCExportS( matrix44transpose )
+	TCCExportS( matrix44identity )
+	TCCExportS( matrix44zero )
+	TCCExportS( matrix44translate )
+	TCCExportS( matrix44scale )
+	TCCExportS( matrix44rotateaa )
+	TCCExportS( matrix44rotatequat )
+	TCCExportS( matrix44rotateea )
+	TCCExportS( matrix44multiply )
+	TCCExportS( matrix44print )
+	TCCExportS( matrix44perspective )
+	TCCExportS( matrix44lookat )
+	TCCExportS( matrix44ptransform )
+	TCCExportS( matrix44vtransform )
+	TCCExportS( matrix444transform )
+
+	TCCExportS( glGenBuffers )
+	TCCExportS( glBindBuffer )
+	TCCExportS( glMapBufferRange )
+	TCCExportS( glUnmapBuffer )
+	TCCExportS( glBufferData )
+	TCCExportS( glMapBuffer )
+	TCCExportS( glUniform4fv )
+	TCCExportS( glUniform4fvCHEW )
+	TCCExportS( glBindTexture )
+	TCCExportS( glTexImage2D )
+	TCCExportS( glGenerateMipmapCHEW )
+	TCCExportS( glEnable )
+	TCCExportS( glBlendFunc )
+	TCCExportS( glPointSize )
+	TCCExportS( glDepthFunc )
+	TCCExportS( glLineWidth )
+	TCCExportS( glTexParameteri )
+	TCCExportS( glGetError )
+	TCCExportS( glTexSubImage2D )
+
+#if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
+	TCCExportS( _vsnprintf )
+	TCCExportS( _vsnwprintf )
+
+	TCCExportS( _stricmp )
+	TCCExportS( _strnicmp )
+	
+	TCCExportS( strstr )	
+	TCCExportS( strcmp )
+	TCCExportS( strlen )
+	TCCExportS( strcpy )
+	TCCExportS( snprintf )
+	TCCExportS( sprintf )
+	TCCExportS( atoi )
+
+	TCCExportS( strncpy )
+	TCCExportS( EnumWindows )
+	TCCExportS( EnumDesktopWindows )
+	TCCExportS( GetWindowThreadProcessId )
+	TCCExportS( GetWindowTextA )
+	TCCExportS( OpenProcess )
+	TCCExportS( GetModuleFileNameA )
+
+	TCCExportS( CloseHandle )
+	TCCExportS( CreateCompatibleDC )
+	TCCExportS( GetDC )
+	TCCExportS( GetSystemMetrics )
+	TCCExportS( CreateCompatibleBitmap )
+	TCCExportS( SelectObject )
+	TCCExportS( ReleaseDC )
+	TCCExportS( DeleteObject )
+	TCCExportS( DeleteDC )
+	TCCExportS( GetWindowRect )
+	TCCExportS( GetDesktopWindow )
+	TCCExportS( BitBlt )
+	TCCExportS( GetDIBits )
+	TCCExportS( GetClassNameA )
+	TCCExportS( GetCursorPos )
+
+	TCCExport( _InterlockedExchangeAdd )
+	TCCExport( _InterlockedExchangeAdd64 )
+	TCCExport( _mul128 )
+	TCCExport( __shiftright128 )
+	TCCExport( _umul128 )
+	TCCExport( __stosb )
+	
+	TCCExportS( _exit )
+	TCCExportS( _atoi64 )
+	TCCExportS( _ui64toa )
+	TCCExportS( _i64toa )
+	TCCExportS( _wtoi64 )
+	TCCExportS( _i64tow )
+	TCCExportS( _ui64tow )
+
+	TCCExportS( _chgsign )
+	TCCExportS( _copysign )
+
+	TCCExportS( frexp )
+	TCCExportS( ldexp )
+	TCCExportS( hypot )
+	TCCExportS( rand )
+	TCCExportS( srand )
+
+	TCCExportS( sin )
+	TCCExportS( cos )
+	TCCExport( ffloor )
+	TCCExportS( floor )
+	TCCExportS( floorf )
+	TCCExportS( tan )
+	TCCExportS( atan2 )
+	{ "_findfirst64", FindFirstFileA },
+	{ "_findnext64", FindNextFile },
+#else
+	TCCExportS( XShmCreateImage )
+	TCCExportS( XShmAttach )
+	TCCExportS( XShmGetImage )
+	TCCExportS( CNFGDisplay )
+	TCCExportS( CNFGWindow )
+	TCCExportS( CNFGPixmap )
+	TCCExportS( CNFGGC )
+	TCCExportS( CNFGWindowGC )
+	TCCExportS( CNFGVisual )
+#endif
+};
 
 void InternalPopulateTCC( TCCInstance * tce )
 {
 	printf( "InternalPopulateTCC { %p }\n", tce );
 	MARKOGLockMutex( tccinterfacemutex );
 
-	TCCExport( realloc );
-	TCCExport( malloc );
-	TCCExport( calloc );
-	TCCExport( free );
-	TCCExport( strdup );
-	TCCExportS( memcpy );
-	TCCExportS( memset );
-	TCCExport( strndup );
-
-	TCCExportS( CNOVRAlertv );
-	TCCExportS( CNOVRAlert );
-	
-	TCCExportS( puts );
-	TCCExport( printf );
-
-	TCCExportS( OGSleep );
-	TCCExportS( OGUSleep );
-	TCCExportS( OGGetAbsoluteTime );
-	TCCExportS( OGGetFileTime );
-	TCCExport( OGCreateThread );
-	TCCExport( OGJoinThread );
-	TCCExport( OGCancelThread );
-	TCCExport( OGCreateMutex );
-	TCCExportS( OGLockMutex );
-	TCCExportS( OGUnlockMutex );
-	TCCExport( OGDeleteMutex );
-	TCCExport( OGCreateSema );
-	TCCExportS( OGGetSema );
-	TCCExportS( OGLockSema );
-	TCCExportS( OGUnlockSema );
-	TCCExport( OGDeleteSema );
-	TCCExport( OGCreateTLS );
-	TCCExport( OGDeleteTLS );
-	TCCExportS( OGGetTLS );
-	TCCExportS( OGSetTLS );
-	TCCExport( GetTCCTag );
-
-//Oddball things
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
-#else
-	extern void * CNFGDisplay;		TCCExportS( CNFGDisplay );
-	extern void * CNFGWindow;		TCCExportS( CNFGWindow );
-	extern void * CNFGPixmap;		TCCExportS( CNFGPixmap );
-	extern void * CNFGGC;			TCCExportS( CNFGGC );
-	extern void * CNFGWindowGC;		TCCExportS( CNFGWindowGC );
-	extern void * CNFGVisual;		TCCExportS( CNFGVisual );
-
-//X11
- 	void XShmCreateImage(); 
-	void XShmAttach();
-	void XShmGetImage();
-	TCCExportS( XShmCreateImage );
-	TCCExportS( XShmAttach );
-	TCCExportS( XShmGetImage );
-//End X11
-#endif
-
-
-	TCCExportS( cnovrstate );
-
-	TCCExport( CNOVRNodeCreateSimple );
-	TCCExportS( CNOVRVBOTaint );
-	TCCExport( CNOVRModelCreate );
-	TCCExportS( CNOVRModelSetNumVBOs );
-	TCCExportS( CNOVRCreateVBO ); //XXX Hmm how would we track this?  Should this always be passed a model?
-	TCCExportS( CNOVRModelTaintIndices );
-	TCCExportS( CNOVRModelTackIndex );
-	TCCExportS( CNOVRModelRenderWithPose );
-	TCCExportS( CNOVRModelApplyTextureFromFileAsync );
-	TCCExportS( CNOVRModelAppendMesh );
-	TCCExport( CNOVRTextureCreate );
-	TCCExport( CNOVRShaderCreate );
-	TCCExport( CNOVRDeleteBase );
-	TCCExportS( CNOVRTextureLoadDataNow );
-	TCCExportS( CNOVRTextureLoadFileAsync );
-	TCCExportS( CNOVRModelAppendCube );
-	TCCExportS( CNOVRModelCollide );
-	TCCExportS( CNOVRGeneralHandleFocusEvent );
-	TCCExportS( CNOVRModelSetInteractable );
- 
-	TCCExportS( CNOVRNodeAddObject );
-	TCCExportS( CNOVRNodeRemoveObject );
-
-	TCCExportS( CNOVRNamedPtrData );
-	TCCExportS( CNOVRNamedPtrSave );
-	TCCExportS( CNOVRNamedPtrGet );
-
-	TCCExport( CNOVRFolderListing );
-	TCCExport( CNOVRSplitStrings );
-	TCCExport( CNOVRFileToString );
-
-	TCCExport( CNOVRJobTack );
-	TCCExport( CNOVRListAdd );
-	TCCExport( CNOVRListDeleteTCCTag );
-
-	TCCExportS( CNOVRListDeleteTag );
-
-	TCCExport( CNOVRFocusRespond );
-	TCCExport( CNOVRFocusAcquire );
-	TCCExport( CNOVRFocusRemoveTag );
-	TCCExportS( CNOVRFocusGetTipPose );
-
-	TCCExportS( cnovr_interpolate );
-	TCCExportS( cross3d );
-	TCCExportS( sub3d );
-	TCCExportS( add3d );
-	TCCExportS( scale3d );
-	TCCExportS( invert3d );
-	TCCExportS( mag3d );
-	TCCExportS( normalize3d );
-	TCCExportS( center3d );
-	TCCExportS( mean3d );
-	TCCExportS( dot3d );
-	TCCExportS( compare3d );
-	TCCExportS( copy3d );
-	TCCExportS( magnitude3d );
-	TCCExportS( dist3d );
-	TCCExportS( anglebetween3d );
-	TCCExportS( rotatearoundaxis );
-	TCCExportS( angleaxisfrom2vect );
-	TCCExportS( axisanglefromquat );
-	TCCExportS( quatdist );
-	TCCExportS( quatdifference );
-	TCCExportS( quatset );
-	TCCExportS( quatiszero );
-	TCCExportS( quatsetnone );
-	TCCExportS( quatcopy );
-	TCCExportS( quatfromeuler );
-	TCCExportS( quattoeuler );
-	TCCExportS( quatfromaxisangle );
-	TCCExportS( quatfromaxisanglemag );
-	TCCExportS( quattoaxisanglemag );
-	TCCExportS( quatmagnitude );
-	TCCExportS( quatinvsqmagnitude );
-	TCCExportS( quatnormalize );
-	TCCExportS( quattomatrix );
-	TCCExportS( quatfrommatrix );
-	TCCExportS( quatgetconjugate );
-	TCCExportS( findnearestaxisanglemag );
-	TCCExportS( quatconjugateby );
-	TCCExportS( quatgetreciprocal );
-	TCCExportS( quatfind );
-	TCCExportS( quatrotateabout );
-	TCCExportS( quatmultiplyrotation );
-	TCCExportS( quatscale );
-	TCCExportS( quatdivs );
-	TCCExportS( quatsub );
-	TCCExportS( quatadd );
-	TCCExportS( quatinnerproduct );
-	TCCExportS( quatouterproduct );
-	TCCExportS( quatevenproduct );
-	TCCExportS( quatoddproduct );
-	TCCExportS( quatslerp );
-	TCCExportS( quatrotatevector );
-	TCCExportS( eulerrotatevector );
-	TCCExportS( quatfrom2vectors );
-	TCCExportS( eulerfrom2vectors );
-	TCCExportS( apply_pose_to_point );
-	TCCExportS( apply_pose_to_pose );
-	TCCExportS( unapply_pose_from_pose );
-	TCCExportS( pose_invert );
-	TCCExportS( pose_to_matrix44 );
-	TCCExportS( matrix44_to_pose );
-	TCCExportS( matrix44copy );
-	TCCExportS( matrix44transpose );
-	TCCExportS( matrix44identity );
-	TCCExportS( matrix44zero );
-	TCCExportS( matrix44translate );
-	TCCExportS( matrix44scale );
-	TCCExportS( matrix44rotateaa );
-	TCCExportS( matrix44rotatequat );
-	TCCExportS( matrix44rotateea );
-	TCCExportS( matrix44multiply );
-	TCCExportS( matrix44print );
-	TCCExportS( matrix44perspective );
-	TCCExportS( matrix44lookat );
-	TCCExportS( matrix44ptransform );
-	TCCExportS( matrix44vtransform );
-	TCCExportS( matrix444transform );
-
-	TCCExportS( glGenBuffers );
-	TCCExportS( glBindBuffer );
-	TCCExportS( glMapBufferRange );
-	TCCExportS( glUnmapBuffer );
-	TCCExportS( glBufferData );
-	TCCExportS( glMapBuffer );
-	TCCExportS( glUniform4fv );
-	TCCExportS( glUniform4fvCHEW );
-	TCCExportS( glBindTexture );
-	TCCExportS( glTexImage2D );
-	TCCExportS( glGenerateMipmapCHEW );
-	TCCExportS( glEnable );
-	TCCExportS( glBlendFunc );
-	TCCExportS( glPointSize );
-	TCCExportS( glDepthFunc );
-	TCCExportS( glLineWidth );
-	TCCExportS( glTexParameteri );
-	TCCExportS( glGetError );
-	TCCExportS( glTexSubImage2D );
-
-#if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
-	TCCExportS( _vsnprintf );
-	TCCExportS( _vsnwprintf );
-
-	TCCExportS( _stricmp );
-	TCCExportS( _strnicmp );
-	
-	TCCExportS( strstr );	
-	TCCExportS( strcmp );
-	TCCExportS( strlen );
-	TCCExportS( strcpy );
-	TCCExportS( snprintf );
-	TCCExportS( sprintf );
-	TCCExportS( atoi );
-
-
-	tcc_add_symbol( tce->state, "_findfirst64", FindFirstFileA );
-	TCCExportS( strncpy );
-	tcc_add_symbol( tce->state, "_findnext64", FindNextFile );
-	TCCExportS( EnumWindows );
-	TCCExportS( EnumDesktopWindows );
-	TCCExportS( GetWindowThreadProcessId );
-	TCCExportS( GetWindowTextA );
-	TCCExportS( OpenProcess );
+	//Not sure why this symbol doesn't actually link.
 	tcc_add_symbol( tce->state, "QueryFullProcessImageNameA", GetProcAddress( LoadLibrary("kernel32.dll"), "QueryFullProcessImageNameA" ) );
-	TCCExportS( GetModuleFileNameA );
-
-	TCCExportS( CloseHandle );
-	TCCExportS( CreateCompatibleDC );
-	TCCExportS( GetDC );
-	TCCExportS( GetSystemMetrics );
-	TCCExportS( CreateCompatibleBitmap );
-	TCCExportS( SelectObject );
-	TCCExportS( ReleaseDC );
-	TCCExportS( DeleteObject );
-	TCCExportS( DeleteDC );
-	TCCExportS( GetWindowRect );
-	TCCExportS( GetDesktopWindow );
-	TCCExportS( BitBlt );
-	TCCExportS( GetDIBits );
-	TCCExportS( GetClassNameA );
-	TCCExportS( GetCursorPos );
-
-	TCCExport( _InterlockedExchangeAdd );
-	TCCExport( _InterlockedExchangeAdd64 );
-	TCCExport( _mul128 );
-	TCCExport( __shiftright128 );
-	TCCExport( _umul128 );
-	TCCExport( __stosb );
-	
-	TCCExportS( _exit );
-	TCCExportS( _atoi64 );
-	TCCExportS( _ui64toa );
-	TCCExportS( _i64toa );
-	TCCExportS( _wtoi64 );
-	TCCExportS( _i64tow );
-	TCCExportS( _ui64tow );
-
-	TCCExportS( _chgsign );
-	TCCExportS( _copysign );
-
-	TCCExportS( frexp );
-	TCCExportS( ldexp );
-	TCCExportS( hypot );
-	TCCExportS( rand );
-	TCCExportS( srand );
-
-	TCCExportS( sin );
-	TCCExportS( cos );
-	TCCExport( ffloor );
-	TCCExportS( floor );
-	TCCExportS( floorf );
-	TCCExportS( tan );
-	TCCExportS( atan2 );
-
 #endif
+
+	int i;
+	for( i = 0; i < sizeof(ILSYMS)/sizeof(ILSYMS[0]); i++ )
+	{
+		const struct ImportList * il = ILSYMS + i;
+		tcc_add_symbol( tce->state, il->SymName, il->SymPlace );
+	}
+	 
 	MARKOGUnlockMutex( tccinterfacemutex );
 	printf( "Populate done\n" );
 }
