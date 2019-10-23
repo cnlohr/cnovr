@@ -830,7 +830,7 @@ void InternalPopulateTCC( TCCInstance * tce )
 	MARKOGLockMutex( tccinterfacemutex );
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
-	//Not sure why this symbol doesn't actually link.
+	//Not sure why this symbol doesn't actually link, so we have to do something wild toget the symbol.
 	tcc_add_symbol( tce->state, "QueryFullProcessImageNameA", GetProcAddress( LoadLibrary("kernel32.dll"), "QueryFullProcessImageNameA" ) );
 #endif
 
