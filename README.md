@@ -6,6 +6,9 @@ Prerequisites:
 `
 sudo apt-get install build-essential libgl1-mesa-dev
 `
+HMM:
+ * Should we make the "remove callback" more generic for any kind of callback?
+ * Should we have some convenient object thing?
 
 NOW:
  * Windows Windows

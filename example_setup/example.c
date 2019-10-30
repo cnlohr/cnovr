@@ -1,6 +1,7 @@
 #include <cnovrtcc.h>
 #include <cnovrparts.h>
 #include <cnovrfocus.h>
+#include <cnovrcanvas.h>
 #include <cnovr.h>
 #include <cnovrutil.h>
 #include <stdlib.h>
@@ -15,6 +16,8 @@ cnovr_model * spinner_m[MAX_SPINNERS];
 //cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
 cnovrfocus_capture focusblock[MAX_SPINNERS];
+
+cnovr_canvas * canvas;
 
 struct staticstore
 {
@@ -105,6 +108,13 @@ void UpdateFunction( void * tag, void * opaquev )
 		quatslerp( pose->Rot, targetquat, pose->Rot, z );
 	}
 
+	canvas->bgcolor = 0xff00ff00;
+printf( "A\n" );
+	CNOVRCanvasClearFrame( canvas );
+printf( "B\n" );
+	CNOVRCanvasSwapBuffers( canvas );
+printf( "C\n" );
+
 	return;
 }
 
@@ -120,6 +130,8 @@ void RenderFunction( void * tag, void * opaquev )
 		//Texture?
 		CNOVRRender( spinner_m[i] );
 	}
+
+	CNOVRRender( canvas );
 }
 
 
@@ -179,6 +191,8 @@ void start( const char * identifier )
 		}
 		store->initialized = 1;
 	}
+	
+	canvas = CNOVRCanvasCreate( 128, 128 );
 
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );

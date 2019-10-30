@@ -1222,6 +1222,20 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 	CNOVRTextureLoadFileAsync( m->pTextures[0], sTextureFile );
 }
 
+void CNOVRModelSetNumTextures( cnovr_model * m, int textures )
+{
+	int i;
+	for( i = textures; i < m->iTextures; i++ )
+		CNOVRDelete( m->pTextures[i] );
+
+	m->pTextures = realloc( m->pTextures, textures * sizeof( cnovr_texture * ) );
+
+	for( i = m->iTextures; i < textures; i++ )
+		m->pTextures[i] = CNOVRTextureCreate( 1, 1, 4 );
+
+	m->iTextures = 1;
+}
+
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 {
 	pose_to_matrix44( cnovrstate->mModel, pose );

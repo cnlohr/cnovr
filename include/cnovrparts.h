@@ -46,6 +46,7 @@ void CNOVRDeleteBase( cnovr_base * b );
 #define TYPE_TEXTURE  3
 #define TYPE_MODEL    4
 #define TYPE_NODE     5
+#define TYPE_CANVAS   6
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -189,6 +190,7 @@ typedef struct cnovr_model_t
 
 //XXX TODO: Reorganize this.
 
+//XXX TODO: Probably change this so it only takes rendertype.
 cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype );
 
 
@@ -211,6 +213,7 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * newGeoName );
 
 int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r );
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile );
+void CNOVRModelSetNumTextures( cnovr_model * m, int textures );
 
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
 

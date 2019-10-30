@@ -1,5 +1,6 @@
 #include <cnovrtccinterface.h>
 #include <cnovrutil.h>
+#include <cnovrcanvas.h>
 #include <cnovrfocus.h>
 #include <tinycc/libtcc.h>
 #include <stdarg.h>
@@ -380,6 +381,16 @@ static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int rendertype )
 	return ret;
 }
 
+static cnovr_canvas * TCCCNOVRCanvasCreate( int w, int h )
+{
+	cnovr_canvas * ret = CNOVRCanvasCreate( w, h );
+	MARKOGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	MARKOGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
 static void TCCCNOVRDeleteBase( cnovr_base * b )
 {
 	CNOVRDeleteBase( b );
@@ -625,6 +636,16 @@ struct ImportList
 	TCCExportS( CNOVRModelCollide )
 	TCCExportS( CNOVRGeneralHandleFocusEvent )
 	TCCExportS( CNOVRModelSetInteractable )
+	TCCExport( CNOVRCanvasCreate )
+	TCCExportS( CNOVRCanvasResize )
+	TCCExportS( CNOVRCanvasTackPixel )
+	TCCExportS( CNOVRCanvasDrawText )
+	TCCExportS( CNOVRCanvasTackSegment )
+	TCCExportS( CNOVRCanvasDrawBox )
+	TCCExportS( CNOVRCanvasTackRectangle )
+	TCCExportS( CNOVRCanvasTackPoly )
+	TCCExportS( CNOVRCanvasSwapBuffers )
+	TCCExportS( CNOVRCanvasClearFrame )
 	TCCExportS( CNOVRNodeAddObject )
 	TCCExportS( CNOVRNodeRemoveObject )
 	TCCExportS( CNOVRNamedPtrData )

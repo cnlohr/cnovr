@@ -20,7 +20,7 @@
 				"another1.h",
 				"another2.h"
 			],
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "picturealbum/picturealbum.c",
