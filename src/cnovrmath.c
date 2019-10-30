@@ -982,6 +982,26 @@ void matrix44multiply( FLT * fout, FLT * fin1, FLT * fin2 )
 	matrix44copy( fout, fotmp );
 }
 
+void matrix34multiply( FLT * fout, FLT * fin1, FLT * fin2 )
+{
+	FLT fotmp[16];
+	fotmp[m00] = fin1[m00] * fin2[m00] + fin1[m01] * fin2[m10] + fin1[m02] * fin2[m20] + fin1[m03] * 0;
+	fotmp[m01] = fin1[m00] * fin2[m01] + fin1[m01] * fin2[m11] + fin1[m02] * fin2[m21] + fin1[m03] * 0;
+	fotmp[m02] = fin1[m00] * fin2[m02] + fin1[m01] * fin2[m12] + fin1[m02] * fin2[m22] + fin1[m03] * 0;
+	fotmp[m03] = fin1[m00] * fin2[m03] + fin1[m01] * fin2[m13] + fin1[m02] * fin2[m23] + fin1[m03] * 1;
+
+	fotmp[m10] = fin1[m10] * fin2[m00] + fin1[m11] * fin2[m10] + fin1[m12] * fin2[m20] + fin1[m13] * 0;
+	fotmp[m11] = fin1[m10] * fin2[m01] + fin1[m11] * fin2[m11] + fin1[m12] * fin2[m21] + fin1[m13] * 0;
+	fotmp[m12] = fin1[m10] * fin2[m02] + fin1[m11] * fin2[m12] + fin1[m12] * fin2[m22] + fin1[m13] * 0;
+	fotmp[m13] = fin1[m10] * fin2[m03] + fin1[m11] * fin2[m13] + fin1[m12] * fin2[m23] + fin1[m13] * 1;
+
+	fotmp[m20] = fin1[m20] * fin2[m00] + fin1[m21] * fin2[m10] + fin1[m22] * fin2[m20] + fin1[m23] * 0;
+	fotmp[m21] = fin1[m20] * fin2[m01] + fin1[m21] * fin2[m11] + fin1[m22] * fin2[m21] + fin1[m23] * 0;
+	fotmp[m22] = fin1[m20] * fin2[m02] + fin1[m21] * fin2[m12] + fin1[m22] * fin2[m22] + fin1[m23] * 0;
+	fotmp[m23] = fin1[m20] * fin2[m03] + fin1[m21] * fin2[m13] + fin1[m22] * fin2[m23] + fin1[m23] * 1;
+	memcpy( fout, fotmp, sizeof( FLT ) * 12 );
+}
+
 void matrix44print( const FLT * f )
 {
 	int i;

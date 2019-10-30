@@ -718,6 +718,7 @@ struct ImportList
 	TCCExportS( matrix44ptransform )
 	TCCExportS( matrix44vtransform )
 	TCCExportS( matrix444transform )
+	TCCExportS( matrix34multiply )
 
 	TCCExportS( glGenBuffers )
 	TCCExportS( glBindBuffer )
@@ -746,6 +747,7 @@ struct ImportList
 	TCCExportS( _stricmp )
 	TCCExportS( _strnicmp )
 	
+	TCCExportS( memmove )
 	TCCExportS( strstr )	
 	TCCExportS( strcmp )
 	TCCExportS( strlen )

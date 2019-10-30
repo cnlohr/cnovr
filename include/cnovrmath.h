@@ -226,8 +226,6 @@ static inline cnovr_pose pose_invert_rtn(const cnovr_pose *pose_in) {cnovr_pose 
 void pose_to_matrix44(FLT *mat44, const cnovr_pose *pose_in);
 void matrix44_to_pose(cnovr_pose * poseout, const FLT * m44 );	//HMD43-safe.
 
-//XXX TODO Need matrix-to-pose.
-
 void matrix44copy(FLT *mout, const FLT *minm);
 void matrix44transpose(FLT *mout, const FLT *minm);
 
@@ -240,6 +238,7 @@ void matrix44rotateaa( FLT * f, FLT angle, FLT x, FLT y, FLT z ); 	//Operates ON
 void matrix44rotatequat( FLT * f, FLT * quatwxyz ); 	//Operates ON f
 void matrix44rotateea( FLT * f, FLT x, FLT y, FLT z );		//Operates ON f
 void matrix44multiply( FLT * fout, FLT * fin1, FLT * fin2 );
+void matrix34multiply( FLT * fout, FLT * fin1, FLT * fin2 );
 void matrix44print( const FLT * f );
 
 //Specialty Matrix Functions
@@ -248,8 +247,8 @@ void matrix44lookat( FLT * m, FLT * eye, FLT * at, FLT * up );	//Operates ON m
 
 //General point functions
 #define matrix44pset( f, x, y, z ) { f[0] = x; f[1] = y; f[2] = z; }
-void matrix44ptransform( FLT * pout, const FLT * pin, const FLT * f );
-void matrix44vtransform( FLT * vout, const FLT * vin, const FLT * f );
+void matrix44ptransform( FLT * pout, const FLT * pin, const FLT * f ); //Synonymous with 34p (I.e. doesn't use bottom row)
+void matrix44vtransform( FLT * vout, const FLT * vin, const FLT * f ); //Synonymous with 34v (I.e. doesn't use bottom row) (Also doesn't use last column)
 void matrix444transform( FLT * kout, const FLT * kin, const FLT * f );
 
 //As one does.
