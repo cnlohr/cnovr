@@ -6,11 +6,11 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "starfield/starfield.c",
-			"identifier" : "starfield"
+			"identifier" : "starfield",
 			"disabled" : true,
 		},
 		{
@@ -25,7 +25,7 @@
 		{
 			"cfile" : "picturealbum/picturealbum.c",
 			"identifier" : "assets",
-			"disabled" : false,
+			"disabled" : true,
 		},
 	]
 }

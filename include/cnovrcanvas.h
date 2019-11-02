@@ -16,6 +16,7 @@ typedef struct cnovr_canvas_t
 	int linewidth;
 	cnovr_model * model;
 	cnovr_pose    pose;
+	cnovr_shader * shd;
 	float presw;
 	float presh;
 	int iOpaque;

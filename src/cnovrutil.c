@@ -56,6 +56,16 @@ int tasprintf( char ** dat, const char * fmt, ... )
 	}
 }
 
+char * trprintf( const char * format, ... )
+{
+	va_list ap;
+	va_start(ap, format);
+	char * ret;
+	tvasprintf( &ret, format, ap );
+	va_end( ap );
+	return ret;
+}
+
 
 int tvasprintf( char ** dat, const char * fmt, va_list ap )
 {

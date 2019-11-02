@@ -593,7 +593,11 @@ struct ImportList
 	TCCExportS( CNOVRAlert )
 	
 	TCCExportS( puts )
-	TCCExport( printf )
+	TCCExportS( printf )
+	TCCExportS( sprintf )
+	TCCExportS( snprintf )
+	TCCExportS( tasprintf )
+	TCCExportS( trprintf )
 
 	TCCExportS( OGSleep )
 	TCCExportS( OGUSleep )

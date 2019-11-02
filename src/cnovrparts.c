@@ -508,6 +508,7 @@ static void CNOVRTextureUploadCallback( void * vths, void * dump )
 
 
 	glBindTexture( GL_TEXTURE_2D, t->nTextureId );
+
 	glTexImage2D( GL_TEXTURE_2D,
 		0,
 		t->nInternalFormat,
@@ -644,7 +645,7 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	//We don't want to confuse the second part of the loader.
 	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 
-	if( tex->data ) free( tex->data );
+	if( tex->data && data != tex->data ) free( tex->data );
 	tex->data = data;
 
 	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );

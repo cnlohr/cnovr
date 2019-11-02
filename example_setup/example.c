@@ -108,12 +108,13 @@ void UpdateFunction( void * tag, void * opaquev )
 		quatslerp( pose->Rot, targetquat, pose->Rot, z );
 	}
 
-	canvas->bgcolor = 0xff00ff00;
-printf( "A\n" );
 	CNOVRCanvasClearFrame( canvas );
-printf( "B\n" );
+	static int frameno;
+	frameno++;
+	CNOVRCanvasSetLineWidth( canvas, 2 );
+	CNOVRCanvasDrawText( canvas, 10, 10, trprintf( "%d", frameno ), 8 );
+//	CNOVRCanvasTackSegment( canvas, 10, 10, 100, 10 );
 	CNOVRCanvasSwapBuffers( canvas );
-printf( "C\n" );
 
 	return;
 }
@@ -149,6 +150,8 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 */
+	canvas = CNOVRCanvasCreate( 128, 128 );
+
 	srand( 0 );
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
@@ -192,8 +195,6 @@ void start( const char * identifier )
 		store->initialized = 1;
 	}
 	
-	canvas = CNOVRCanvasCreate( 128, 128 );
-
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
 	printf( "=== Example start %s(%p) + %p %p\n", identifier, identifier );

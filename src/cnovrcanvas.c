@@ -4,12 +4,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-extern const unsigned int FontCharMap[];
+extern const unsigned short FontCharMap[];
 extern const unsigned char FontCharData[];
 
 
 static void CNOVRCanvasDelete( cnovr_canvas * ths )
 {
+	CNOVRDelete( ths->shd );
 	CNOVRDelete( ths->model );
 	CNOVRFreeLater( ths->data );
 	CNOVRFreeLater( ths );
@@ -17,9 +18,8 @@ static void CNOVRCanvasDelete( cnovr_canvas * ths )
 
 static void CNOVRCanvasRender( cnovr_canvas * ths )
 {
-	printf( "XSTARTRENDER\n" );
+	CNOVRRender( ths->shd );
 	CNOVRRender( ths->model );
-	printf( "XENDRENDER\n" );
 }
 
 
@@ -52,7 +52,8 @@ cnovr_canvas * CNOVRCanvasCreate( int w, int h )
 	ret->model->iOpaque = -1;
 	ret->model->pose = &ret->pose;
 	CNOVRModelSetNumTextures( ret->model, 1 );
-	
+
+	ret->shd = CNOVRShaderCreate( "rendermodel" );
 	//We have our model, but nothing applied.
 	//CNOVRModelApplyTextureFromFileAsync( ret->model, "picturealbum/container.png" );
 
@@ -100,9 +101,10 @@ void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y )
 	int maxy = y + lwb;
 	uint32_t cfgcolor = c->color;
 	uint32_t * data = c->data;
+//	printf( "%d %d -> %d %d\n", minx, miny, maxx, maxy );
 	for( py = miny; py < maxy; py++ )
 	{
-		uint32_t * pd = data + py * cw;
+		uint32_t * pd = data + py * cw + minx;
 		for( px = minx; px < maxx; px++ )
 		{
 			(*pd++) = cfgcolor;
@@ -117,7 +119,7 @@ void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int
 	float ioy = (float)y;
 
 	int place = 0;
-	unsigned int index;
+	unsigned short index;
 	int bQuit = 0;
 	while( text[place] )
 	{
@@ -195,7 +197,7 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 	
 	if( c->linewidth == 1 )
 	{
-				if( dx > dy )
+		if( dx > dy )
 		{
 			int minx = (x1 < x2)?x1:x2;
 			int maxx = (x1 < x2)?x2:x1;
@@ -205,7 +207,6 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 			int ly;
 			slope = (float)(maxy-miny) / (float)(maxx-minx);
 			if( maxx >= c->w ) maxx = c->w-1;
-
 			for( tx = minx; tx <= maxx; tx++ )
 			{
 				ty = thisy;
@@ -261,9 +262,10 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 
 				for( ; ly <= lmy; ly++ )
 				{
-					uint32_t * bl = buffer + ly * buffery;
-					for( ; lx <= lmx; lx++ )
-						bl[lx] = color;
+					uint32_t * bl = buffer + ly * bufferx;
+					int x = lx;
+					for( ; x <= lmx; x++ )
+						bl[x] = color;
 				}
 
 				thisy += slope;
@@ -295,8 +297,9 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 				for( ; ly <= lmy; ly++ )
 				{
 					uint32_t * bl = buffer + ly * buffery;
-					for( ; lx <= lmx; lx++ )
-						bl[lx] = color;
+					int x = lx;
+					for( ; x <= lmx; x++ )
+						bl[x] = color;
 				}
 
 				thisx += slope;
@@ -440,7 +443,6 @@ void CNOVRCanvasTackPoly( cnovr_canvas * c, int * points, int verts )
 
 void CNOVRCanvasSwapBuffers( cnovr_canvas * c )
 {
-	printf( "MODS: %p\n", c->model );
 	CNOVRTextureLoadDataAsync( c->model->pTextures[0], c->w, c->h, 4, 0, c->data );
 }
 
