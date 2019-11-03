@@ -9,10 +9,14 @@
 
 const char * identifier;
 cnovr_shader * shader;
+cnovr_shader * shaderBasic;
 cnovr_texture * texture;
 
 #define MAX_SPINNERS 220
 cnovr_model * spinner_m[MAX_SPINNERS];
+cnovr_model * isosphere;
+cnovr_pose    isospherepose;
+cnovrfocus_capture isocapture;
 //cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
 cnovrfocus_capture focusblock[MAX_SPINNERS];
@@ -128,9 +132,11 @@ void RenderFunction( void * tag, void * opaquev )
 
 	for( i = 0; i < MAX_SPINNERS; i++ )
 	{
-		//Texture?
 		CNOVRRender( spinner_m[i] );
 	}
+
+	CNOVRRender( shaderBasic );
+	CNOVRRender( isosphere );
 
 	CNOVRRender( canvas );
 }
@@ -141,6 +147,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	printf( "+++ Example scene setup\n" );
 	int i;
 	shader = CNOVRShaderCreate( "assets/example" );
+	shaderBasic = CNOVRShaderCreate( "assets/basic" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
@@ -150,7 +157,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 */
-	canvas = CNOVRCanvasCreate( 128, 128 );
+	canvas = CNOVRCanvasCreate( "ExampleCanvas", 128, 96 );
 
 	srand( 0 );
 	for( i = 0; i < MAX_SPINNERS; i++ )
@@ -165,6 +172,16 @@ static void example_scene_setup( void * tag, void * opaquev )
 		focusblock[i].cb = ExampleFocusEvent;
 		CNOVRModelSetInteractable( spinner_m[i], &focusblock[i] );
 	}
+
+	isosphere = CNOVRModelCreate( 0, GL_TRIANGLES );
+	isosphere->pose = &isospherepose;
+	pose_make_identity( &isospherepose );
+	CNOVRModelLoadFromFileAsync( isosphere, "isosphere.obj" );
+	isocapture.tag = 0;
+	isocapture.opaque = isosphere;
+	isocapture.cb = CNOVRFocusDefaultFocusEvent;
+	CNOVRModelSetInteractable( isosphere, &isocapture );
+
 
 	texture = CNOVRTextureCreate( 0, 0, 0 ); //Set to all 0 to have the load control these details.
 	CNOVRTextureLoadFileAsync( texture, "test.png" );

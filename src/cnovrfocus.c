@@ -39,6 +39,11 @@ typedef struct internal_focus_system_t
 
 internal_focus_system FOCUS;
 
+VRActionHandle_t CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( int dev, int ctrl )
+{
+	return FOCUS.actionhandles[dev][ctrl];
+}
+
 cnovr_pose * CNOVRFocusGetTipPose( int device )
 {
 	if( device < 0 || device > sizeof( FOCUS.poseTip ) / sizeof( FOCUS.poseTip[0] ) ) return 0;
@@ -164,7 +169,6 @@ void InternalCNOVRFocusUpdate()
 
 		//All updates should be based off of "tip"
 		InputPoseActionData_t * p = &FOCUS.poseData[ctrl];
-		
 		int ret = cnovrstate->oInput->GetPoseActionDataForNextFrame( FOCUS.actionhandles[ctrl][CTRLA_TIP], 
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
 		bool bPoseIsValid = false;
@@ -664,6 +668,12 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 
 
 
+int CNOVRFocusDefaultFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	cnovr_model * m = cap->opaque;
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
+	return 0;
+}
 
 
 

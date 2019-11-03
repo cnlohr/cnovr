@@ -2,6 +2,7 @@
 #define _CNOVR_CANVAS_H
 
 #include "cnovrparts.h"
+#include "cnovrfocus.h"
 
 typedef struct cnovr_canvas_t
 {
@@ -15,8 +16,11 @@ typedef struct cnovr_canvas_t
 	uint32_t * data;
 	int linewidth;
 	cnovr_model * model;
-	cnovr_pose    pose;
+	cnovr_pose  * pose;
 	cnovr_shader * shd;
+	cnovrfocus_capture capture;
+	char * canvasname;
+	int set_filter_type;
 	float presw;
 	float presh;
 	int iOpaque;
@@ -24,7 +28,7 @@ typedef struct cnovr_canvas_t
 
 //Tricky:  If you want to use this in some advanced way, abusing the model/texture, you can create a model that is w=1, h=1
 
-cnovr_canvas * CNOVRCanvasCreate( int w, int h );
+cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h );
 void CNOVRCanvasResize( cnovr_canvas * c, int w, int h );
 void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y );
 void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int scale );

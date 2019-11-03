@@ -323,7 +323,9 @@ char ** CNOVRFolderListing( const char * path, int * elements )
 
 char * CNOVRFileToString( const char * fname, int * length )
 {
-	FILE * f = fopen( fname, "rb" );
+	const char * rfn = fname;//CNOVRFileSearch( fname );
+	if( !rfn ) return 0;
+	FILE * f = fopen( rfn, "rb" );
 	if( !f ) return 0;
 	fseek( f, 0, SEEK_END );
 	*length = ftell( f );
@@ -465,7 +467,7 @@ char * CNOVRFileSearch( const char * fname )
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
-	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+3 ) ) ); }
+	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH*4+4 ) ) ); }
 
 	int fnamelen = strlen( fname );
 

@@ -1,6 +1,7 @@
 #include "cnovrcanvas.h"
 #include "cnovrtccinterface.h"
 #include "cnovrutil.h"
+#include "cnovr.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -12,13 +13,22 @@ static void CNOVRCanvasDelete( cnovr_canvas * ths )
 {
 	CNOVRDelete( ths->shd );
 	CNOVRDelete( ths->model );
-	CNOVRFreeLater( ths->data );
+	free( ths->canvasname );
+//	CNOVRFreeLater( ths->data );  //Free'd by the texture.
 	CNOVRFreeLater( ths );
 }
 
 static void CNOVRCanvasRender( cnovr_canvas * ths )
 {
 	CNOVRRender( ths->shd );
+	if( !ths->set_filter_type )
+	{
+		glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+		glBindTexture( GL_TEXTURE_2D, 0 );
+		ths->set_filter_type = 1;
+	}
 	CNOVRRender( ths->model );
 }
 
@@ -29,7 +39,24 @@ cnovr_header cnovr_canvas_header = {
 	TYPE_CANVAS,
 };
 
-cnovr_canvas * CNOVRCanvasCreate( int w, int h )
+static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	cnovr_canvas * c = (cnovr_canvas*)cap->opaque;
+	cnovr_model * m = c->model;
+	int id = m->iOpaque;
+
+	if( event == CNOVRF_LOSTFOCUS )
+	{
+		CNOVRNamedPtrSave( c->canvasname );
+	}
+
+//	if( event == CNOVRF_DOWNNOFOCUS && buttoninfo == CTRLA_TRIGGER )
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
+	return 0;
+}
+
+
+cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
 {
 	cnovr_canvas * ret = malloc( sizeof( cnovr_canvas ) );
 	
@@ -44,14 +71,30 @@ cnovr_canvas * CNOVRCanvasCreate( int w, int h )
 	ret->iOpaque = 0;
 	ret->data = malloc( w * h * 4 );
 	ret->linewidth = 1;
+	ret->set_filter_type = 0;
+	ret->canvasname = strdup( trprintf( "%s_pose", name ) );
+	ret->pose = CNOVRNamedPtrData( ret->canvasname, "cnovr_pose", sizeof( cnovr_pose ) );
+
 	ret->model = CNOVRModelCreate( 0, GL_TRIANGLES );
 	cnovr_point4d extradata = { 0, 0, 0, 0 };
 	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){  ret->presw/2, ret->presh/2, 0 }, 0, &extradata );
 	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){ -ret->presw/2, ret->presw/2, 0 }, 0, &extradata );
-	pose_make_identity( &ret->pose );
+	if( ret->pose->Scale == 0 ) pose_make_identity( ret->pose );
 	ret->model->iOpaque = -1;
-	ret->model->pose = &ret->pose;
+	ret->model->pose = ret->pose;
 	CNOVRModelSetNumTextures( ret->model, 1 );
+
+	ret->capture.tag = 0;
+	ret->capture.opaque = ret;
+	ret->capture.cb = CanvasFocusEvent;
+	CNOVRModelSetInteractable( ret->model, &ret->capture );
+
+	
+
+//	glBind
+//	for( i = m->iTextures; i < textures; i++ )
+//		m->pTextures[i] = CNOVRTextureCreate( 1, 1, 4 );
+
 
 	ret->shd = CNOVRShaderCreate( "rendermodel" );
 	//We have our model, but nothing applied.
@@ -101,6 +144,10 @@ void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y )
 	int maxy = y + lwb;
 	uint32_t cfgcolor = c->color;
 	uint32_t * data = c->data;
+	if( minx < 0 ) minx = 0;
+	if( miny < 0 ) miny = 0;
+	if( maxx >= cw ) maxx = cw-1;
+	if( maxy >= ch ) maxy = ch-1;
 //	printf( "%d %d -> %d %d\n", minx, miny, maxx, maxy );
 	for( py = miny; py < maxy; py++ )
 	{
@@ -296,7 +343,7 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 
 				for( ; ly <= lmy; ly++ )
 				{
-					uint32_t * bl = buffer + ly * buffery;
+					uint32_t * bl = buffer + ly * bufferx;
 					int x = lx;
 					for( ; x <= lmx; x++ )
 						bl[x] = color;

@@ -381,9 +381,9 @@ static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int rendertype )
 	return ret;
 }
 
-static cnovr_canvas * TCCCNOVRCanvasCreate( int w, int h )
+static cnovr_canvas * TCCCNOVRCanvasCreate( const char * name, int w, int h )
 {
-	cnovr_canvas * ret = CNOVRCanvasCreate( w, h );
+	cnovr_canvas * ret = CNOVRCanvasCreate( name, w, h );
 	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
@@ -631,6 +631,7 @@ struct ImportList
 	TCCExportS( CNOVRModelRenderWithPose )
 	TCCExportS( CNOVRModelApplyTextureFromFileAsync )
 	TCCExportS( CNOVRModelAppendMesh )
+	TCCExportS( CNOVRModelLoadFromFileAsync )
 	TCCExport( CNOVRTextureCreate )
 	TCCExport( CNOVRShaderCreate )
 	TCCExport( CNOVRDeleteBase )
@@ -639,6 +640,7 @@ struct ImportList
 	TCCExportS( CNOVRModelAppendCube )
 	TCCExportS( CNOVRModelCollide )
 	TCCExportS( CNOVRGeneralHandleFocusEvent )
+	TCCExportS( CNOVRFocusDefaultFocusEvent )
 	TCCExportS( CNOVRModelSetInteractable )
 	TCCExport( CNOVRCanvasCreate )
 	TCCExportS( CNOVRCanvasResize )
@@ -666,6 +668,7 @@ struct ImportList
 	TCCExport( CNOVRFocusAcquire )
 	TCCExport( CNOVRFocusRemoveTag )
 	TCCExportS( CNOVRFocusGetTipPose )
+	TCCExportS( CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA )
 	TCCExportS( cnovr_interpolate )
 	TCCExportS( cross3d )
 	TCCExportS( sub3d )
@@ -744,6 +747,7 @@ struct ImportList
 	TCCExportS( matrix44vtransform )
 	TCCExportS( matrix444transform )
 	TCCExportS( matrix34multiply )
+	TCCExportS( CNOVRPoseFromHMDMatrix )
 
 	TCCExportS( glGenBuffers )
 	TCCExportS( glBindBuffer )

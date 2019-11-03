@@ -1,0 +1,34 @@
+{
+	"searchfolders" : [
+		"example_setup", "ovrball"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "starfield/starfield.c",
+			"identifier" : "starfield"
+		},
+		{
+			"cfile" : "example_setup/example.c",
+			"identifier" : "example1",
+			"additionalfiles" : [
+				"another1.h",
+				"another2.h"
+			],
+			"disabled" : true,
+		},
+		{
+			"cfile" : "ovrball.c",
+			"identifier" : "ovrball",
+			"additionalfiles" : [
+				"another1.h",
+				"another2.h"
+			],
+		},
+	]
+}
+

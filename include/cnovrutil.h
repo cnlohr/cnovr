@@ -16,7 +16,7 @@ typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 //Both of these functions share the same heap data.
 int tasprintf( char ** out, const char * format, ... );
 int tvasprintf( char ** out, const char * format, va_list ap );
-char * trprintf( const char * format, ... );
+char * trprintf( const char * format, ... ); //Thread-save return value.
 char * jsmnstrdup( const char * data, int start, int end );
 int    jsmnintparse( const char * data, int start, int end );
 

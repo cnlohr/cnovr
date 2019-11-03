@@ -96,6 +96,7 @@ void CNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus );
 void CNOVRFocusRemoveTag( void * tag );
 cnovr_pose * CNOVRFocusGetTipPose( int device );
 
+uint64_t CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( int dev, int ctrl ); //Where ctrl = stuff like CTRLA_TIP
 
 // Subsystem designed to link cnovr_models and make them trackable.
 
@@ -114,8 +115,10 @@ typedef struct cnovr_model_focus_controller_t
 // Focus Stuff
 
 void CNOVRModelSetInteractable( struct cnovr_model_t * m, cnovrfocus_capture * focusevent );
-//void CNOVRGeneralHandleFocusEvent( cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo );
 void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo );
+
+//Expects Opaque to be a model which has a pose assigned.
+int CNOVRFocusDefaultFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
 
 /* If you want to manually hook the event...
 

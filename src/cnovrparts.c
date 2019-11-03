@@ -1255,10 +1255,12 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 	int stride = m->pGeos[0]->iStride;
 	int i;
 	GLuint * indices = m->pIndices;
+//	printf( "DIRECTION: %f %f %f\n", PFTHREE( direction ) );
 	for( i = 0; i < m->nMeshes; i++ )
 	{
 		int meshStart = m->iMeshMarks[i];
 		int meshEnd = (i == m->nMeshes-1 ) ? m->iIndexCount : m->iMeshMarks[i+1];
+	//	printf( "%d %d\n", meshStart, meshEnd );
 		int j;
 		for( j = meshStart; j < meshEnd; j+=3 )
 		{
@@ -1277,16 +1279,26 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			sub3d( v10, v1, v0 );
 			sub3d( v21, v2, v1 );
 			sub3d( v02, v0, v2 );
+
+			//Current algorithm based on https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
+			//XXX TODO: https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm looks faster than this.
+
 			{
-				float v20[3];
-				sub3d( v20, v2, v0 ); //!?!?!
-				cross3d( N, v20, v10 );
+				float v01[3];
+				sub3d( v01, v0, v1 ); //!?!?!
+				cross3d( N, v21, v01 );
 			}
 			float Ax2 = magnitude3d( N );
 			scale3d( N, N, 1/Ax2 );
+
+			float D = -dot3d(N, v0);
+
+#if 0
 			//normalize3d( N, N );
-			float D = dot3d(N, v0);
+#endif
 			float t = -( dot3d( N, start ) + D) / dot3d( N, direction ); 
+		//	printf( "  %f %f %f /  %f %f %f  / %f %f %f    N: %f %f %f,  D: %f T: %f\n", PFTHREE( v0 ), PFTHREE( v1 ), PFTHREE( v2 ), PFTHREE( N ), D, t );
+
 			float Phit[3];
 			scale3d( Phit, direction, t );
 			add3d( Phit, Phit, start );
@@ -1301,9 +1313,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				sub3d( C0tmp, Phit, v0 );
 				sub3d( C1tmp, Phit, v1 );
 				sub3d( C2tmp, Phit, v2 );
-				cross3d( C0, C0tmp, v10 );
-				cross3d( C1, C1tmp, v21 );
-				cross3d( C2, C2tmp, v02 );
+				cross3d( C0, v10, C0tmp );
+				cross3d( C1, v21, C1tmp );
+				cross3d( C2, v02, C2tmp );
 			}
 
 			//C1-2 are busted (?) here. Their magnitude is weird.  Almost like it's squared or something?
@@ -1311,10 +1323,8 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			float t1 = dot3d( N, C1 );
 			float t2 = dot3d( N, C2 );
 
-//			printf( "C0: %f %f %f  C1: %f %f %f   C2: %f %f %f   N: %f %f %f  %f\n", PFTHREE( C0 ), PFTHREE( C1 ), PFTHREE( C2 ), PFTHREE( N ), t );
-			if( t0 < 0 ||
-				t1 < 0 ||
-				t2 < 0 ) continue;
+			if( t0 < 0 || t1 < 0 || t2 < 0 ||
+				t0 != t0 || t1 != t1 || t2 != t2 ) continue;
 
 
 			//Else: We have a hit.  This doesn't happen for all that many polys, so time isn't as critical here.
@@ -1383,6 +1393,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 {
 	int filelen;
 	char * file = CNOVRFileToString( filename, &filelen );
+	printf( "FILE: %p %s\n", file, filename );
 	char ** splits = CNOVRSplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );
 
@@ -1415,7 +1426,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 					&t.CNormals[0 + t.CNormalCount * 3], 
 					&t.CNormals[1 + t.CNormalCount * 3], 
 					&t.CNormals[2 + t.CNormalCount * 3] );
-				t.CNormals[3 + t.CNormalCount * 3] = 0;
+				//t.CNormals[3 + t.CNormalCount * 3] = 0;
 				if( r == 3 )
 					t.CNormalCount++;
 			}
@@ -1500,21 +1511,21 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 				int NNumber = atoi( buffer2[2] ) - 1;
 
 				CNOVRModelTackIndex( m, 1, indices++ );
-				CNOVRModelTackIndex( m, 1, indices++ );
-				CNOVRModelTackIndex( m, 1, indices++ );
+				//CNOVRModelTackIndex( m, 1, indices++ );
+				//CNOVRModelTackIndex( m, 1, indices++ );
+				//printf( "%d/%d/%d %d\n", VNumber, TNumber, NNumber, indices );
 
-				if( VNumber < t.CVertCount )
+				if( VNumber < t.CVertCount && VNumber >= 0 )
 					CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
 				else
 					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
 
-				if( TNumber < t.CTexCount )
-
+				if( TNumber < t.CTexCount && TNumber >= 0 )
 					CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber*4] );
 				else
 					CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
 
-				if( NNumber < t.CNormalCount )
+				if( NNumber < t.CNormalCount && NNumber >= 0 )
 					CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber*3] );
 				else
 					CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
@@ -1539,6 +1550,8 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 			//Not implemented.
 		}
 	}
+
+	//printf( "LOADED MODEL %d INDICES\n", indices );
 
 	if( t.CVerts ) free( t.CVerts ); 
 	if( t.CTexs ) free( t.CTexs ); 
@@ -1662,9 +1675,10 @@ void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 {
 	OGLockMutex( m->model_mutex );
 	if( m->geofile ) free( m->geofile );
-	m->geofile = strdup( filename );
+	const char * gfile = CNOVRFileSearch( filename );
+	m->geofile = strdup( (gfile&&gfile[0])?gfile:filename ); //In case it's a render model.
 	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
-	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
+	CNOVRFileTimeAddWatch( m->geofile, CNOVRModelLoadFromFileAsyncCallback, m, 0 );
 	OGUnlockMutex( m->model_mutex );
 }
 
