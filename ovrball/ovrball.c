@@ -115,8 +115,6 @@ static void example_scene_setup( void * tag, void * opaquev )
 	paddle = CNOVRModelCreate( 0, GL_TRIANGLES );
 	paddle->pose = 0;
 	CNOVRModelLoadFromFileAsync( paddle, "paddle.obj" );
-	pose_make_identity( &paddlepose1 );
-	pose_make_identity( &paddlepose2 );
 	pose_make_identity( &paddetransform );
 
 	cnovr_euler_angle eu = { 3.14159-.5, 0, 0 };

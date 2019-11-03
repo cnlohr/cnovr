@@ -520,7 +520,7 @@ void * GetTextureThread( void * v )
 			{
 				//Based on https://www.linuxquestions.org/questions/programming-9/simulating-a-mouse-click-594576/
 				printf( "Sending click %d\n", dw->setptr );
-				CheatMouseDown( localdisplay, dw->windowtrack, dw->setptr-2 );
+				CheatMouseDown( dw->windowtrack, dw->setptr-2 );
 			}
 			dw->setptr = 0;
 		}
