@@ -16,6 +16,7 @@ typedef struct cnovr_collide_results_t
 	int whichvert;
 	float collidepos[3];
 	float collidevs[4];
+	float collidens[4];
 } cnovr_collide_results;
 
 struct cnovr_shader_t;
@@ -186,6 +187,8 @@ typedef struct cnovr_model_t
 	uint8_t bIsLoading;
 	uint8_t bIsUploaded;
 	int iOpaque;
+	int iRenderMesh; // -1 for all meshes.
+	int iCollideMesh; // -1 for all meshes.
 } cnovr_model;
 
 //XXX TODO: Reorganize this.

@@ -886,10 +886,17 @@ static void CNOVRModelRender( cnovr_model * m )
 	}
 
 //	glEnableClientState(GL_VERTEX_ARRAY);
-	glDrawElements( m->nRenderType, m->iIndexCount, GL_UNSIGNED_INT, 0 );
-//	glDisableClientState(GL_VERTEX_ARRAY);            // deactivate vertex position array
-//	glBindBuffer( GL_ARRAY_BUFFER, 0 );
-//	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,  0);
+	int mh = m->iRenderMesh;
+	if( mh == -1 )
+	{
+		glDrawElements( m->nRenderType, m->iIndexCount, GL_UNSIGNED_INT, 0 );
+	}
+	else
+	{
+		int m1 = m->iMeshMarks[mh];
+		int m2 = m->iMeshMarks[mh+1];
+		glDrawElements( m->nRenderType, m2-m1, GL_UNSIGNED_INT, ((int*)0) + m1 );
+	}
 }
 
 
@@ -916,6 +923,8 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->iMeshMarks[0] = 0;
 	ret->nMeshes = 1;
 	ret->sMeshMarks = 0;
+	ret->iRenderMesh = -1;
+	ret->iCollideMesh = -1;
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
 	ret->iGeos = 0;
@@ -1256,7 +1265,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 	int i;
 	GLuint * indices = m->pIndices;
 //	printf( "DIRECTION: %f %f %f\n", PFTHREE( direction ) );
-	for( i = 0; i < m->nMeshes; i++ )
+	int startmesh = (m->iCollideMesh>=0)?m->iCollideMesh:0;
+	int endmesh = (m->iCollideMesh>=0)?(m->iCollideMesh+1):m->nMeshes;
+	for( i = startmesh; i < endmesh; i++ )
 	{
 		int meshStart = m->iMeshMarks[i];
 		int meshEnd = (i == m->nMeshes-1 ) ? m->iIndexCount : m->iMeshMarks[i+1];
@@ -1354,6 +1365,23 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 						txo[j] = tx0[j] * t1 + tx1[j] * t2 + tx2[j] * t0;
 					}
 					for( ; j < sizeof(r->collidevs) / sizeof(r->collidevs[0]); j++ )
+					{
+						txo[j] = 0;
+					}
+
+					//Also get normal?
+					stride1 = m->pGeos[2]->iStride;
+					vd1 = m->pGeos[2]->pVertices;
+					tx0 = vd1 + i0 * stride1;
+					tx1 = vd1 + i1 * stride1;
+					tx2 = vd1 + i2 * stride1;
+					txo = r->collidens;
+					for( j = 0; j < stride1; j++ )
+					{
+						txo[j] = tx0[j] * t1 + tx1[j] * t2 + tx2[j] * t0;
+					}
+					//printf( "%f %f %f %d  %f %f %f\n", PFTHREE( tx0 ), stride1, PFTHREE( txo ) );
+					for( ; j < sizeof(r->collidens) / sizeof(r->collidens[0]); j++ )
 					{
 						txo[j] = 0;
 					}
