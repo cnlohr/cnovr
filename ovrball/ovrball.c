@@ -11,22 +11,28 @@
 const char * identifier;
 cnovr_shader * shaderBasic;
 
-#define TIMESLOTS 11
+og_thread_t thdmax;
+
+#define TIMESLOTS 10
+#define EXTRASLOTS 20
 cnovr_model * paddle;
-cnovr_pose    paddlepose1[TIMESLOTS];
-cnovr_pose    paddlepose2[TIMESLOTS];
+cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
+cnovr_pose    paddlepose2[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddetransform;
 
 cnovr_model * isosphere;
 cnovr_pose    isospherepose;
 cnovr_point3d  isospheremotionlinear;
 cnovr_aamag  isospheremotionrotation;
+float isospherehitcooldown;
 cnovrfocus_capture isocapture;
 
 double isospherelife;
 
 cnovr_model * playarea;
 cnovr_pose    playareapose;
+
+
 struct ovrballstore_t
 {
 	int i;
@@ -39,14 +45,15 @@ cnovr_canvas * canvas;
 void ResetIsosphere()
 {
 	isospherelife = 40;
+	isospherehitcooldown = 40;
 	pose_make_identity( &isospherepose );
 	isospherepose.Pos[1] = 1;
-	isospherepose.Pos[2] = 0;
+	isospherepose.Pos[2] = 2;
 	isospherepose.Scale = .1;
 
 	isospheremotionlinear[0] = 0;
 	isospheremotionlinear[1] = 0;
-	isospheremotionlinear[2] = 2;
+	isospheremotionlinear[2] = 0;
 
 	isospheremotionrotation[0] = 0;
 	isospheremotionrotation[1] = 10;
@@ -65,7 +72,6 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	cnovr_pose invertedxform;
 	pose_invert( &invertedxform, modelpose );
 	apply_pose_to_point( start, &invertedxform, start);
-
 
 	sub3d( direction, modeltarget, start );
 	//This is a tad bit concerning.  We say we go from where we are now toward the center of the object.
@@ -108,6 +114,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 
 	//Tricky: What if we are swatting in the direction the ball is already going?
 	cnovr_point3d reflection, tmp;
+	scale3d( paddle_motion_at_impact, paddle_motion_at_impact, 2 ); //Prentend racket mass high
 	sub3d( relative_motion_vector, isospheremotionlinear, paddle_motion_at_impact );
 	if( dot3d( relative_motion_vector, normal ) < 0 )
 	{
@@ -128,11 +135,12 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 		copy3d( reflection, isospheremotionlinear ); // Turn into a no-op
 	}
 
+	scale3d( isospheremotionlinear, reflection, 1.0 );
+
 	//Also fixup
-	scale3d( fixup, paddle_motion_at_impact, dtimelast );
+	scale3d( fixup, reflection, dtimelast*5 );
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
 
-	scale3d( isospheremotionlinear, reflection, 1.0 );
 	printf( "%f %f %f   %f %f %f   %f %f %f   %f\n", PFTHREE( reflection ), PFTHREE( isospheremotionlinear ), PFTHREE( relative_motion_vector ), res.t );
 
 
@@ -149,6 +157,83 @@ void init( const char * identifier )
 	ovrprintf( "Example init %s\n", identifier );
 }
 
+void * PhysicsThread( void * v )
+{
+	int racketslot = 0;
+	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
+	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, CTRLA_TIP );
+
+	cnovr_pose poselast1;
+	cnovr_pose poselast2;
+
+	int hitslot = 0;
+
+	while( !shutting_down )
+	{
+		static double start;
+		static double last;
+		OGUSleep( 500 );
+		double now = OGGetAbsoluteTime();
+		if( start < 1 ) { start = now; last = now; continue; }
+		double runtime = now - start;
+		double deltatime = now - last;
+		last = now;
+
+		isospherehitcooldown += deltatime;
+
+		//Handle Isosphere Motion Update
+		isospherelife -= deltatime;
+		if( isospherelife < 0.0 ) ResetIsosphere();
+		cnovr_point3d delta_motion;
+		scale3d( delta_motion, isospheremotionlinear, deltatime );
+		add3d( isospherepose.Pos, isospherepose.Pos, delta_motion );
+		cnovr_aamag aam;
+		cnovr_quat qmotion;
+		scale3d( aam, isospheremotionrotation, deltatime );
+		quatfromaxisanglemag( qmotion, aam );
+		quatrotateabout( isospherepose.Rot, isospherepose.Rot, qmotion );
+
+		int did_hit_this_frame = 0;
+
+		InputPoseActionData_t pad1, pad2;
+		float tnow = -0.001;
+		EVRInputError e1 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip1, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow, &pad1, sizeof( pad1 ), 0 );
+		EVRInputError e2 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip2, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow, &pad2, sizeof( pad2 ), 0 );
+
+		cnovr_pose pose1, pose2;
+		CNOVRPoseFromHMDMatrix( &pose1, &pad1.pose.mDeviceToAbsoluteTracking );
+		CNOVRPoseFromHMDMatrix( &pose2, &pad2.pose.mDeviceToAbsoluteTracking );
+		//printf( "%f %f %f\n", PFTHREE( pose2.Pos ) );
+
+		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform );
+		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform );
+
+		//if( isospherehitcooldown > .2)
+		{
+			cnovr_point3d target = { 0, -.4, 0 };  //Kludge -> Target center of mesh.
+			int r1 = CheckCollideBallWithMesh( paddle, 0, &paddlepose1[racketslot], &poselast1, 
+				deltatime, tnow, target ); 
+			int r2 = CheckCollideBallWithMesh( paddle, 0, &paddlepose2[racketslot], &poselast2, 
+				deltatime, tnow, target );
+			if( r1 == 0 || r2 == 0 ) {
+				memcpy( &paddlepose1[hitslot+TIMESLOTS],  &paddlepose1[racketslot], sizeof( cnovr_pose ) );
+				memcpy( &paddlepose2[hitslot+TIMESLOTS],  &paddlepose2[racketslot], sizeof( cnovr_pose ) );
+				isospherehitcooldown = 0;
+				printf( "Writing into slot %d\n", hitslot );
+				hitslot++;
+				if( hitslot == EXTRASLOTS ) hitslot = 0;
+			}
+		}
+		memcpy( &poselast1, &paddlepose1[racketslot], sizeof( cnovr_pose ) );
+		memcpy( &poselast2, &paddlepose2[racketslot], sizeof( cnovr_pose ) );
+
+		racketslot++;
+		if( racketslot == TIMESLOTS ) racketslot = 0;
+	}
+
+	return 0;
+}
+
 void UpdateFunction( void * tag, void * opaquev )
 {
 	static double start;
@@ -158,56 +243,6 @@ void UpdateFunction( void * tag, void * opaquev )
 	double runtime = now - start;
 	double deltatime = now - last;
 	last = now;
-
-	//Handle Isosphere Motion Update
-	isospherelife -= deltatime;
-	if( isospherelife < 0.0 ) ResetIsosphere();
-	cnovr_point3d delta_motion;
-	scale3d( delta_motion, isospheremotionlinear, deltatime );
-	add3d( isospherepose.Pos, isospherepose.Pos, delta_motion );
-	cnovr_aamag aam;
-	cnovr_quat qmotion;
-	scale3d( aam, isospheremotionrotation, deltatime );
-	quatfromaxisanglemag( qmotion, aam );
-	quatrotateabout( isospherepose.Rot, isospherepose.Rot, qmotion );
-
-
-	int i;
-	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
-	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, CTRLA_TIP );
-
-	cnovr_pose poselast1;
-	cnovr_pose poselast2;
-	int did_hit_this_frame = 0;
-	for( i = 0 ; i < TIMESLOTS; i++ )
-	{
-//	EVRInputError (OPENVR_FNTABLE_CALLTYPE *GetPoseActionDataRelativeToNow)(VRActionHandle_t action, ETrackingUniverseOrigin eOrigin, 
-	//float fPredictedSecondsFromNow, struct InputPoseActionData_t * pActionData, uint32_t unActionDataSize, VRInputValueHandle_t ulRestrictToDevice);
-	//	printf( "%llx %llx\n", tip1, tip2 );
-		InputPoseActionData_t pad1, pad2;
-		float now = -.02 + i * .0019; //We don't do future predict XXX TODO TWEAK ME
-		EVRInputError e1 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip1, ETrackingUniverseOrigin_TrackingUniverseStanding, now, &pad1, sizeof( pad1 ), 0 );
-		EVRInputError e2 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip2, ETrackingUniverseOrigin_TrackingUniverseStanding, now, &pad2, sizeof( pad2 ), 0 );
-
-		cnovr_pose pose1, pose2;
-		CNOVRPoseFromHMDMatrix( &pose1, &pad1.pose.mDeviceToAbsoluteTracking );
-		CNOVRPoseFromHMDMatrix( &pose2, &pad2.pose.mDeviceToAbsoluteTracking );
-		//printf( "%f %f %f\n", PFTHREE( pose2.Pos ) );
-
-		apply_pose_to_pose( &paddlepose1[i], &pose1, &paddetransform );
-		apply_pose_to_pose( &paddlepose2[i], &pose2, &paddetransform );
-
-		if( now <= 0 && i > 0 && !did_hit_this_frame )
-		{
-			cnovr_point3d target = { 0, -.4, 0 };  //Kludge -> Target center of mesh.
-			int r1 = CheckCollideBallWithMesh( paddle, 0, &paddlepose1[i], &poselast1, .0049, now, target ); 
-			int r2 = CheckCollideBallWithMesh( paddle, 0, &paddlepose2[i], &poselast2, .0049, now, target );
-			if( r1 == 0 || r2 == 0 ) did_hit_this_frame = 1;
-		}
-		memcpy( &poselast1, &paddlepose1[i], sizeof( cnovr_pose ) );
-		memcpy( &poselast2, &paddlepose2[i], sizeof( cnovr_pose ) );
-	}
-
 
 	CNOVRCanvasClearFrame( canvas );
 	static int frameno;
@@ -236,7 +271,7 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( isosphere );
 
 	paddle->iRenderMesh = 1;
-	for( i = 0 ; i < TIMESLOTS; i++ )
+	for( i = 0 ; i < TIMESLOTS + EXTRASLOTS; i++ )
 	{
 		CNOVRModelRenderWithPose( paddle, &paddlepose1[i] );
 		CNOVRModelRenderWithPose( paddle, &paddlepose2[i] );
@@ -279,6 +314,10 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
 	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
 	printf( "+++ Example scene setup complete\n" );
+
+	shutting_down = 0;
+	thdmax = OGCreateThread( PhysicsThread, 0 );
+
 }
 
 
@@ -290,12 +329,13 @@ void start( const char * identifier )
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
 	printf( "=== Example start %s(%p) + %p %p\n", identifier, identifier );
+
 }
 
 void stop( const char * identifier )
 {
 	shutting_down = 1;
-	//OGCancelThread( thdmax );
+	OGJoinThread( thdmax );
 	printf( "=== End Example stop\n" );
 }
 
