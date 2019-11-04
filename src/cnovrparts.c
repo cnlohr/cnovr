@@ -803,6 +803,7 @@ static void CNOVRModelUpdateIBO( void * vm, void * dump )
 
 void CNOVRModelTaintIndices( cnovr_model * vm )
 {
+	vm->iMeshMarks[vm->nMeshes] = vm->iIndexCount+1;
 	CNOVRJobTack( cnovrQPrerender, CNOVRModelUpdateIBO, (void*)vm, 0, 1 );	
 }
 
@@ -895,6 +896,7 @@ static void CNOVRModelRender( cnovr_model * m )
 	{
 		int m1 = m->iMeshMarks[mh];
 		int m2 = m->iMeshMarks[mh+1];
+		//printf( "%d %d\n", m1, m2 );
 		glDrawElements( m->nRenderType, m2-m1, GL_UNSIGNED_INT, ((int*)0) + m1 );
 	}
 }
@@ -924,6 +926,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->nMeshes = 1;
 	ret->sMeshMarks = 0;
 	ret->iRenderMesh = -1;
+	ret->sModifiers = 0;
 	ret->iCollideMesh = -1;
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
@@ -1271,6 +1274,7 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 	{
 		int meshStart = m->iMeshMarks[i];
 		int meshEnd = (i == m->nMeshes-1 ) ? m->iIndexCount : m->iMeshMarks[i+1];
+	//	printf( "%d   %d  %d\n", i, meshStart, meshEnd );
 	//	printf( "%d %d\n", meshStart, meshEnd );
 		int j;
 		for( j = meshStart; j < meshEnd; j+=3 )
@@ -1282,6 +1286,8 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			float * v0 = &vpos[i0*stride];
 			float * v1 = &vpos[i1*stride];
 			float * v2 = &vpos[i2*stride];
+
+		//	if( i == 1 ) { printf( "%f %f %f  %f %f %f  %f %f %f\n", PFTHREE( v0 ), PFTHREE( v1 ), PFTHREE( v2) ); }
 
 			float v10[3];
 			float v21[3];
@@ -1303,12 +1309,10 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			scale3d( N, N, 1/Ax2 );
 
 			float D = -dot3d(N, v0);
-
 #if 0
 			//normalize3d( N, N );
 #endif
 			float t = -( dot3d( N, start ) + D) / dot3d( N, direction ); 
-		//	printf( "  %f %f %f /  %f %f %f  / %f %f %f    N: %f %f %f,  D: %f T: %f\n", PFTHREE( v0 ), PFTHREE( v1 ), PFTHREE( v2 ), PFTHREE( N ), D, t );
 
 			float Phit[3];
 			scale3d( Phit, direction, t );
@@ -1385,6 +1389,7 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					{
 						txo[j] = 0;
 					}
+//					printf( "CONTACT : %f\n", t );
 					//printf( "%f * (%f %f %f)  %f * (%f %f %f)  %f * (%f %f %f)\n", t1, PFTHREE( tx0 ), t2, PFTHREE( tx1 ), t0, PFTHREE( tx2 ) );
 				}
 				ret = i;
@@ -1417,15 +1422,20 @@ struct TempObject
 };
 
 
-static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
+static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const char * modifiers )
 {
 	int filelen;
 	char * file = CNOVRFileToString( filename, &filelen );
-	printf( "FILE: %p %s\n", file, filename );
 	char ** splits = CNOVRSplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );
 
+	int lineify = 0;
 	int flipv = 1;
+	if( modifiers )
+	{
+		if( strstr( modifiers, "lineify" ) ) lineify = 1;
+		if( strstr( modifiers, "noflipv" ) ) flipv = 0;
+	}
 
 	struct TempObject t;
 	memset( &t, 0, sizeof( t ) );
@@ -1496,12 +1506,12 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 		}
 		else if( tolower( line[0] ) == 'f' )
 		{
-			char buffer[3][TBUFFERSIZE];
+			char buffer[4][TBUFFERSIZE];
 			int p = 0;
-			int r = sscanf( line + 1, "%30s %30s %30s", 
-				buffer[0], buffer[1], buffer[2] );
+			int r = sscanf( line + 1, "%30s %30s %30s %30s", 
+				buffer[0], buffer[1], buffer[2], buffer[3] );
 
-			if( r != 3 )
+			if( r != 3 && r != 4 )
 			{
 				//Invalid line - continue.
 				continue;
@@ -1509,9 +1519,9 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 
 			//Whatever... they're all populated with something now.
 
-			for( p = 0; p < 3; p++ )
+			for( p = 0; p < r; p++ )
 			{
-				char buffer2[3][TBUFFERSIZE];
+				char buffer2[4][TBUFFERSIZE];
 				int mark = 0, markb = 0;
 				int i;
 				int sl = strlen( buffer[p] );
@@ -1521,14 +1531,14 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 					{
 						buffer2[mark][markb] = 0;
 						mark++;
-						if( mark >= 3 ) break;
+						if( mark >= r ) break;
 						markb = 0;
 					}
 					else
 						buffer2[mark][markb++] = buffer[p][i];
 				}
 				buffer2[mark][markb] = 0;
-				for( i = mark+1; i < 3; i++ )
+				for( i = mark+1; i < r; i++ )
 				{
 					buffer2[i][0] = '0';
 					buffer2[i][1] = 0;
@@ -1538,10 +1548,19 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 				int TNumber = atoi( buffer2[1] ) - 1;
 				int NNumber = atoi( buffer2[2] ) - 1;
 
-				CNOVRModelTackIndex( m, 1, indices++ );
-				//CNOVRModelTackIndex( m, 1, indices++ );
-				//CNOVRModelTackIndex( m, 1, indices++ );
-				//printf( "%d/%d/%d %d\n", VNumber, TNumber, NNumber, indices );
+				if( lineify )
+				{
+					CNOVRModelTackIndex( m, 1, indices );
+					if( p < r-1 )
+						CNOVRModelTackIndex( m, 1, indices+1 );
+					else
+						CNOVRModelTackIndex( m, 1, indices-(r-1) );
+					indices++;
+				}
+				else
+				{
+					CNOVRModelTackIndex( m, 1, indices++ );
+				}
 
 				if( VNumber < t.CVertCount && VNumber >= 0 )
 					CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
@@ -1595,7 +1614,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename )
 
 
 
-static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNameIn )
+static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNameIn, const char * modifiers )
 {
 	RenderModel_t * pModel = NULL;
 	int rnnamelen = pchRenderModelNameIn?strlen( pchRenderModelNameIn ):0;
@@ -1685,26 +1704,38 @@ void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump )
 	int slen = strlen( filename );
 	if( CNOVRStringCompareEndingCase( filename, ".obj" ) == 0 )
 	{
-		CNOVRModelLoadOBJ( m, filename );
+		CNOVRModelLoadOBJ( m, filename, m->sModifiers );
 	}
 	else if( CNOVRStringCompareEndingCase( filename, ".rendermodel" ) == 0 )
 	{
-		CNOVRModelLoadRenderModel( m, filename );
+		CNOVRModelLoadRenderModel( m, filename, m->sModifiers );
 	}
 	else
 	{
 		CNOVRAlert( m->base.tccctx, 1, "Error: Could not open model file: \"%s\".\n", filename );
 	}
 	OGUnlockMutex( m->model_mutex );
-
 }
 
 void CNOVRModelLoadFromFileAsync( cnovr_model * m, const char * filename )
 {
 	OGLockMutex( m->model_mutex );
 	if( m->geofile ) free( m->geofile );
-	const char * gfile = CNOVRFileSearch( filename );
-	m->geofile = strdup( (gfile&&gfile[0])?gfile:filename ); //In case it's a render model.
+	char * colon = strchr( filename, ':' );
+	if( colon )
+	{
+		m->sModifiers = strdup( colon + 1 );
+		char tmpfn[CNOVR_MAX_PATH];
+		memcpy( tmpfn, filename, colon - filename );
+		tmpfn[colon-filename] = 0;
+		const char * gfile = CNOVRFileSearch( tmpfn );
+		m->geofile = strdup( (gfile&&gfile[0])?gfile:tmpfn ); //In case it's a render model.		
+	}	
+	else
+	{
+		const char * gfile = CNOVRFileSearch( filename );
+		m->geofile = strdup( (gfile&&gfile[0])?gfile:filename ); //In case it's a render model.
+	}
 	CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
 	CNOVRFileTimeAddWatch( m->geofile, CNOVRModelLoadFromFileAsyncCallback, m, 0 );
 	OGUnlockMutex( m->model_mutex );

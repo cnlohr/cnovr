@@ -9,6 +9,8 @@
 #include "flat_stars.h"
 #include <cnovr.h>
 
+int disable_interaction;
+
 cnovr_model * model;
 cnovr_shader * shader;
 cnovr_model * modelConst;
@@ -200,8 +202,6 @@ static void starfield_setup( void * tag, void * opaquev )
 {
 	shader = CNOVRShaderCreate( "starfield/starfield" );
 	//shaderConst = CNOVRShaderCreate( "starfield/constellations" );
-	CNOVRListAdd( cnovrLRender0, 0, RenderFunction );
-	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	int constellationlines = sizeof( constellationsegs ) / sizeof( constellationsegs[0] ) / 2;
 
 	modelConst = CNOVRModelCreate( 0, GL_LINES );
@@ -242,7 +242,11 @@ static void starfield_setup( void * tag, void * opaquev )
 	pose_make_identity( &galaxyimagepose );
 	CNOVRModelApplyTextureFromFileAsync( galaxyimage, "starfield/Milky_Way_Galaxy.jpg" );
 
-	SetupFocusHandler();
+	if( !disable_interaction ) SetupFocusHandler();
+
+	CNOVRListAdd( cnovrLRender0, 0, RenderFunction );
+	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
+
 }
 
 void CNOVRGenericSetInteractable( cnovr_model * m, void * tag, cnovr_model_focus_controller ** fcptr, cnovr_cb_fn collisioncheck, cnovrfocus_capture * focusevent )
@@ -256,6 +260,8 @@ void init()
 
 void start( const char * identifier )
 {
+	if( strstr( identifier, "nointeract" ) ) disable_interaction = 1;
+
 	printf( "Loading stars\n" );
 	int len = 0;
 	database = (flat_star*)CNOVRFileToString( "modules/starfield/tablize/flat_stars.dat", &len );

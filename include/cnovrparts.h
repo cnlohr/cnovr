@@ -189,6 +189,8 @@ typedef struct cnovr_model_t
 	int iOpaque;
 	int iRenderMesh; // -1 for all meshes.
 	int iCollideMesh; // -1 for all meshes.
+
+	char * sModifiers;
 } cnovr_model;
 
 //XXX TODO: Reorganize this.

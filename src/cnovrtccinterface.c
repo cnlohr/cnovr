@@ -747,7 +747,10 @@ struct ImportList
 	TCCExportS( matrix44vtransform )
 	TCCExportS( matrix444transform )
 	TCCExportS( matrix34multiply )
+
 	TCCExportS( CNOVRPoseFromHMDMatrix )
+	TCCExportS( CNOVRVBOTackv )
+	TCCExportS( CNOVRModelSetNumVBOsWithStrides )
 
 	TCCExportS( glGenBuffers )
 	TCCExportS( glBindBuffer )

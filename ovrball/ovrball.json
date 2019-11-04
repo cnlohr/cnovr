@@ -10,7 +10,8 @@
 		},
 		{
 			"cfile" : "starfield/starfield.c",
-			"identifier" : "starfield"
+			"identifier" : "starfield;nointeract",
+			"disabled" : false,
 		},
 		{
 			"cfile" : "example_setup/example.c",
