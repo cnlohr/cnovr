@@ -113,7 +113,7 @@ void UpdateFunction( void * tag, void * opaquev )
 				for( x = 0; x <= cols; x++ )
 				{
 					float * stage = &geo->pVertices[((x + y*2) * 3)+side*12];
-					stage[0] = ((side?(x/(float)rows):(1-x/(float)rows))) / ((aspect>1)?aspect:1);
+					stage[0] = ((/*side*/1?(x/(float)rows):(1-x/(float)rows))) / ((aspect>1)?aspect:1);
 					stage[1] = ((aspect<1)?aspect:1) * y/(float)cols;
 					stage[0] = (stage[0] - 0.5)*2.0;
 					stage[1] = (stage[1] - 0.5)*2.0;
@@ -164,6 +164,7 @@ void RenderFunction( void * tag, void * opaquev )
 	int i;
 	CNOVRRender( shader );
 	CNOVRRender( palette_m );
+	glDisable(GL_CULL_FACE);
 	for( i = 0; i < MAX_PICTURES; i++ )
 	{
 		if( store->filefound[i] )
