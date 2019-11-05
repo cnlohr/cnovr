@@ -169,7 +169,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	//printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
 	//First, "fix up" location to make sure we don't overpenetrate.
 	cnovr_point3d fixup;
-	scale3d( fixup, worldspace_normal, -res.sndist*1.1 ); //*1.0 would be JUST enough to grace the surface.  This buys us some margin.
+	scale3d( fixup, worldspace_normal, -res.sndist*1.1 ); //1.0 would be JUST enough to grace the surface.  This buys us some margin.
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
 
 	//Next we need to "bounce" off. 
@@ -279,8 +279,10 @@ void * PhysicsThread( void * v )
 
 		//Add magnus effect.
 		cnovr_point3d magnus;
-		cross3d( magnus, isospheremotionlinear, isospheremotionrotation );
-		scale3d( magnus, magnus, -.00001 );
+		cnovr_point3d sqrrot;
+		mult3d( sqrrot, isospheremotionrotation, isospheremotionrotation );
+		cross3d( magnus, isospheremotionlinear, sqrrot );
+		scale3d( magnus, magnus, -.0000001 );
 		add3d( isospheremotionlinear, isospheremotionlinear, magnus );
 
 		int did_hit_this_frame = 0;
