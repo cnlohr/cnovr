@@ -6,12 +6,12 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "starfield/starfield.c",
 			"identifier" : "starfield;nointeract",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "example_setup/example.c",

@@ -1,4 +1,4 @@
-all : main offlinetests
+all : main offlinetests headless
 
 #slowest, get in queue first for performance in parallel compiles.
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
@@ -14,8 +14,8 @@ OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 
 CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
-LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
-#LDFLAGS+=./libopenvr_api.so
+#LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
+LDFLAGS+=./libopenvr_api.so
 
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
@@ -29,7 +29,10 @@ CC=gcc
 %.o : %.c
 	$(CC) -c -o $@ $^ $(CFLAGS)
 
-main : $(OBJS) src/main.o 
+main : $(OBJS) src/main.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+headless : $(OBJS) src/headless.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 offlinetests : $(OBJS) src/offlinetests.o 

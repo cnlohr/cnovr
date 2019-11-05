@@ -11,5 +11,13 @@ void main()
 {
 	gl_Position = umPerspective * umView * umModel * vec4(position.xyz,1.0);
 	localcolor = color;
-	gl_PointSize = data.x;
+	if( data.x <= 0 || data.x > 30 || data.x != data.x )
+	{
+		gl_PointSize = 0.0;
+		gl_Position.z = 10;
+	}
+	else
+	{
+		gl_PointSize = data.x;
+	}
 }

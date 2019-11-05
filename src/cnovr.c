@@ -37,7 +37,7 @@ void InternalCNOVRFocusShutdown();
 void InternalCNOVRFocusUpdate();
 void InternalSetupNamedPtrs();
 
-#define MULTISAMPLE 4
+#define MULTISAMPLE 2
 
 void HandleKey( int keycode, int bDown )
 {
@@ -131,7 +131,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->fNear = 0.01;
 		cnovrstate->fFar = 100.0;
 		cnovrstate->has_ovr = has_vr;
-		cnovrstate->has_preview = 1;
+		cnovrstate->has_preview = screenx!=0 && screeny != 0;
 		cnovrstate->iEyeRenderWidth = -1;
 		cnovrstate->iEyeRenderHeight = -1;
 		cnovrstate->iPreviewWidth = -1;

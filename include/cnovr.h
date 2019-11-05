@@ -68,7 +68,6 @@ struct cnovrstate_t
 	uint8_t  eyeTarget;
 	uint8_t  has_ovr;
 	uint8_t  has_preview;
-
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )

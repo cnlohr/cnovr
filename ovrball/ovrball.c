@@ -29,12 +29,15 @@ cnovr_aamag  isospheremotionrotation;
 float isospherehitcooldown;
 cnovrfocus_capture isocapture;
 
+int sentinal1;
 double isospherelife;
+int sentinal2;
 
 cnovr_model * playarea;
 cnovr_model * playareacollide;
 cnovr_pose    playareapose;
 cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
+cnovr_pose    boomroot; //Must be origin
 
 
 cnovr_model * explosion_model;
@@ -71,10 +74,9 @@ void Boom( float * pos, int npart, float expand, float lifetime )
 		dir[1] = (rand()%102)-50.5;
 		dir[2] = (rand()%102)-50.5;
 		normalize3d( dir, dir );
-		printf( "%f %f %f\n", PFTHREE( dir ) );
 		//^^^^ Ugh buggy compiler
 		scale3d( dir, dir, expand );
-		cnovr_point3d color;
+		float color[4];
 		color[0] = (rand()%100)+1;
 		color[1] = (rand()%100)+1;
 		color[2] = (rand()%100)+1;
@@ -102,11 +104,12 @@ cnovr_canvas * canvas;
 
 void ResetIsosphere()
 {
-	isospherelife = 40;
-	isospherehitcooldown = 40;
+	printf( "Reset Isosphere\n" );
+	isospherelife = 40.0f;
+	isospherehitcooldown = 40.0f;
 	pose_make_identity( &isospherepose );
 	isospherepose.Pos[1] = 1;
-	isospherepose.Pos[2] = 2;
+	isospherepose.Pos[2] = playareaposeepisilondown.Pos[2]+1;
 	isospherepose.Scale = .1;
 
 	isospheremotionlinear[0] = 0;
@@ -152,6 +155,9 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	res.t = 1.; //Must actually impact.
 	m->iCollideMesh = mesh;
 	int r = CNOVRModelCollide( m, start, direction, &res );
+
+//	printf( "%d %f\n", r, res.t );
+
 	if( invt ) res.t = -res.t;
 //	if( r == 0 && res.t >= 0  && res.t < 1. ) { printf( "%f: %f %f %f\n", res.t, PFTHREE( res.collidens ) ); }
 	if( r < 0 || res.t > 0  ) return -1; //1dm is too big.
@@ -233,8 +239,8 @@ void init( const char * identifier )
 
 void * PhysicsThread( void * v )
 {
-	cnovr_pose playareapose;
-	pose_make_identity( &playareapose );
+//	cnovr_pose playareapose;
+//	pose_make_identity( &playareapose );
 	int racketslot = 0;
 	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
 	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, CTRLA_TIP );
@@ -252,14 +258,14 @@ void * PhysicsThread( void * v )
 		double now = OGGetAbsoluteTime();
 		if( start < 1 ) { start = now; last = now; continue; }
 		double runtime = now - start;
-		double deltatime = now - last;
+		float deltatime = (float)(now - last);
 		last = now;
 
 		isospherehitcooldown += deltatime;
 
 		//Handle Isosphere Motion Update
 		isospherelife -= deltatime;
-		if( isospherelife < 0.0 ) ResetIsosphere();
+		if( isospherelife < 0.0f ) { ResetIsosphere(); printf( "NEWLIFE %f\n", isospherelife ); }
 		cnovr_point3d delta_motion;
 		scale3d( delta_motion, isospheremotionlinear, deltatime );
 		add3d( isospherepose.Pos, isospherepose.Pos, delta_motion );
@@ -285,15 +291,15 @@ void * PhysicsThread( void * v )
 		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform );
 		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform );
 
-		if( isospherehitcooldown > .05)
+		if( isospherehitcooldown > .05f )
 		{
-			cnovr_point3d target = { 0, -.4, 0 };  //Kludge -> Target center of mesh.
+			cnovr_point3d target = { 0, -.4f, 0 };  //Kludge -> Target center of mesh.
 			int r1 = CheckCollideBallWithMesh( paddle, 0, &paddlepose1[racketslot], &poselast1, 
-				deltatime, tnow, target, 1.5, 0 ); 
+				deltatime, tnow, target, 1.5f, 0 ); 
 			int r2 = CheckCollideBallWithMesh( paddle, 0, &paddlepose2[racketslot], &poselast2, 
-				deltatime, tnow, target, 1.5, 0 );
+				deltatime, tnow, target, 1.5f, 0 );
 			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
-				deltatime, tnow, 0, 0.9, 1 );
+				deltatime, tnow, 0, 0.9f, 1 );
 			if( r1 == 0 || r2 == 0 || r3 == 0 ) {
 				if( r1 == 0 || r2 == 0 )
 				{
@@ -306,12 +312,13 @@ void * PhysicsThread( void * v )
 				}
 			}
 		}
+
 		memcpy( &poselast1, &paddlepose1[racketslot], sizeof( cnovr_pose ) );
 		memcpy( &poselast2, &paddlepose2[racketslot], sizeof( cnovr_pose ) );
 
 		//Check end stops
-		if( isospherepose.Pos[2] < CPUEND ) { playerpoints++; Boom( isospherepose.Pos, 100, 2.0, 4.0 ); ResetIsosphere(); }
-		if( isospherepose.Pos[2] > PLAYEREND ) { cpupoints++; ResetIsosphere(); }
+		if( isospherepose.Pos[2] < CPUEND ) { playerpoints++; Boom( isospherepose.Pos, 100, 2.0, 4.0 ); ResetIsosphere(); printf( "cpuend\n" ); }
+		if( isospherepose.Pos[2] > PLAYEREND ) { cpupoints++; ResetIsosphere(); printf( "playerend\n" ); }
 
 		//Accel out the CPU end.
 		if( isospherepose.Pos[2] < ACCELEND ) { scale3d( isospheremotionlinear, isospheremotionlinear, 1.005 ); }
@@ -322,21 +329,29 @@ void * PhysicsThread( void * v )
 	return 0;
 }
 
+float fpstime = 1.;
+
 void UpdateFunction( void * tag, void * opaquev )
 {
 	static double start;
 	static double last;
+	static double lastframetime;
 	double now = OGGetAbsoluteTime();
 	if( start < 1 ) { start = now; last = now; return; }
 	double runtime = now - start;
-	double deltatime = now - last;
+	float deltatime = (float)(now - last);
 	last = now;
 
 	CNOVRCanvasClearFrame( canvas );
 	static int frameno;
 	frameno++;
-	CNOVRCanvasSetLineWidth( canvas, 2 );
-	CNOVRCanvasDrawText( canvas, 6, 6, trprintf( "%d\n CPU YOU\n%4d%4d", frameno, cpupoints, playerpoints ), 5 );
+	CNOVRCanvasSetLineWidth( canvas, 1 );
+	if( (frameno % 10) == 0 )
+	{
+		fpstime = (float)(now-lastframetime);
+		lastframetime = now;
+	}
+	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n CPU YOU\n%4d%4d", 10./fpstime, cpupoints, playerpoints ), 3 );
 //	CNOVRCanvasTackSegment( canvas, 10, 10, 100, 10 );
 	CNOVRCanvasSwapBuffers( canvas );
 
@@ -354,11 +369,11 @@ void UpdateFunction( void * tag, void * opaquev )
 			life -= deltatime;
 		}
 		ext[0] = life;
-		//printf( "%f/%f   %f %f %f    %f    %f %f %f %f\n", life, ext[2], PFTHREE( pt ), dat[0], PFFOUR(col) );
 		cnovr_point3d motion;
 		scale3d( motion, dat+1, deltatime );
 		add3d( pt, motion, pt );
 		dat[0] = (life/ext[2])*ext[1];
+		//printf( "%f/%f=%f   %f %f %f    %f    %f %f %f %f\n", life, ext[2], dat[0], PFTHREE( pt ), dat[0], PFFOUR(col) );
 	}
 	CNOVRVBOTaint( explosion_model->pGeos[0] );
 	CNOVRVBOTaint( explosion_model->pGeos[1] );
@@ -383,9 +398,9 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( shaderBasic );
 	CNOVRRender( isosphere );
 
-	CNOVRRender( shaderBlack );
-	playareacollide->iRenderMesh = 0;
-	CNOVRRender( playareacollide );
+	//CNOVRRender( shaderBlack );
+	//playareacollide->iRenderMesh = 0;
+	//CNOVRRender( playareacollide );
 
 	glDepthFunc( GL_LEQUAL );
 	CNOVRRender( shaderBasic );
@@ -405,7 +420,9 @@ void RenderFunction( void * tag, void * opaquev )
 
 	CNOVRRender( canvas );
 
+#define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
+	glEnable( GL_VERTEX_PROGRAM_POINT_SIZE );
 //	glDisable(GL_POINT_SMOOTH);
 	CNOVRRender( explosion_shader );
 	CNOVRRender( explosion_model );
@@ -419,15 +436,17 @@ static void example_scene_setup( void * tag, void * opaquev )
 	shaderBasic = CNOVRShaderCreate( "assets/basic" );
 	shaderBlack = CNOVRShaderCreate( "assets/black" );
 
-	canvas = CNOVRCanvasCreate( "ExampleCanvas", 128, 96 );
+	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64 );
 
 	playarea = CNOVRModelCreate( 0, GL_LINES );
 	playarea->pose = &playareapose;
 	pose_make_identity( &playareapose );
+	playareapose.Pos[2] += -1;
 	CNOVRModelLoadFromFileAsync( playarea, "playarea.obj:lineify" );
 
 	pose_make_identity( &playareaposeepisilondown );
 	playareaposeepisilondown.Pos[1] -= .005;
+	playareaposeepisilondown.Pos[2] = playareapose.Pos[2];
 	playareacollide = CNOVRModelCreate( 0, GL_QUADS );
 	playareacollide->pose = &playareaposeepisilondown;
 	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj" );
@@ -467,7 +486,8 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRVBOTaint( explosion_model->pGeos[2] );
 	CNOVRVBOTaint( explosion_model->pGeos[3] );
 	CNOVRModelTaintIndices( explosion_model );
-	explosion_model->pose = &playareapose;
+	pose_make_identity( &boomroot );
+	explosion_model->pose = &boomroot;
 
 
 	UpdateFunction(0,0);
@@ -487,6 +507,9 @@ void start( const char * identifier )
 {
 	store = CNOVRNamedPtrData( "ovrballstore", 0, sizeof( *store ) + 1024 );
 	printf( "=== Initializing %p\n", store );
+
+	sentinal1 = 0xaaaaaaaa;
+	sentinal2 = 0xaaaaaaaa;
 
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
