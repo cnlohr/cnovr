@@ -37,7 +37,7 @@ void InternalCNOVRFocusShutdown();
 void InternalCNOVRFocusUpdate();
 void InternalSetupNamedPtrs();
 
-#define MULTISAMPLE 2
+#define MULTISAMPLE 1
 
 void HandleKey( int keycode, int bDown )
 {
