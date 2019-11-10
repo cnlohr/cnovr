@@ -918,7 +918,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->base.tccctx = TCCGetTag();
 
 	ret->nIBO = -1;
-//	glGenBuffers( 1, &ret->nIBO );
+	glGenBuffers( 1, &ret->nIBO );
 	ret->iIndexCount = initial_indices;
 	if( initial_indices < 1 ) initial_indices = 1;
 	ret->pIndices = malloc( initial_indices * sizeof( GLuint ) );
@@ -1461,7 +1461,7 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					sub3d( zerohit, start, geonormbase );
 					r->sndist = magnitude3d( zerohit ) - dradius;
 				}
-				printf( "B %f %f\n", t, r->sndist );
+				//printf( "B %f %f\n", t, r->sndist );
 			}
 			else
 			{
@@ -1471,7 +1471,7 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				{
 					float outsndist = (t<0)?thissndist:(dot3d( N, Phit ) + D - dradius);
 
-					printf( "A %f", outsndist );
+					//printf( "A %f", outsndist );
 					r->sndist = outsndist;
 					copy3d( r->geonorm, N );
 				}
