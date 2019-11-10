@@ -24,7 +24,7 @@ int main()
 	{
 		cnovr_model * m = CNOVRModelCreate( 0, GL_TRIANGLES );
 		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 3, 3 );
-		cnovr_point3d v = { 1, 1, -1.49 };
+		cnovr_point3d v = { 0, 0, .5 };
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
@@ -64,7 +64,7 @@ int main()
 			res.t = 1e20;
 			int r = CNOVRModelCollide( m, start, dir, &res, .1, 0 ); //Coarse acquisition
 			float rgbof[3];
-			scale3d( dir, dir, res.t + 0.01 );
+			scale3d( dir, dir, res.t + 0.05 ); //further penetrate
 			add3d( start, dir, start );
 			res.t = 1e20;
 			r = CNOVRModelCollide( m, start, dir, &res, .1, -.2 ); //Coarse acquisition
@@ -75,7 +75,7 @@ int main()
 			if( res.t > 1000 ) { rgbof[0] = 0; rgbof[1] = 0; rgbof[2] = 0; }
 			uint8_t rgbob[3] = { rgbof[0]*255, rgbof[1]*255, rgbof[2]*255 };
 			fwrite( rgbob, 1, 3, ftestnorm );
-			//printf( "%f %f\n", res.t, res.sndist );
+			printf( "+ %f %f\n", res.t, res.sndist ); //sndist looks wrong.
 			res.t += .2;
 			res.sndist += .2;
 			rgbof[1] = rgbof[0] = res.t;
