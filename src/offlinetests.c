@@ -24,7 +24,7 @@ int main()
 	{
 		cnovr_model * m = CNOVRModelCreate( 0, GL_TRIANGLES );
 		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 3, 3 );
-		cnovr_point3d v = { 0, 0, -.49 };
+		cnovr_point3d v = { 1, 1, -1.49 };
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
@@ -59,11 +59,15 @@ int main()
 		for( x = 0; x < 1000; x++ )
 		{
 			cnovr_point3d start = { -0.001, -1.001, 2 };
-			cnovr_point3d dir = { (x-500)/1000.+.2, (y-500)/1000.+.8, -1 };
+			cnovr_point3d dir = { (x-500)/1000.+.3, (y-500)/1000.+.8, -1 };
 			cnovr_collide_results res;
 			res.t = 1e20;
-			int r = CNOVRModelCollide( m, start, dir, &res, .1, 0 );
+			int r = CNOVRModelCollide( m, start, dir, &res, .1, 0 ); //Coarse acquisition
 			float rgbof[3];
+			scale3d( dir, dir, res.t + 0.01 );
+			add3d( start, dir, start );
+			res.t = 1e20;
+			r = CNOVRModelCollide( m, start, dir, &res, .1, -.2 ); //Coarse acquisition
 			scale3d( rgbof, res.geonorm, 0.5 );
 			rgbof[0] += 0.5;
 			rgbof[1] += 0.5;
@@ -71,10 +75,19 @@ int main()
 			if( res.t > 1000 ) { rgbof[0] = 0; rgbof[1] = 0; rgbof[2] = 0; }
 			uint8_t rgbob[3] = { rgbof[0]*255, rgbof[1]*255, rgbof[2]*255 };
 			fwrite( rgbob, 1, 3, ftestnorm );
-
-			rgbof[0] = res.t/1.8 - 1.0;
+			//printf( "%f %f\n", res.t, res.sndist );
+			res.t += .2;
+			res.sndist += .2;
+			rgbof[1] = rgbof[0] = res.t;
+			rgbof[2] = res.sndist;
 			if( rgbof[0] < 0 || rgbof[0] > 1. ) rgbof[0] = 0;
-			rgbob[0] = rgbob[1] = rgbob[2] = rgbof[0] * 255;
+			if( rgbof[1] < 0 || rgbof[1] > 1. ) rgbof[1] = 0;
+			if( rgbof[2] < 0 || rgbof[2] > 1. ) rgbof[2] = 0;
+			if( r < 0 ) rgbof[1] = 1;
+			else { printf( "%f %f\n", res.t, res.sndist ); }
+			rgbob[0] = rgbof[0] * 255;
+			rgbob[1] = rgbof[1] * 255;
+			rgbob[2] = rgbof[2] * 255;
 			fwrite( rgbob, 1, 3, ftestdep );
 			res.t = 1e20;
 		}
