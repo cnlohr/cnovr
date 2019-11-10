@@ -784,6 +784,7 @@ static void CNOVRModelUpdateIBO( void * vm, void * dump )
 //	printf( "START MODEL UPATE\n" );
 	cnovr_model * m = (cnovr_model *)vm;
 	OGLockMutex( m->model_mutex );
+	if( m->nIBO < 0 ) glGenBuffers( 1, &m->nIBO );
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->nIBO);
 //	printf( "Updating IBO: %d\n", m->iIndexCount );
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(m->pIndices[0])*m->iIndexCount, m->pIndices, GL_STATIC_DRAW);	//XXX TODO Make this tunable.
@@ -916,7 +917,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->base.header = &cnovr_model_header;
 	ret->base.tccctx = TCCGetTag();
 
-	glGenBuffers( 1, &ret->nIBO );
+	ret->nIBO = -1;
 	ret->iIndexCount = initial_indices;
 	if( initial_indices < 1 ) initial_indices = 1;
 	ret->pIndices = malloc( initial_indices * sizeof( GLuint ) );
@@ -937,7 +938,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 
 	ret->bIsLoading = 0;
 	ret->iLastVertMark = 0;
-	ret->model_mutex = OGCreateMutex(); 
+	ret->model_mutex = OGCreateMutex(); //XXX TODO USE ME!!!
 	return ret;
 }
 
@@ -1256,10 +1257,11 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 	m->base.header->Render( (cnovr_base*)m );
 }
 
-int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r )
+int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r, float dradius )
 {
 	int ret = -1;
 	if( m->iGeos == 0 ) return -1;
+	if( m->bIsLoading ) return -1;
 	int iMeshNo = 0;
 	//Iterate through all this.
 	if( !m->pGeos[0] ) return -1;
@@ -1299,20 +1301,18 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 
 			//Current algorithm based on https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/ray-triangle-intersection-geometric-solution
 			//XXX TODO: https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm looks faster than this.
-
+			//XXX ALSO -> This is really cool: http://www.peroxide.dk/papers/collision/collision.pdf
 			{
 				float v01[3];
 				sub3d( v01, v0, v1 ); //!?!?!
 				cross3d( N, v21, v01 );
 			}
 			float Ax2 = magnitude3d( N );
-			scale3d( N, N, 1/Ax2 );
+			scale3d( N, N, 1./Ax2 );
 
 			float D = -dot3d(N, v0);
-#if 0
-			//normalize3d( N, N );
-#endif
-			float t = -( dot3d( N, start ) + D) / dot3d( N, direction ); 
+
+			float t = -( dot3d( N, start ) + D - dradius) / dot3d( N, direction ); 
 
 			float Phit[3];
 			scale3d( Phit, direction, t );
@@ -1339,7 +1339,104 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			float t2 = dot3d( N, C2 );
 
 			if( t0 < 0 || t1 < 0 || t2 < 0 ||
-				t0 != t0 || t1 != t1 || t2 != t2 ) continue;
+				t0 != t0 || t1 != t1 || t2 != t2 /* Make sure we don't have a NaN */ )
+			{
+				if( dradius <= 0 ) continue;
+
+				//We did not hit the triangle, itself.
+				float pv0[3];
+				float pv1[3];
+				float pv2[3];
+				float drsq = dradius*dradius;
+				sub3d( pv0, start, v0 );
+				sub3d( pv1, start, v1 );
+				sub3d( pv2, start, v2 );
+
+				//Check vetices.
+				cnovr_point3d ptsolutions;
+				{
+					cnovr_point3d pC_C = { dot3d( pv0, pv0 )-drsq, dot3d( pv1, pv1 )-drsq, dot3d( pv2, pv2 )-drsq };
+					cnovr_point3d pC_B = { 2*dot3d( direction, pv0 ), 2*dot3d( direction, pv1 ), 2*dot3d( direction, pv2 ) };
+					float pCxA = dot3d( direction, direction );
+
+					cnovr_point3d discriminants;
+					cnovr_point3d tmp, tmp2;
+					mult3d( tmp, pC_B, pC_B ); //B^2
+					scale3d( tmp2, pC_C, -4*pCxA ); //-4AC
+					add3d( discriminants, tmp, tmp2 );
+					pCxA *= 2;
+					ptsolutions[0] = (-pC_B[0] - sqrt( discriminants[0] ))/pCxA;
+					ptsolutions[1] = (-pC_B[1] - sqrt( discriminants[1] ))/pCxA;
+					ptsolutions[2] = (-pC_B[2] - sqrt( discriminants[2] ))/pCxA;
+
+					//printf( "%f    %f %f %f    %f %f %f   %f %f %f  %f %f %f\n", pCxA, PFTHREE( pC_B ), PFTHREE( pC_C ), PFTHREE( discriminants ), PFTHREE( ptsolutions ) );
+				}
+
+				//Check edges.
+				cnovr_point3d edgesolutions = { 0./0., 0./0., 0./0. };
+				{
+					//In http://www.peroxide.dk/papers/collision/collision.pdf
+					//"edge" refers to v10, v21, v02
+					//"baseToVertex" refers to -pv_<<<<<
+					//"velocity" refers to direction
+					cnovr_point3d tmp1, tmp2;
+					float tmp;
+					cnovr_point3d edgesquared;
+					cnovr_point3d A,B,C;
+					edgesquared[0] = dot3d( v10, v10 );
+					edgesquared[1] = dot3d( v21, v21 );
+					edgesquared[2] = dot3d( v02, v02 );
+					tmp = -dot3d( direction, direction );
+					scale3d( tmp1, edgesquared, tmp );
+					tmp2[0] = dot3d( v10, direction );
+					tmp2[1] = dot3d( v21, direction );
+					tmp2[2] = dot3d( v02, direction );
+					//mult3d( tmp2, tmp2, tmp2 ); //Dot squared  ?!?!?!?!
+					add3d( A, tmp1, tmp2 );
+
+					tmp1[0] = -2*dot3d( direction, pv0 )*edgesquared[0];
+					tmp1[1] = -2*dot3d( direction, pv1 )*edgesquared[1];
+					tmp1[2] = -2*dot3d( direction, pv2 )*edgesquared[2];
+					tmp2[0] = 2*dot3d(v10,direction)*dot3d(v10,pv0);
+					tmp2[1] = 2*dot3d(v21,direction)*dot3d(v21,pv1);
+					tmp2[2] = 2*dot3d(v02,direction)*dot3d(v02,pv2);
+					add3d( B, tmp1, tmp2 );
+
+					tmp1[0] = edgesquared[0]*(drsq-dot3d(pv0, pv0));
+					tmp1[1] = edgesquared[1]*(drsq-dot3d(pv1, pv1));
+					tmp1[2] = edgesquared[2]*(drsq-dot3d(pv2, pv2));
+					tmp2[0] = dot3d(v10,pv0);
+					tmp2[1] = dot3d(v21,pv1);
+					tmp2[2] = dot3d(v02,pv2);
+					//mult3d( tmp2, tmp2, tmp2 );
+					add3d( C, tmp1, tmp2 );
+
+					//b^2-4ac
+					cnovr_point3d x1;
+					x1[0] = (-B[0] - sqrt( B[0]*B[0] - 4 * A[0] * C[0] )) / ( 2 * A[0] );
+					x1[1] = (-B[1] - sqrt( B[1]*B[1] - 4 * A[1] * C[1] )) / ( 2 * A[1] );
+					x1[2] = (-B[2] - sqrt( B[2]*B[2] - 4 * A[2] * C[2] )) / ( 2 * A[2] );
+
+					cnovr_point3d f0;
+					f0[0] = ( dot3d( v10, direction ) * x1[0] + dot3d( v10, pv0 ) ) / edgesquared[0];
+					f0[1] = ( dot3d( v21, direction ) * x1[1] + dot3d( v21, pv1 ) ) / edgesquared[1];
+					f0[2] = ( dot3d( v02, direction ) * x1[2] + dot3d( v02, pv2 ) ) / edgesquared[2];
+
+					if( f0[0] >= 0 && f0[0] <= 1 ) edgesolutions[0] = x1[0];
+					if( f0[1] >= 0 && f0[1] <= 1 ) edgesolutions[1] = x1[1];
+					if( f0[2] >= 0 && f0[2] <= 1 ) edgesolutions[2] = x1[2];
+					//printf( "%f %f %f   %f %f %f   %f %f %f     %f %f %f   %f %f %f   %f %f %f  %d %d %f\n", PFTHREE( A ), PFTHREE( B ), PFTHREE( C ), PFTHREE( x1 ), PFTHREE( f0 ), PFTHREE( edgesolutions ), edgesolutions[1] != edgesolutions[1], edgesolutions[1] > t, t  );
+				}
+				int didhit = 0;
+				t = r->t;
+				if( !( ptsolutions[0] != ptsolutions[0] || ptsolutions[0] > t ) ) { didhit = 1; t = ptsolutions[0]; }
+				if( !( ptsolutions[1] != ptsolutions[1] || ptsolutions[1] > t ) ) { didhit = 1; t = ptsolutions[1]; }
+				if( !( ptsolutions[2] != ptsolutions[2] || ptsolutions[2] > t ) ) { didhit = 1; t = ptsolutions[2]; }
+				if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] > t ) ) { didhit = 1; t = edgesolutions[0]; }
+				if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] > t ) ) { didhit = 1; t = edgesolutions[1]; }
+				if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] > t ) ) { didhit = 1; t = edgesolutions[2]; }
+				if( !didhit ) continue;
+			}
 
 
 			//Else: We have a hit.  This doesn't happen for all that many polys, so time isn't as critical here.
@@ -1617,6 +1714,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNameIn, const char * modifiers )
 {
 	RenderModel_t * pModel = NULL;
+
 	int rnnamelen = pchRenderModelNameIn?strlen( pchRenderModelNameIn ):0;
 	if( !rnnamelen )
 	{
@@ -1702,6 +1800,7 @@ void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump )
 	OGLockMutex( m->model_mutex );
 	char * filename = m->geofile;
 	int slen = strlen( filename );
+	m->bIsLoading = 1;
 	if( CNOVRStringCompareEndingCase( filename, ".obj" ) == 0 )
 	{
 		CNOVRModelLoadOBJ( m, filename, m->sModifiers );
@@ -1714,6 +1813,7 @@ void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump )
 	{
 		CNOVRAlert( m->base.tccctx, 1, "Error: Could not open model file: \"%s\".\n", filename );
 	}
+	m->bIsLoading = 0;
 	OGUnlockMutex( m->model_mutex );
 }
 

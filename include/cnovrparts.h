@@ -216,7 +216,7 @@ void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr
 //If before first index, names first section.
 void CNOVRDelinateGeometry( cnovr_model * m, const char * newGeoName );
 
-int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r );
+int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r, float dradius );
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile );
 void CNOVRModelSetNumTextures( cnovr_model * m, int textures );
 

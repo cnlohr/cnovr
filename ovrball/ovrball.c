@@ -39,6 +39,7 @@ cnovr_pose    playareapose;
 cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
 cnovr_pose    boomroot; //Must be origin
 
+cnovr_point3d roomoffset = { 0, 1, 0 };
 
 cnovr_model * explosion_model;
 cnovr_shader * explosion_shader;
@@ -109,7 +110,7 @@ void ResetIsosphere()
 	isospherehitcooldown = 40.0f;
 	pose_make_identity( &isospherepose );
 	isospherepose.Pos[1] = 1;
-	isospherepose.Pos[2] = playareaposeepisilondown.Pos[2]+1;
+	add3d( isospherepose.Pos, isospherepose.Pos, roomoffset );
 	isospherepose.Scale = .1;
 
 	isospheremotionlinear[0] = 0;
@@ -151,10 +152,9 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	//Maybe this is a cause of some of our issues?  It should probably be normal to the plane of motion?
 
 	normalize3d( direction, direction );
-
 	res.t = 1.; //Must actually impact.
 	m->iCollideMesh = mesh;
-	int r = CNOVRModelCollide( m, start, direction, &res );
+	int r = CNOVRModelCollide( m, start, direction, &res, 0.1 );
 
 //	printf( "%d %f\n", r, res.t );
 
@@ -294,9 +294,9 @@ void * PhysicsThread( void * v )
 		if( isospherehitcooldown > .05f )
 		{
 			cnovr_point3d target = { 0, -.4f, 0 };  //Kludge -> Target center of mesh.
-			int r1 = CheckCollideBallWithMesh( paddle, 0, &paddlepose1[racketslot], &poselast1, 
+			int r1 = CheckCollideBallWithMesh( paddle, 1, &paddlepose1[racketslot], &poselast1, 
 				deltatime, tnow, target, 1.5f, 0 ); 
-			int r2 = CheckCollideBallWithMesh( paddle, 0, &paddlepose2[racketslot], &poselast2, 
+			int r2 = CheckCollideBallWithMesh( paddle, 1, &paddlepose2[racketslot], &poselast2, 
 				deltatime, tnow, target, 1.5f, 0 );
 			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
 				deltatime, tnow, 0, 0.9f, 1 );
@@ -441,7 +441,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	playarea = CNOVRModelCreate( 0, GL_LINES );
 	playarea->pose = &playareapose;
 	pose_make_identity( &playareapose );
-	playareapose.Pos[2] += -1;
+	add3d( playareapose.Pos, playareapose.Pos, roomoffset );
 	CNOVRModelLoadFromFileAsync( playarea, "playarea.obj:lineify" );
 
 	pose_make_identity( &playareaposeepisilondown );

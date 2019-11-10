@@ -6,6 +6,11 @@ Prerequisites:
 `
 sudo apt-get install build-essential libgl1-mesa-dev
 `
+
+TODO:
+ * Add optimization for geometry early exit.
+ * Add optimization for triangle early exit.
+
 HMM:
  * Should we make the "remove callback" more generic for any kind of callback?
  * Should we have some convenient object thing?

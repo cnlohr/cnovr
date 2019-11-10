@@ -20,6 +20,38 @@ int main()
 	int i;
 	CNOVRJobInit();
 
+	if( 1 )
+	{
+		cnovr_model * m = CNOVRModelCreate( 0, GL_TRIANGLES );
+		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 3, 3 );
+		cnovr_point3d v = { 0, 0, 0 };
+		CNOVRVBOTackv( m->pGeos[0], 3, v );
+		CNOVRVBOTackv( m->pGeos[1], 3, v );
+		CNOVRVBOTackv( m->pGeos[2], 3, v );
+		v[1] = 1;
+		CNOVRVBOTackv( m->pGeos[0], 3, v );
+		CNOVRVBOTackv( m->pGeos[1], 3, v );
+		CNOVRVBOTackv( m->pGeos[2], 3, v );
+		v[1] = 0;
+		v[0] = 1;
+		CNOVRVBOTackv( m->pGeos[0], 3, v );
+		CNOVRVBOTackv( m->pGeos[1], 3, v );
+		CNOVRVBOTackv( m->pGeos[2], 3, v );
+		CNOVRModelTackIndex( m, 3, 0, 1, 2 );
+
+		cnovr_point3d start = { 0, 0, 2 };
+		cnovr_point3d dir = { .21, -0.01, -1 };
+		cnovr_point3d dir2 = { .21, -0.02, -1 };
+		cnovr_collide_results res;
+		res.t = 1e20;
+		int r = CNOVRModelCollide( m, start, dir, &res, .1 );
+		printf( "%d  %f\n", r, res.t );
+		res.t = 1e20;
+		r = CNOVRModelCollide( m, start, dir2, &res, .1 );
+		printf( "%d  %f\n", r, res.t );
+		exit( 0 );
+	}
+
 	if( 1 ){
 		//Test 1: Make sure it doesn't crash.
 		printf( "TEST 1: " );
