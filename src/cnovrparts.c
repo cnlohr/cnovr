@@ -1258,7 +1258,7 @@ void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 	m->base.header->Render( (cnovr_base*)m );
 }
 
-int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r, float dradius )
+int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r, float dradius, float minimumt )
 {
 	int ret = -1;
 	if( m->iGeos == 0 ) return -1;
@@ -1313,7 +1313,10 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 
 			float D = -dot3d(N, v0);
 
-			float t = -( dot3d( N, start ) + D - dradius) / dot3d( N, direction ); 
+			//Distance from contact location to underlying geometry
+			float thissndist = (dot3d( N, start ) + D - dradius);
+
+			float t = -thissndist / dot3d( N, direction ); 
 
 			float Phit[3];
 			scale3d( Phit, direction, t );
@@ -1338,9 +1341,11 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			float t0 = dot3d( N, C0 );
 			float t1 = dot3d( N, C1 );
 			float t2 = dot3d( N, C2 );
+	//		printf( "TRIS: %f %f %f   %f %f %f > %f/%f > %f/%f\n", t0, t1, t2, PFTHREE( N ), t, thissndist, r->t, r->sndist );
 
 			if( t0 < -0.0001 || t1 < -.0001 || t2 < -.0001 ||
-				t0 != t0 || t1 != t1 || t2 != t2 /* Make sure we don't have a NaN */ )
+				t0 != t0 || t1 != t1 || t2 != t2  || /* Make sure we don't have a NaN */
+				t < minimumt )
 			//if( 1 )
 			{
 				if( dradius <= 0 )
@@ -1360,7 +1365,6 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				int didhit = 0;
 				t = r->t;
 
-
 				//Check vetices.
 				cnovr_point3d ptsolutions;
 				if( 1 ){
@@ -1379,9 +1383,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					ptsolutions[2] = (-pC_B[2] - sqrt( discriminants[2] ))/pCxA;
 
 					//printf( "%f    %f %f %f    %f %f %f   %f %f %f  %f %f %f\n", pCxA, PFTHREE( pC_B ), PFTHREE( pC_C ), PFTHREE( discriminants ), PFTHREE( ptsolutions ) );
-					if( !( ptsolutions[0] != ptsolutions[0] || ptsolutions[0] > t ) ) { didhit = 1; t = ptsolutions[0]; copy3d( geonormbase, v0 ); }
-					if( !( ptsolutions[1] != ptsolutions[1] || ptsolutions[1] > t ) ) { didhit = 1; t = ptsolutions[1]; copy3d( geonormbase, v1 ); }
-					if( !( ptsolutions[2] != ptsolutions[2] || ptsolutions[2] > t ) ) { didhit = 1; t = ptsolutions[2]; copy3d( geonormbase, v2 ); }
+					if( !( ptsolutions[0] != ptsolutions[0] || ptsolutions[0] >= t || ptsolutions[0] < minimumt ) ) { didhit = 1; t = ptsolutions[0]; copy3d( geonormbase, v0 ); }
+					if( !( ptsolutions[1] != ptsolutions[1] || ptsolutions[1] >= t || ptsolutions[1] < minimumt ) ) { didhit = 1; t = ptsolutions[1]; copy3d( geonormbase, v1 ); }
+					if( !( ptsolutions[2] != ptsolutions[2] || ptsolutions[2] >= t || ptsolutions[2] < minimumt ) ) { didhit = 1; t = ptsolutions[2]; copy3d( geonormbase, v2 ); }
 				}
 
 				//Check edges.
@@ -1438,29 +1442,42 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					if( f0[1] >= 0 && f0[1] <= 1 ) edgesolutions[1] = x1[1];
 					if( f0[2] >= 0 && f0[2] <= 1 ) edgesolutions[2] = x1[2];
 					//printf( "%f %f %f   %f %f %f   %f %f %f     %f %f %f   %f %f %f   %f %f %f  %d %d %f\n", PFTHREE( A ), PFTHREE( B ), PFTHREE( C ), PFTHREE( x1 ), PFTHREE( f0 ), PFTHREE( edgesolutions ), edgesolutions[1] != edgesolutions[1], edgesolutions[1] > t, t  );
-					if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] > t ) ) { didhit = 1; t = edgesolutions[0]; scale3d( geonormbase, v10, f0[0] ); add3d (geonormbase, geonormbase, v0 ); }
-					if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] > t ) ) { didhit = 1; t = edgesolutions[1]; scale3d( geonormbase, v21, f0[1] ); add3d (geonormbase, geonormbase, v1 );}
-					if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] > t ) ) { didhit = 1; t = edgesolutions[2]; scale3d( geonormbase, v02, f0[2] ); add3d (geonormbase, geonormbase, v2 );}
+					if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] >= t || edgesolutions[0] < minimumt ) ) { didhit = 1; t = edgesolutions[0]; scale3d( geonormbase, v10, f0[0] ); add3d (geonormbase, geonormbase, v0 ); printf( "0;%f\n", f0[0] ); }
+					if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] >= t || edgesolutions[1] < minimumt ) ) { didhit = 1; t = edgesolutions[1]; scale3d( geonormbase, v21, f0[1] ); add3d (geonormbase, geonormbase, v1 ); printf( "1;%f\n", f0[1] );}
+					if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] >= t || edgesolutions[2] < minimumt ) ) { didhit = 1; t = edgesolutions[2]; scale3d( geonormbase, v02, f0[2] ); add3d (geonormbase, geonormbase, v2 ); printf( "2;%f\n", f0[2] );}
 				}
 				if( !didhit ) continue;
 				cnovr_point3d hitpos;
 				scale3d( hitpos, direction, t );
 				add3d( hitpos, hitpos, start );
 				sub3d( r->geonorm, hitpos, geonormbase );
+				r->sndist = magnitude3d( r->geonorm ) - dradius;
 				normalize3d( r->geonorm, r->geonorm );
+				//Now that we've calculated the norm, we can compute what the nominal penetration would be.
+
+				if( t < 0 )
+				{
+					cnovr_point3d zerohit;
+					sub3d( zerohit, start, geonormbase );
+					r->sndist = magnitude3d( zerohit ) - dradius;
+				}
+	//			printf( "B %f %f\n", t, r->sndist );
 			}
 			else
 			{
 				//continue;
 				//We got a proper triangle hit.
-				if( t < r->t )
+				if( t < r->t && t >= minimumt)
 				{
+	//				printf( "A" );
+					r->sndist = thissndist;
 					copy3d( r->geonorm, N );
 				}
 			}
 
 			//Else: We have a hit.  This doesn't happen for all that many polys, so time isn't as critical here.
-			if( t < r->t )
+			//The following code is triggered for triangles or points,
+			if( t < r->t && t >= minimumt )
 			{
 				r->t = t;
 				r->whichmesh = i;

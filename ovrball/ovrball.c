@@ -128,18 +128,31 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	float dtimeframe /*Actual delta time*/, float * modeltarget, float damper, int customcollide )
 {
 	cnovr_collide_results res;
-	cnovr_point3d start, direction;
-	scale3d( start, isospheremotionlinear, dtimeframe );
-	add3d( start, start, isospherepose.Pos ); //This is time-corrected for where the object pose would be.
+	cnovr_point3d start, startlast, direction, deltastart;
+//	scale3d( start, isospheremotionlinear, dtimeframe );
+//	add3d( start, start, isospherepose.Pos ); //This is time-corrected for where the object pose would be.
 
-	cnovr_pose invertedxform;
+	copy3d( start, isospherepose.Pos );
+	copy3d( direction, isospheremotionlinear );
+	cnovr_pose invertedxform, invertedxformlast;
 	pose_invert( &invertedxform, modelpose );
-	apply_pose_to_point( start, &invertedxform, start);
+	pose_invert( &invertedxformlast, modelposelast );
+	apply_pose_to_point( startlast, &invertedxformlast, startlast ); 
+	apply_pose_to_point( start, &invertedxform, start); //Get "start" in modelspace.
+	apply_pose_to_point( direction, &invertedxform, direction); //Get "direction" in model space.
+	sub3d( deltastart, start, startlast );
+	scale3d( deltastart, deltastart, 1./dtimelast );
+	add3d( direction, deltastart, direction );
+
+	//How do we apply intersector motion?  I.e. the model is moving.
 
 	int invt = 0;
 
+#if 0
 	if( modeltarget )
+	{
 		sub3d( direction, modeltarget, start );
+	}
 	else
 	{
 	//	normalize3d( direction, isospheremotionlinear );
@@ -148,20 +161,31 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 		sub3d( direction, localtarget, start );
 		invt = 1;
 	}
+#endif
+
 	//This is a tad bit concerning.  We say we go from where we are now toward the center of the object.
 	//Maybe this is a cause of some of our issues?  It should probably be normal to the plane of motion?
 
 	normalize3d( direction, direction );
 	res.t = 1.; //Must actually impact.
 	m->iCollideMesh = mesh;
-	int r = CNOVRModelCollide( m, start, direction, &res, 0.1 );
+
+	//Tricky: Start ball from slightly behind where ball really is.
+//	cnovr_point3d backoff;
+//	scale3d( backoff, direction, -.5 );
+//	add3d( backoff, backoff, start );
+
+	int r = CNOVRModelCollide( m, start, direction, &res, 0.1, -0.19 );
 
 //	printf( "%d %f\n", r, res.t );
+	printf( "COLLIDERESULT: %f <%f> %d-", res.t,res.sndist, invt );
+//	if( invt ) res.t = -res.t;
+//	res.t -= .5;
 
-	if( invt ) res.t = -res.t;
 //	if( r == 0 && res.t >= 0  && res.t < 1. ) { printf( "%f: %f %f %f\n", res.t, PFTHREE( res.collidens ) ); }
-	if( r < 0 || res.t > 0  ) return -1; //1dm is too big.
-	if( res.t < -.5 ) return -1;
+	if( m == playareacollide ) printf( "PACC%d %f  < %f %f %f;;;%f %f %f   %f %f %f +++ %f %f %f;%f %f %f\n", r, res.t, PFTHREE( start ), PFTHREE( isospherepose.Pos ), PFTHREE( direction ), PFTHREE( deltastart ), PFTHREE( isospheremotionlinear ) );
+	if( r < 0 || res.sndist > 0.0 || res.t > 0.0 ) return -1; //No actual collision.
+	if( res.sndist < -.2) return -1; //We're already on the wrong side of the geometry.
 //	if( r>=0 ) printf( "RHITMARK %d %f\n", r, res.t );
 
 	//COLLISION
@@ -172,7 +196,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
 	//First, "fix up" location to make sure we don't overpenetrate.
 	cnovr_point3d fixup;
-	scale3d( fixup, normal, -res.t );
+	scale3d( fixup, normal, -res.sndist );
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
 
 	//Need to compute relative paddle motion at location of impact.
@@ -195,7 +219,8 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	//Tricky: What if we are swatting in the direction the ball is already going?
 	cnovr_point3d reflection, tmp;
 	scale3d( paddle_motion_at_impact, paddle_motion_at_impact, 1 ); //Prentend racket mass high -> Would make this higher
-	sub3d( relative_motion_vector, isospheremotionlinear, paddle_motion_at_impact );
+//	sub3d( relative_motion_vector, isospheremotionlinear, paddle_motion_at_impact );
+	copy3d( relative_motion_vector, direction );
 	if( dot3d( relative_motion_vector, normal ) < 0 )
 	{
 		//If it's the opposite way, we reflect.
@@ -291,14 +316,16 @@ void * PhysicsThread( void * v )
 		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform );
 		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform );
 
-		if( isospherehitcooldown > .05f )
+		//if( isospherehitcooldown > .05f )
 		{
 			cnovr_point3d target = { 0, -.4f, 0 };  //Kludge -> Target center of mesh.
-			int r1 = CheckCollideBallWithMesh( paddle, 1, &paddlepose1[racketslot], &poselast1, 
+			int r1 = //-1;
+				CheckCollideBallWithMesh( paddle, 1, &paddlepose1[racketslot], &poselast1, 
 				deltatime, tnow, target, 1.5f, 0 ); 
-			int r2 = CheckCollideBallWithMesh( paddle, 1, &paddlepose2[racketslot], &poselast2, 
+			int r2 = //-1;
+				CheckCollideBallWithMesh( paddle, 1, &paddlepose2[racketslot], &poselast2, 
 				deltatime, tnow, target, 1.5f, 0 );
-			int r3 = CheckCollideBallWithMesh( playareacollide, 0, &playareapose, &playareapose,
+			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
 				deltatime, tnow, 0, 0.9f, 1 );
 			if( r1 == 0 || r2 == 0 || r3 == 0 ) {
 				if( r1 == 0 || r2 == 0 )
@@ -398,9 +425,10 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( shaderBasic );
 	CNOVRRender( isosphere );
 
-	//CNOVRRender( shaderBlack );
-	//playareacollide->iRenderMesh = 0;
+	CNOVRRender( shaderBlack );
+	playareacollide->iRenderMesh = 0;
 	//CNOVRRender( playareacollide );
+	CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
 
 	glDepthFunc( GL_LEQUAL );
 	CNOVRRender( shaderBasic );
@@ -445,9 +473,9 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRModelLoadFromFileAsync( playarea, "playarea.obj:lineify" );
 
 	pose_make_identity( &playareaposeepisilondown );
-	playareaposeepisilondown.Pos[1] -= .005;
+	playareaposeepisilondown.Pos[1] -= .02;
 	playareaposeepisilondown.Pos[2] = playareapose.Pos[2];
-	playareacollide = CNOVRModelCreate( 0, GL_QUADS );
+	playareacollide = CNOVRModelCreate( 0, GL_TRIANGLES );
 	playareacollide->pose = &playareaposeepisilondown;
 	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj" );
 

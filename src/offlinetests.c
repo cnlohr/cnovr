@@ -62,7 +62,7 @@ int main()
 			cnovr_point3d dir = { (x-500)/1000.+.2, (y-500)/1000.+.8, -1 };
 			cnovr_collide_results res;
 			res.t = 1e20;
-			int r = CNOVRModelCollide( m, start, dir, &res, .1 );
+			int r = CNOVRModelCollide( m, start, dir, &res, .1, 0 );
 			float rgbof[3];
 			scale3d( rgbof, res.geonorm, 0.5 );
 			rgbof[0] += 0.5;

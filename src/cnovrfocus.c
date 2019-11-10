@@ -455,7 +455,7 @@ static void ModelFocusCollideFunction(void * tag, void * opaquev )
 	sub3d( direction, direction, start );
 	cnovr_collide_results res;
 	res.t = p->NewPassiveRealDistance;
-	int r = CNOVRModelCollide( m, start, direction, &res, 0 );
+	int r = CNOVRModelCollide( m, start, direction, &res, 0, 0 );
 	if( r >= 0 && res.t > 0 )
 	{
 		CNOVRFocusRespond( fc->focusevent, res.t, res.collidevs );
