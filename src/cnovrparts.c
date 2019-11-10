@@ -839,7 +839,7 @@ static void CNOVRModelDelete( cnovr_model * m )
 
 	CNOVRFreeLater( m->pIndices );
 	if( m->geofile ) CNOVRFreeLater( m->geofile );
-	glDeleteBuffers( 1, &m->nIBO );
+	if( m->nIBO >= 0 ) glDeleteBuffers( 1, &m->nIBO );
 	OGDeleteMutex( m->model_mutex );
 	CNOVRFreeLater( m );
 }
@@ -857,7 +857,7 @@ static void CNOVRModelRender( cnovr_model * m )
 		glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
 	}
 
-	if( !m->bIsUploaded ) return;
+	if( !m->bIsUploaded || m->nIBO < 0 ) return;
 	//XXX Tricky: Don't lock model, so if we're loading while rendering, we don't hitch.
 //	if( m != last_rendered_model )
 	{
@@ -918,6 +918,7 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->base.tccctx = TCCGetTag();
 
 	ret->nIBO = -1;
+	glGenBuffers( 1, &ret->nIBO );
 	ret->iIndexCount = initial_indices;
 	if( initial_indices < 1 ) initial_indices = 1;
 	ret->pIndices = malloc( initial_indices * sizeof( GLuint ) );
@@ -1338,10 +1339,14 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 			float t1 = dot3d( N, C1 );
 			float t2 = dot3d( N, C2 );
 
-			if( t0 < 0 || t1 < 0 || t2 < 0 ||
+			if( t0 < -0.0001 || t1 < -.0001 || t2 < -.0001 ||
 				t0 != t0 || t1 != t1 || t2 != t2 /* Make sure we don't have a NaN */ )
+			//if( 1 )
 			{
-				if( dradius <= 0 ) continue;
+				if( dradius <= 0 )
+					continue;
+
+				cnovr_point3d geonormbase;
 
 				//We did not hit the triangle, itself.
 				float pv0[3];
@@ -1352,9 +1357,13 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 				sub3d( pv1, start, v1 );
 				sub3d( pv2, start, v2 );
 
+				int didhit = 0;
+				t = r->t;
+
+
 				//Check vetices.
 				cnovr_point3d ptsolutions;
-				{
+				if( 1 ){
 					cnovr_point3d pC_C = { dot3d( pv0, pv0 )-drsq, dot3d( pv1, pv1 )-drsq, dot3d( pv2, pv2 )-drsq };
 					cnovr_point3d pC_B = { 2*dot3d( direction, pv0 ), 2*dot3d( direction, pv1 ), 2*dot3d( direction, pv2 ) };
 					float pCxA = dot3d( direction, direction );
@@ -1370,6 +1379,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					ptsolutions[2] = (-pC_B[2] - sqrt( discriminants[2] ))/pCxA;
 
 					//printf( "%f    %f %f %f    %f %f %f   %f %f %f  %f %f %f\n", pCxA, PFTHREE( pC_B ), PFTHREE( pC_C ), PFTHREE( discriminants ), PFTHREE( ptsolutions ) );
+					if( !( ptsolutions[0] != ptsolutions[0] || ptsolutions[0] > t ) ) { didhit = 1; t = ptsolutions[0]; copy3d( geonormbase, v0 ); }
+					if( !( ptsolutions[1] != ptsolutions[1] || ptsolutions[1] > t ) ) { didhit = 1; t = ptsolutions[1]; copy3d( geonormbase, v1 ); }
+					if( !( ptsolutions[2] != ptsolutions[2] || ptsolutions[2] > t ) ) { didhit = 1; t = ptsolutions[2]; copy3d( geonormbase, v2 ); }
 				}
 
 				//Check edges.
@@ -1391,31 +1403,31 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					tmp2[0] = dot3d( v10, direction );
 					tmp2[1] = dot3d( v21, direction );
 					tmp2[2] = dot3d( v02, direction );
-					//mult3d( tmp2, tmp2, tmp2 ); //Dot squared  ?!?!?!?!
+					mult3d( tmp2, tmp2, tmp2 ); //Dot squared  ?!?!?!?!
 					add3d( A, tmp1, tmp2 );
 
 					tmp1[0] = -2*dot3d( direction, pv0 )*edgesquared[0];
 					tmp1[1] = -2*dot3d( direction, pv1 )*edgesquared[1];
 					tmp1[2] = -2*dot3d( direction, pv2 )*edgesquared[2];
-					tmp2[0] = 2*dot3d(v10,direction)*dot3d(v10,pv0);
-					tmp2[1] = 2*dot3d(v21,direction)*dot3d(v21,pv1);
-					tmp2[2] = 2*dot3d(v02,direction)*dot3d(v02,pv2);
+					tmp2[0] =  2*dot3d(v10,direction)*dot3d(v10,pv0);
+					tmp2[1] =  2*dot3d(v21,direction)*dot3d(v21,pv1);
+					tmp2[2] =  2*dot3d(v02,direction)*dot3d(v02,pv2);
 					add3d( B, tmp1, tmp2 );
 
 					tmp1[0] = edgesquared[0]*(drsq-dot3d(pv0, pv0));
 					tmp1[1] = edgesquared[1]*(drsq-dot3d(pv1, pv1));
 					tmp1[2] = edgesquared[2]*(drsq-dot3d(pv2, pv2));
-					tmp2[0] = dot3d(v10,pv0);
-					tmp2[1] = dot3d(v21,pv1);
-					tmp2[2] = dot3d(v02,pv2);
-					//mult3d( tmp2, tmp2, tmp2 );
+					tmp2[0] = -dot3d(v10,pv0);
+					tmp2[1] = -dot3d(v21,pv1);
+					tmp2[2] = -dot3d(v02,pv2);
+					mult3d( tmp2, tmp2, tmp2 );
 					add3d( C, tmp1, tmp2 );
 
 					//b^2-4ac
 					cnovr_point3d x1;
-					x1[0] = (-B[0] - sqrt( B[0]*B[0] - 4 * A[0] * C[0] )) / ( 2 * A[0] );
-					x1[1] = (-B[1] - sqrt( B[1]*B[1] - 4 * A[1] * C[1] )) / ( 2 * A[1] );
-					x1[2] = (-B[2] - sqrt( B[2]*B[2] - 4 * A[2] * C[2] )) / ( 2 * A[2] );
+					x1[0] = (-B[0] + sqrt( B[0]*B[0] - 4 * A[0] * C[0] )) / ( 2 * A[0] );
+					x1[1] = (-B[1] + sqrt( B[1]*B[1] - 4 * A[1] * C[1] )) / ( 2 * A[1] );
+					x1[2] = (-B[2] + sqrt( B[2]*B[2] - 4 * A[2] * C[2] )) / ( 2 * A[2] );
 
 					cnovr_point3d f0;
 					f0[0] = ( dot3d( v10, direction ) * x1[0] + dot3d( v10, pv0 ) ) / edgesquared[0];
@@ -1426,18 +1438,26 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					if( f0[1] >= 0 && f0[1] <= 1 ) edgesolutions[1] = x1[1];
 					if( f0[2] >= 0 && f0[2] <= 1 ) edgesolutions[2] = x1[2];
 					//printf( "%f %f %f   %f %f %f   %f %f %f     %f %f %f   %f %f %f   %f %f %f  %d %d %f\n", PFTHREE( A ), PFTHREE( B ), PFTHREE( C ), PFTHREE( x1 ), PFTHREE( f0 ), PFTHREE( edgesolutions ), edgesolutions[1] != edgesolutions[1], edgesolutions[1] > t, t  );
+					if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] > t ) ) { didhit = 1; t = edgesolutions[0]; scale3d( geonormbase, v10, f0[0] ); add3d (geonormbase, geonormbase, v0 ); }
+					if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] > t ) ) { didhit = 1; t = edgesolutions[1]; scale3d( geonormbase, v21, f0[1] ); add3d (geonormbase, geonormbase, v1 );}
+					if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] > t ) ) { didhit = 1; t = edgesolutions[2]; scale3d( geonormbase, v02, f0[2] ); add3d (geonormbase, geonormbase, v2 );}
 				}
-				int didhit = 0;
-				t = r->t;
-				if( !( ptsolutions[0] != ptsolutions[0] || ptsolutions[0] > t ) ) { didhit = 1; t = ptsolutions[0]; }
-				if( !( ptsolutions[1] != ptsolutions[1] || ptsolutions[1] > t ) ) { didhit = 1; t = ptsolutions[1]; }
-				if( !( ptsolutions[2] != ptsolutions[2] || ptsolutions[2] > t ) ) { didhit = 1; t = ptsolutions[2]; }
-				if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] > t ) ) { didhit = 1; t = edgesolutions[0]; }
-				if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] > t ) ) { didhit = 1; t = edgesolutions[1]; }
-				if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] > t ) ) { didhit = 1; t = edgesolutions[2]; }
 				if( !didhit ) continue;
+				cnovr_point3d hitpos;
+				scale3d( hitpos, direction, t );
+				add3d( hitpos, hitpos, start );
+				sub3d( r->geonorm, hitpos, geonormbase );
+				normalize3d( r->geonorm, r->geonorm );
 			}
-
+			else
+			{
+				//continue;
+				//We got a proper triangle hit.
+				if( t < r->t )
+				{
+					copy3d( r->geonorm, N );
+				}
+			}
 
 			//Else: We have a hit.  This doesn't happen for all that many polys, so time isn't as critical here.
 			if( t < r->t )

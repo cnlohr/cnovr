@@ -21,7 +21,7 @@ static void CNOVRCanvasDelete( cnovr_canvas * ths )
 static void CNOVRCanvasRender( cnovr_canvas * ths )
 {
 	CNOVRRender( ths->shd );
-	if( !ths->set_filter_type < 3 )
+	if( ths->set_filter_type < 10 )
 	{
 		glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );

@@ -39,7 +39,7 @@ cnovr_pose    playareapose;
 cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
 cnovr_pose    boomroot; //Must be origin
 
-cnovr_point3d roomoffset = { 0, 1, 0 };
+cnovr_point3d roomoffset = { 0, 0, -1 };
 
 cnovr_model * explosion_model;
 cnovr_shader * explosion_shader;
@@ -298,7 +298,7 @@ void * PhysicsThread( void * v )
 				deltatime, tnow, target, 1.5f, 0 ); 
 			int r2 = CheckCollideBallWithMesh( paddle, 1, &paddlepose2[racketslot], &poselast2, 
 				deltatime, tnow, target, 1.5f, 0 );
-			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
+			int r3 = CheckCollideBallWithMesh( playareacollide, 0, &playareapose, &playareapose,
 				deltatime, tnow, 0, 0.9f, 1 );
 			if( r1 == 0 || r2 == 0 || r3 == 0 ) {
 				if( r1 == 0 || r2 == 0 )

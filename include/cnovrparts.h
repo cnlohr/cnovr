@@ -14,7 +14,8 @@ typedef struct cnovr_collide_results_t
 	float t;
 	int whichmesh;
 	int whichvert;
-	float collidepos[3];
+	cnovr_point3d collidepos;
+	cnovr_point3d geonorm;
 	float collidevs[4];
 	float collidens[4];
 } cnovr_collide_results;

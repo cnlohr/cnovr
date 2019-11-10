@@ -24,31 +24,62 @@ int main()
 	{
 		cnovr_model * m = CNOVRModelCreate( 0, GL_TRIANGLES );
 		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 3, 3 );
-		cnovr_point3d v = { 0, 0, 0 };
+		cnovr_point3d v = { 0, 0, -.49 };
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
+		v[0] = 0;
 		v[1] = 1;
+		v[2] = .132;
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
+		v[0] = 1.31;
 		v[1] = 0;
-		v[0] = 1;
+		v[2] = -.17;
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
-		CNOVRModelTackIndex( m, 3, 0, 1, 2 );
+		v[0] = 1.31;
+		v[1] = 1;
+		v[2] = -.094;
+		CNOVRVBOTackv( m->pGeos[0], 3, v );
+		CNOVRVBOTackv( m->pGeos[1], 3, v );
+		CNOVRVBOTackv( m->pGeos[2], 3, v );
+		CNOVRModelTackIndex( m, 3, 1, 0, 2 );
+		CNOVRModelTackIndex( m, 3, 1, 2, 3 );
 
-		cnovr_point3d start = { 0, 0, 2 };
-		cnovr_point3d dir = { .21, -0.01, -1 };
-		cnovr_point3d dir2 = { .21, -0.02, -1 };
-		cnovr_collide_results res;
-		res.t = 1e20;
-		int r = CNOVRModelCollide( m, start, dir, &res, .1 );
-		printf( "%d  %f\n", r, res.t );
-		res.t = 1e20;
-		r = CNOVRModelCollide( m, start, dir2, &res, .1 );
-		printf( "%d  %f\n", r, res.t );
+		FILE * ftestnorm = fopen( "testnorm.ppm", "wb" );
+		fprintf( ftestnorm, "P6\n%d %d\n%d\n", 1000, 1000, 255 );
+		FILE * ftestdep = fopen( "testdep.ppm", "wb" );
+		fprintf( ftestdep, "P6\n%d %d\n%d\n", 1000, 1000, 255 );
+
+		int x, y;
+		for( y = 0; y < 1000; y++ )
+		for( x = 0; x < 1000; x++ )
+		{
+			cnovr_point3d start = { -0.001, -1.001, 2 };
+			cnovr_point3d dir = { (x-500)/1000.+.2, (y-500)/1000.+.8, -1 };
+			cnovr_collide_results res;
+			res.t = 1e20;
+			int r = CNOVRModelCollide( m, start, dir, &res, .1 );
+			float rgbof[3];
+			scale3d( rgbof, res.geonorm, 0.5 );
+			rgbof[0] += 0.5;
+			rgbof[1] += 0.5;
+			rgbof[2] += 0.5;
+			if( res.t > 1000 ) { rgbof[0] = 0; rgbof[1] = 0; rgbof[2] = 0; }
+			uint8_t rgbob[3] = { rgbof[0]*255, rgbof[1]*255, rgbof[2]*255 };
+			fwrite( rgbob, 1, 3, ftestnorm );
+
+			rgbof[0] = res.t/1.8 - 1.0;
+			if( rgbof[0] < 0 || rgbof[0] > 1. ) rgbof[0] = 0;
+			rgbob[0] = rgbob[1] = rgbob[2] = rgbof[0] * 255;
+			fwrite( rgbob, 1, 3, ftestdep );
+			res.t = 1e20;
+		}
+		fclose( ftestnorm );
+		fclose( ftestdep );
 		exit( 0 );
 	}
 
