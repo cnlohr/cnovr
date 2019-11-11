@@ -423,6 +423,8 @@ void RenderFunction( void * tag, void * opaquev )
 	int i;
 //	CNOVRRender( shaderLines );
 //	CNOVRRender( isosphere );
+	CNOVRRender( rendermodelshader );
+	CNOVRRender( eightiessun );
 
 	CNOVRRender( shaderBlack );
 	playareacollide->iRenderMesh = 0;
@@ -467,12 +469,10 @@ void RenderFunction( void * tag, void * opaquev )
 
 	CNOVRRender( canvas );
 
-	glDepthMask(GL_TRUE);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	CNOVRRender( rendermodelshader );
-	CNOVRRender( eightiessun );
+	glDepthMask(GL_TRUE);
 }
 
 
