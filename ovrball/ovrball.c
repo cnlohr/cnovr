@@ -24,6 +24,7 @@ cnovr_pose    paddetransform;
 
 cnovr_model * isosphere;
 cnovr_pose    isospherepose;
+cnovr_pose    isosphereposeLast;
 cnovr_point3d  isospheremotionlinear;
 cnovr_aamag  isospheremotionrotation;
 float isospherehitcooldown;
@@ -112,6 +113,7 @@ void ResetIsosphere()
 	isospherepose.Pos[1] = 1;
 	add3d( isospherepose.Pos, isospherepose.Pos, roomoffset );
 	isospherepose.Scale = .1;
+	memcpy( &isosphereposeLast, &isospherepose, sizeof( isospherepose ) );
 
 	isospheremotionlinear[0] = 0;
 	isospheremotionlinear[1] = 0;
@@ -132,17 +134,24 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 //	scale3d( start, isospheremotionlinear, dtimeframe );
 //	add3d( start, start, isospherepose.Pos ); //This is time-corrected for where the object pose would be.
 
-	copy3d( start, isospherepose.Pos );
-	copy3d( direction, isospheremotionlinear );
 	cnovr_pose invertedxform, invertedxformlast;
+//	modelpose->Scale = 1; //Not sure why these are unset. XXX Examine
+//	modelposelast->Scale = 1;
 	pose_invert( &invertedxform, modelpose );
 	pose_invert( &invertedxformlast, modelposelast );
-	apply_pose_to_point( startlast, &invertedxformlast, startlast ); 
-	apply_pose_to_point( start, &invertedxform, start); //Get "start" in modelspace.
-	apply_pose_to_point( direction, &invertedxform, direction); //Get "direction" in model space.
+	apply_pose_to_point( startlast, &invertedxformlast, isosphereposeLast.Pos ); 
+//	printf( "DS1: %f %f %f    ::%f %f %f    %f %f %f %f   %f::\n", PFTHREE( start ),
+//		PFTHREE( modelpose->Pos ), PFFOUR( modelpose->Rot ), modelpose->Scale );
+//	printf( "DS2: %f %f %f    ::%f %f %f    %f %f %f %f   %f::\n", PFTHREE( start ),
+//		PFTHREE( invertedxform.Pos ), PFFOUR( invertedxform.Rot ), invertedxform.Scale );
+	apply_pose_to_point( start, &invertedxform, isospherepose.Pos); //Get "start" in modelspace.
+	apply_pose_to_point( direction, &invertedxform, isospheremotionlinear); //Get "direction" in model space.
 	sub3d( deltastart, start, startlast );
 	scale3d( deltastart, deltastart, 1./dtimelast );
-	add3d( direction, deltastart, direction );
+//	if( m == playareacollide ) printf( "::%f %f %f + %f %f %f(UT %f %f %f)::", PFTHREE( deltastart ), PFTHREE( direction ), PFTHREE( isospheremotionlinear ) );
+//	add3d( direction, deltastart, direction );
+	copy3d( direction, deltastart );
+
 
 	//How do we apply intersector motion?  I.e. the model is moving.
 
@@ -178,19 +187,22 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	int r = CNOVRModelCollide( m, start, direction, &res, 0.1, -0.19 );
 
 //	printf( "%d %f\n", r, res.t );
-	printf( "COLLIDERESULT: %f <%f> %d-", res.t,res.sndist, invt );
+//	printf( "COLLIDERESULT: %f <%f> %d-", res.t,res.sndist, invt );
 //	if( invt ) res.t = -res.t;
 //	res.t -= .5;
 
 //	if( r == 0 && res.t >= 0  && res.t < 1. ) { printf( "%f: %f %f %f\n", res.t, PFTHREE( res.collidens ) ); }
-	if( m == playareacollide ) printf( "PACC%d %f  < %f %f %f;;;%f %f %f   %f %f %f +++ %f %f %f;%f %f %f\n", r, res.t, PFTHREE( start ), PFTHREE( isospherepose.Pos ), PFTHREE( direction ), PFTHREE( deltastart ), PFTHREE( isospheremotionlinear ) );
+//	if( m == playareacollide ) printf( "PACC%d %f  < START:%f %f %f;;; ISOPOS:%f %f %f   DIRECTION:%f %f %f +++ DS:%f %f %f; ISOSPHEREMOTIONLINEAR:%f %f %f;;\n", r, res.t, PFTHREE( start ), PFTHREE( isospherepose.Pos ), PFTHREE( direction ), PFTHREE( deltastart ), PFTHREE( isospheremotionlinear ) );
 	if( r < 0 || res.sndist > 0.0 || res.t > 0.0 ) return -1; //No actual collision.
 	if( res.sndist < -.2) return -1; //We're already on the wrong side of the geometry.
 //	if( r>=0 ) printf( "RHITMARK %d %f\n", r, res.t );
 
 	//COLLISION
 
+
 	//Here we are in a neat position. We have a collision!  Time to bounce!
+
+	//Part 1:  We fix up the position.  We can do this to "push" our way out of the inside of the object by the normal to that object.
 	cnovr_point3d normal; //In world space
 	quatrotatevector(normal, modelpose->Rot, res.collidens);
 	printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
@@ -198,6 +210,46 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	cnovr_point3d fixup;
 	scale3d( fixup, normal, -res.sndist );
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
+
+	//Next we need to "bounce" off. 
+	//TODO: Should this be in object space or world space?
+	//We know "normal" in world space.
+	//But, we know the relative motion between objects in local space.
+	//"direction" is in object space and describes the ball's motion relative to the object.
+	//can we just take the half angle of that?
+
+	//Computing half-angle in object-local settings.
+	float dotmatch = dot3d( res.collidens, direction );
+
+	if( dotmatch > 0 )
+	{
+		printf( "Collide in-line\n" );
+		printf( "%f %f %f  // %f %f %f\n", PFTHREE( res.collidens ), PFTHREE( direction ) );
+	}
+	else
+	{
+		//If we have paddle motion and normal in world space, what more do we need?
+		//REFLECT: r=d-2(d⋅n)n; d = incoming relative motion vector. (relative_motion_vector)
+		cnovr_point3d reflection_local, reflection_world, tmp;
+		float dotr = -2*dotmatch;
+		scale3d( reflection_local, res.collidens, dotr );
+		//sub3d( reflection_local, direction, tmp );
+		scale3d( reflection_local, reflection_local, magnitude3d( deltastart ) ); //Apply velocity from original delta speed.
+
+		quatrotatevector(reflection_world, modelpose->Rot, reflection_local);
+
+		//XXX CHARLES: The issue is that direction and deltastart do not take into account the momentum of the ball.
+
+		printf( "Collide reflect-line  FORCE RECHANGE: %f\n" );
+		printf( "DS: %f %f %f / DIR: %f %f %f\n", PFTHREE( deltastart ), PFTHREE( direction ) );
+		printf( "%f %f %f  // %f %f %f // %f %f %f WT: %f %f %f    %f  COMPTO: %f %f %f\n", PFTHREE( res.collidens ), PFTHREE( direction ), PFTHREE( reflection_local ), PFTHREE( reflection_world ), dotr, PFTHREE( isospheremotionlinear ) );
+
+		//scale3d( isospheremotionlinear, reflection_world, 1.0 );
+		add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
+	}
+
+
+#if 0
 
 	//Need to compute relative paddle motion at location of impact.
 	cnovr_point3d point_of_impact_paddle_space;
@@ -251,7 +303,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 
 	//scale3d( fixup, fixup, 10. );
 	//add3d( isospheremotionlinear, fixup, isospheremotionlinear );
-
+#endif
 	return 0;
 }
 
@@ -289,6 +341,7 @@ void * PhysicsThread( void * v )
 		isospherehitcooldown += deltatime;
 
 		//Handle Isosphere Motion Update
+		memcpy( &isosphereposeLast, &isospherepose, sizeof( isospherepose ) );
 		isospherelife -= deltatime;
 		if( isospherelife < 0.0f ) { ResetIsosphere(); printf( "NEWLIFE %f\n", isospherelife ); }
 		cnovr_point3d delta_motion;
@@ -299,6 +352,7 @@ void * PhysicsThread( void * v )
 		scale3d( aam, isospheremotionrotation, deltatime );
 		quatfromaxisanglemag( qmotion, aam );
 		quatrotateabout( isospherepose.Rot, isospherepose.Rot, qmotion );
+
 
 		int did_hit_this_frame = 0;
 

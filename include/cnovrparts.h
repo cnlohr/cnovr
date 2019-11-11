@@ -159,7 +159,7 @@ typedef struct cnovr_model_t
 {
 	cnovr_base base;
 
-	GLuint nIBO;
+	int nIBO;
 	GLuint * pIndices;
 	uint32_t iIndexCount;
 	GLuint nRenderType;

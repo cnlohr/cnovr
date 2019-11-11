@@ -918,7 +918,6 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->base.tccctx = TCCGetTag();
 
 	ret->nIBO = -1;
-	glGenBuffers( 1, &ret->nIBO );
 	ret->iIndexCount = initial_indices;
 	if( initial_indices < 1 ) initial_indices = 1;
 	ret->pIndices = malloc( initial_indices * sizeof( GLuint ) );
@@ -1442,9 +1441,9 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 					if( f0[1] >= 0 && f0[1] <= 1 ) edgesolutions[1] = x1[1];
 					if( f0[2] >= 0 && f0[2] <= 1 ) edgesolutions[2] = x1[2];
 					//printf( "%f %f %f   %f %f %f   %f %f %f     %f %f %f   %f %f %f   %f %f %f  %d %d %f\n", PFTHREE( A ), PFTHREE( B ), PFTHREE( C ), PFTHREE( x1 ), PFTHREE( f0 ), PFTHREE( edgesolutions ), edgesolutions[1] != edgesolutions[1], edgesolutions[1] > t, t  );
-					if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] >= t || edgesolutions[0] < minimumt ) ) { didhit = 1; t = edgesolutions[0]; scale3d( geonormbase, v10, f0[0] ); add3d (geonormbase, geonormbase, v0 ); printf( "0;%f\n", f0[0] ); }
-					if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] >= t || edgesolutions[1] < minimumt ) ) { didhit = 1; t = edgesolutions[1]; scale3d( geonormbase, v21, f0[1] ); add3d (geonormbase, geonormbase, v1 ); printf( "1;%f\n", f0[1] );}
-					if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] >= t || edgesolutions[2] < minimumt ) ) { didhit = 1; t = edgesolutions[2]; scale3d( geonormbase, v02, f0[2] ); add3d (geonormbase, geonormbase, v2 ); printf( "2;%f\n", f0[2] );}
+					if( !( edgesolutions[0] != edgesolutions[0] || edgesolutions[0] >= t || edgesolutions[0] < minimumt ) ) { didhit = 1; t = edgesolutions[0]; scale3d( geonormbase, v10, f0[0] ); add3d (geonormbase, geonormbase, v0 ); }
+					if( !( edgesolutions[1] != edgesolutions[1] || edgesolutions[1] >= t || edgesolutions[1] < minimumt ) ) { didhit = 1; t = edgesolutions[1]; scale3d( geonormbase, v21, f0[1] ); add3d (geonormbase, geonormbase, v1 ); }
+					if( !( edgesolutions[2] != edgesolutions[2] || edgesolutions[2] >= t || edgesolutions[2] < minimumt ) ) { didhit = 1; t = edgesolutions[2]; scale3d( geonormbase, v02, f0[2] ); add3d (geonormbase, geonormbase, v2 ); }
 				}
 				if( !didhit ) continue;
 				cnovr_point3d hitpos;
