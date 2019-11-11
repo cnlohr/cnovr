@@ -241,6 +241,8 @@ void CNOVRUpdate()
 			}
 		}
 	}
+	FrameStart = OGGetAbsoluteTime();
+
 	//Update + prerender
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 
@@ -334,6 +336,9 @@ void CNOVRUpdate()
 			CNOVRListCall( cnovrLRender4, 0, 0); 
 		//	CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 			CNOVRFBufferBlitResolve( cnovrstate->sterotargets[i] );
+		}
+		for( i = 0; i < 2; i++ )
+		{
 
 			Texture_t t;
 		//	t.handle = (void*)(uintptr_t)cnovrstate->sterotargets[i]->nRenderTextureId;
@@ -376,6 +381,7 @@ void CNOVRUpdate()
 	}
 
 	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );
+	cnovrstate->fFrameTimems = (OGGetAbsoluteTime()-FrameStart)*1000;
 
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
 #else

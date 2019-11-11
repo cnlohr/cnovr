@@ -344,6 +344,8 @@ float fpstime = 1.;
 
 void UpdateFunction( void * tag, void * opaquev )
 {
+	int i;
+
 	static double start;
 	static double last;
 	static double lastframetime;
@@ -362,11 +364,21 @@ void UpdateFunction( void * tag, void * opaquev )
 		fpstime = (float)(now-lastframetime);
 		lastframetime = now;
 	}
-	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n CPU YOU\n%4d%4d", 10./fpstime, cpupoints, playerpoints ), 3 );
-//	CNOVRCanvasTackSegment( canvas, 10, 10, 100, 10 );
+	static float ovrhist[96];
+	static int histhead;
+	ovrhist[histhead] = cnovrstate->fFrameTimems;
+	histhead = (histhead+1)%96;
+	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n%4d%4d\n%.2f", 10./fpstime, cpupoints, playerpoints, cnovrstate->fFrameTimems ), 3 );
+	for( i = 0; i < 96; i++ )
+	{
+		int px = ovrhist[(i+histhead)%96]*2.0; 
+		canvas->color = 0xff00ff00;
+		if( px > 18 ) canvas->color = 0xff0000ff;
+		CNOVRCanvasTackSegment( canvas, i, 64, i, 64-px );
+	}
+	canvas->color = 0xffffffff;
 	CNOVRCanvasSwapBuffers( canvas );
 
-	int i;
 	for( i = 0; i < PARTICLES; i++ )
 	{
 		float * pt = explosion_points + i*3;
