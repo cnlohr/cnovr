@@ -120,6 +120,8 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 //Expects Opaque to be a model which has a pose assigned.
 int CNOVRFocusDefaultFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
 
+cnovrfocus_properties * CNOVRFocusGetPropsForDev( int ctrl );
+
 /* If you want to manually hook the event...
 
 cnovr_pose some_pose;

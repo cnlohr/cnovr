@@ -134,134 +134,91 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 {
 	cnovr_collide_results res;
 	cnovr_point3d start, startlast, direction, deltastart;
-//	scale3d( start, isospheremotionlinear, dtimeframe );
-//	add3d( start, start, isospherepose.Pos ); //This is time-corrected for where the object pose would be.
-
 	cnovr_pose invertedxform, invertedxformlast;
-//	modelpose->Scale = 1; //Not sure why these are unset. XXX Examine
-//	modelposelast->Scale = 1;
 	pose_invert( &invertedxform, modelpose );
 	pose_invert( &invertedxformlast, modelposelast );
 	apply_pose_to_point( startlast, &invertedxformlast, isosphereposeLast.Pos ); 
-//	printf( "DS1: %f %f %f    ::%f %f %f    %f %f %f %f   %f::\n", PFTHREE( start ),
-//		PFTHREE( modelpose->Pos ), PFFOUR( modelpose->Rot ), modelpose->Scale );
-//	printf( "DS2: %f %f %f    ::%f %f %f    %f %f %f %f   %f::\n", PFTHREE( start ),
-//		PFTHREE( invertedxform.Pos ), PFFOUR( invertedxform.Rot ), invertedxform.Scale );
 	apply_pose_to_point( start, &invertedxform, isospherepose.Pos); //Get "start" in modelspace.
 	apply_pose_to_point( direction, &invertedxform, isospheremotionlinear); //Get "direction" in model space.
 	sub3d( deltastart, start, startlast );
 	scale3d( deltastart, deltastart, 1./dtimelast );
-//	if( m == playareacollide ) printf( "::%f %f %f + %f %f %f(UT %f %f %f)::", PFTHREE( deltastart ), PFTHREE( direction ), PFTHREE( isospheremotionlinear ) );
-//	add3d( direction, deltastart, direction );
 	copy3d( direction, deltastart );
-
-
-	//How do we apply intersector motion?  I.e. the model is moving.
-
-	int invt = 0;
-
-#if 0
-	if( modeltarget )
-	{
-		sub3d( direction, modeltarget, start );
-	}
-	else
-	{
-	//	normalize3d( direction, isospheremotionlinear );
-	//	scale3d( direction, direction, -1 );
-		cnovr_point3d localtarget = { 0, 1, 0 };
-		sub3d( direction, localtarget, start );
-		invt = 1;
-	}
-#endif
-
-	//This is a tad bit concerning.  We say we go from where we are now toward the center of the object.
-	//Maybe this is a cause of some of our issues?  It should probably be normal to the plane of motion?
 
 	normalize3d( direction, direction );
 	res.t = 1.; //Must actually impact.
 	m->iCollideMesh = mesh;
-
-	//Tricky: Start ball from slightly behind where ball really is.
-//	cnovr_point3d backoff;
-//	scale3d( backoff, direction, -.5 );
-//	add3d( backoff, backoff, start );
-
-	int r = CNOVRModelCollide( m, start, direction, &res, 0.1, -0.19 );
-
-//	printf( "%d %f\n", r, res.t );
-//	printf( "COLLIDERESULT: %f <%f> %d-", res.t,res.sndist, invt );
-//	if( invt ) res.t = -res.t;
-//	res.t -= .5;
-
-//	if( r == 0 && res.t >= 0  && res.t < 1. ) { printf( "%f: %f %f %f\n", res.t, PFTHREE( res.collidens ) ); }
-//	if( m == playareacollide ) printf( "PACC%d %f  < START:%f %f %f;;; ISOPOS:%f %f %f   DIRECTION:%f %f %f +++ DS:%f %f %f; ISOSPHEREMOTIONLINEAR:%f %f %f;;\n", r, res.t, PFTHREE( start ), PFTHREE( isospherepose.Pos ), PFTHREE( direction ), PFTHREE( deltastart ), PFTHREE( isospheremotionlinear ) );
+	float radius = 0.1;
+	int r = CNOVRModelCollide( m, start, direction, &res, radius, -0.19 );
 	if( r < 0 || res.sndist > 0.0 || res.t > 0.0 ) return -1; //No actual collision.
-	if( res.sndist < -.2) return -1; //We're already on the wrong side of the geometry.
-//	if( r>=0 ) printf( "RHITMARK %d %f\n", r, res.t );
-
-	//COLLISION
-
-
-	//Here we are in a neat position. We have a collision!  Time to bounce!
-
-	//Part 1:  We fix up the position.  We can do this to "push" our way out of the inside of the object by the normal to that object.
-	cnovr_point3d normal; //In world space
-	quatrotatevector(normal, modelpose->Rot, res.collidens);
-	printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
-	//First, "fix up" location to make sure we don't overpenetrate.
-	cnovr_point3d fixup;
-	scale3d( fixup, normal, -res.sndist*1.1 ); //*1.0 would be JUST enough to grace the surface.  This buys us some margin.
-	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
-
-	//Next we need to "bounce" off. 
-	//TODO: Should this be in object space or world space?
-	//We know "normal" in world space.
-	//But, we know the relative motion between objects in local space.
-	//"direction" is in object space and describes the ball's motion relative to the object.
-	//can we just take the half angle of that?
+	if( res.sndist < -radius || res.t < -radius ) return -1; //We're already on the wrong side of the geometry.
 
 	//Computing half-angle in object-local settings.
 	float dotmatch = dot3d( res.collidens, direction );
+	if( dotmatch > 0 ) return -1; //don't allow in-line collisions.
+
+	//COLLISION
+	//Here we are in a neat position. We have a collision!  Time to bounce!
+
+	//Part 1:  We fix up the position.  We can do this to "push" our way out of the inside of the object by the worldspace_normal to that object.
+	cnovr_point3d worldspace_normal;
+	quatrotatevector(worldspace_normal, modelpose->Rot, res.collidens);
+	//printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
+	//First, "fix up" location to make sure we don't overpenetrate.
+	cnovr_point3d fixup;
+	scale3d( fixup, worldspace_normal, -res.sndist*1.1 ); //*1.0 would be JUST enough to grace the surface.  This buys us some margin.
+	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
+
+	//Next we need to "bounce" off. 
 
 	//Figure out collisionpos in 3dspace
 	cnovr_point3d collide_pos;
 	printf( "CP: %f %f %f\n", PFTHREE( res.collidepos  ) );
-	apply_pose_to_point( collide_pos, modelpose, res.collidepos ); 
+	cnovr_point3d localcollidepos;
+	scale3d( localcollidepos, res.collidens, -(res.sndist+radius) );
+	add3d( localcollidepos, localcollidepos, res.collidepos );
+	printf( "CPT %f %f %f   %f\n", PFTHREE( res.collidens ), res.sndist );
+	apply_pose_to_point( collide_pos, modelpose, localcollidepos ); 
 	printf( "CP: %f %f %f\n", PFTHREE( collide_pos  ) );
 	Boom( collide_pos, 10, .1, .5 );
 
-	if( dotmatch > 0 )
-	{
-		//Generally should not happen
-		printf( "Collide in-line\n" );
-		printf( "%f %f %f  // %f %f %f\n", PFTHREE( res.collidens ), PFTHREE( direction ) );
-	}
-	else
-	{
-		//If we have paddle motion and normal in world space, what more do we need?
-		//REFLECT: r=d-2(d⋅n)n; d = incoming relative motion vector. (relative_motion_vector)
-		cnovr_point3d reflection_local, reflection_world, tmp;
-		float dotr = -2*dotmatch;
-		scale3d( reflection_local, res.collidens, dotr );
-		//sub3d( reflection_local, direction, tmp );
-		scale3d( reflection_local, reflection_local, magnitude3d( deltastart ) ); //Apply velocity from original delta speed.
+	//We have a rotating sphere.  If it is colliding with a surface moving tangent to it,
+	//then we should modify the torque on the ball and torque should affect motion vector 
+	// isospheremotionrotation is an aamag of the rotation.
+	cnovr_point3d tangent_motion;
+	cnovr_point3d torque_motion;
+	float motionforce = magnitude3d( deltastart )*3.;
+	cross3d( torque_motion, res.collidens, direction );
+	cross3d( tangent_motion, torque_motion, res.collidens );
 
-		quatrotatevector(reflection_world, modelpose->Rot, reflection_local);
+	cnovr_aamag  rotation_in_model_space;
+	quatrotatevector( rotation_in_model_space, invertedxform.Pos, isospheremotionrotation );
+	//This is effectively a torque vector at this point.
 
-		//XXX CHARLES: The issue is that direction and deltastart do not take into account the momentum of the ball.
+	//For now, discard, just apply other motion.
+//	rotation_in_model_space[3] = magnitude3d( tangent_motion );
+	scale3d( rotation_in_model_space, rotation_in_model_space, 0.75 );
+	add3d( rotation_in_model_space, rotation_in_model_space, torque_motion );
+	normalize3d( rotation_in_model_space, rotation_in_model_space );
+	scale3d(  rotation_in_model_space, rotation_in_model_space, motionforce );
+	quatrotatevector(isospheremotionrotation, modelpose->Rot, rotation_in_model_space);
 
-		printf( "Collide reflect-line  FORCE RECHANGE: %f\n" );
-		printf( "DS: %f %f %f / DIR: %f %f %f\n", PFTHREE( deltastart ), PFTHREE( direction ) );
-		printf( "%f %f %f  // %f %f %f // %f %f %f WT: %f %f %f    %f  COMPTO: %f %f %f\n", PFTHREE( res.collidens ), PFTHREE( direction ), PFTHREE( reflection_local ), PFTHREE( reflection_world ), dotr, PFTHREE( isospheremotionlinear ) );
+//	isospheremotionrotation[3] = rotation_in_model_space[3];
+//	printf( "TORQUE: %f %f %f  %f\n", PFTHREE( isospheremotionrotation ), motionforce );
 
-		scale3d( reflection_world, reflection_world, 0.9 );
-		add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
+	//If we have paddle motion and normal in world space, what more do we need?
+	//REFLECT: r=d-2(d⋅n)n; d = incoming relative motion vector. (relative_motion_vector)
+	cnovr_point3d reflection_local, reflection_world, tmp;
+	float dotr = -2*dotmatch;
+	scale3d( reflection_local, res.collidens, dotr );
+	scale3d( reflection_local, reflection_local, magnitude3d( deltastart ) ); //Apply velocity from original delta speed.
+	quatrotatevector(reflection_world, modelpose->Rot, reflection_local);
 
-		//Need to limit overall speed.
-		if( magnitude3d( isospheremotionlinear ) > 20.0 ) 
-			scale3d( isospheremotionlinear, isospheremotionlinear, 20./magnitude3d( isospheremotionlinear ) );
-	}
+	scale3d( reflection_world, reflection_world, 0.9 );	//Mute the ball a little
+	add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
+
+	//Need to limit overall speed.
+	if( magnitude3d( isospheremotionlinear ) > 20.0 ) 
+		scale3d( isospheremotionlinear, isospheremotionlinear, 20./magnitude3d( isospheremotionlinear ) );
 
 
 	return 0;
@@ -310,8 +267,13 @@ void * PhysicsThread( void * v )
 		cnovr_quat qmotion;
 		scale3d( aam, isospheremotionrotation, deltatime );
 		quatfromaxisanglemag( qmotion, aam );
-		quatrotateabout( isospherepose.Rot, isospherepose.Rot, qmotion );
+		quatrotateabout( isospherepose.Rot, qmotion, isospherepose.Rot );
 
+		//Add magnus effect.
+		cnovr_point3d magnus;
+		cross3d( magnus, isospheremotionlinear, isospheremotionrotation );
+		scale3d( magnus, magnus, .00001 );
+		add3d( isospheremotionlinear, isospheremotionlinear, magnus );
 
 		int did_hit_this_frame = 0;
 
@@ -420,6 +382,23 @@ void UpdateFunction( void * tag, void * opaquev )
 	CNOVRVBOTaint( explosion_model->pGeos[1] );
 	CNOVRVBOTaint( explosion_model->pGeos[2] );
 	CNOVRVBOTaint( explosion_model->pGeos[3] );
+
+	int ctrl;
+	for( ctrl = 1; ctrl < 3; ctrl++ )
+	{
+		cnovrfocus_properties * p = CNOVRFocusGetPropsForDev( ctrl );
+		uint32_t bm = p->buttonmask[0];
+		//printf( "%d %d\n", bm, (1<<CTRLA_TRIGGER) );
+		if( bm & (1<<CTRLA_TRIGGER) )
+		{
+			cnovr_point3d target;
+			sub3d( target, roomoffset, isospherepose.Pos );
+			target[1] += 1;
+			scale3d( isospheremotionlinear, isospheremotionlinear, 0.9 );
+			scale3d( target, target, .1 );
+			add3d( isospheremotionlinear, isospheremotionlinear, target );
+		}
+	}
 
 	return;
 }

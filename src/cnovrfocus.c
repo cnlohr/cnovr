@@ -120,6 +120,11 @@ float GetAnalogActionData( VRActionHandle_t h )
 	return actionData.bActive?actionData.x:0;
 }
 
+cnovrfocus_properties * CNOVRFocusGetPropsForDev( int ctrl )
+{
+	return &FOCUS.focusProps[ctrl];
+}
+
 void InternalCNOVRFocusUpdate()
 {
 	int ctrl = 0;

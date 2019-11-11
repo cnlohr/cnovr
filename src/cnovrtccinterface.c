@@ -641,6 +641,7 @@ struct ImportList
 	TCCExportS( CNOVRModelCollide )
 	TCCExportS( CNOVRGeneralHandleFocusEvent )
 	TCCExportS( CNOVRFocusDefaultFocusEvent )
+	TCCExportS( CNOVRFocusGetPropsForDev )
 	TCCExportS( CNOVRModelSetInteractable )
 	TCCExport( CNOVRCanvasCreate )
 	TCCExportS( CNOVRCanvasResize )

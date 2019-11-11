@@ -24,25 +24,25 @@ int main()
 	{
 		cnovr_model * m = CNOVRModelCreate( 0, GL_TRIANGLES );
 		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 3, 3 );
-		cnovr_point3d v = { 0, 0, .5 };
+		cnovr_point3d v = { 4, 4, -10 };
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
 		v[0] = 0;
 		v[1] = 1;
-		v[2] = .132;
+		v[2] = 1.3;
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
 		v[0] = 1.31;
 		v[1] = 0;
-		v[2] = -.17;
+		v[2] = 1.3;
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
 		v[0] = 1.31;
 		v[1] = 1;
-		v[2] = -.094;
+		v[2] = 1.3;
 		CNOVRVBOTackv( m->pGeos[0], 3, v );
 		CNOVRVBOTackv( m->pGeos[1], 3, v );
 		CNOVRVBOTackv( m->pGeos[2], 3, v );
@@ -58,33 +58,41 @@ int main()
 		for( y = 0; y < 1000; y++ )
 		for( x = 0; x < 1000; x++ )
 		{
-			cnovr_point3d start = { -0.001, -1.001, 2 };
-			cnovr_point3d dir = { (x-500)/1000.+.3, (y-500)/1000.+.8, -1 };
+			cnovr_point3d start = { -0.001, -1.001, 4 };
+			cnovr_point3d dir = { (x-500)/2000.+.3, (y-500)/2000.+.5, -1 };
 			cnovr_collide_results res;
+			normalize3d( dir, dir );
 			res.t = 1e20;
 			int r = CNOVRModelCollide( m, start, dir, &res, .1, 0 ); //Coarse acquisition
 			float rgbof[3];
-			scale3d( dir, dir, res.t + 0.05 ); //further penetrate
+			float ofs = .1;//(rand()%10000)/20000. - 0.2;
+			scale3d( dir, dir, res.t + ofs); //further penetrate
 			add3d( start, dir, start );
+		//	printf( "%f %f %f %f\n", PFTHREE( start ), ofs );
 			res.t = 1e20;
+			printf( "X" );
 			r = CNOVRModelCollide( m, start, dir, &res, .1, -.2 ); //Coarse acquisition
 			scale3d( rgbof, res.geonorm, 0.5 );
+			//scale3d( rgbof, res.collidepos, 0.3 );
 			rgbof[0] += 0.5;
 			rgbof[1] += 0.5;
 			rgbof[2] += 0.5;
 			if( res.t > 1000 ) { rgbof[0] = 0; rgbof[1] = 0; rgbof[2] = 0; }
 			uint8_t rgbob[3] = { rgbof[0]*255, rgbof[1]*255, rgbof[2]*255 };
 			fwrite( rgbob, 1, 3, ftestnorm );
-			printf( "+ %f %f\n", res.t, res.sndist ); //sndist looks wrong.
+//			if( res.t < 100 ) printf( "+ %f %f   %f %f %f\n", res.t, res.sndist, PFTHREE( res.collidepos ) ); //sndist looks wrong.
 			res.t += .2;
 			res.sndist += .2;
 			rgbof[1] = rgbof[0] = res.t;
-			rgbof[2] = res.sndist;
+			rgbof[1] = rgbof[0] = 
+				rgbof[2] = res.sndist*2.;
 			if( rgbof[0] < 0 || rgbof[0] > 1. ) rgbof[0] = 0;
 			if( rgbof[1] < 0 || rgbof[1] > 1. ) rgbof[1] = 0;
 			if( rgbof[2] < 0 || rgbof[2] > 1. ) rgbof[2] = 0;
 			if( r < 0 ) rgbof[1] = 1;
-			else { printf( "%f %f\n", res.t, res.sndist ); }
+			else { 
+//				printf( "%f %f\n", res.t, res.sndist );
+			}
 			rgbob[0] = rgbof[0] * 255;
 			rgbob[1] = rgbof[1] * 255;
 			rgbob[2] = rgbof[2] * 255;
