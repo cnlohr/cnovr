@@ -12,11 +12,15 @@
 const char * identifier;
 cnovr_shader * shaderLines;
 cnovr_shader * shaderBlack;
+cnovr_shader * rendermodelshader;
 og_thread_t thdmax;
 
 #define TIMESLOTS 10
 #define EXTRASLOTS 20
 #define PARTICLES 256
+
+cnovr_pose    eightiessunpose;
+cnovr_model * eightiessun;
 
 cnovr_model * paddle;
 cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
@@ -94,8 +98,8 @@ void Boom( float * pos, int npart, float expand, float lifetime )
 
 int cpupoints;
 int playerpoints;
-#define CPUEND -27
-#define ACCELEND -13
+#define CPUEND -40
+#define ACCELEND -26
 #define PLAYEREND    3
 
 struct ovrballstore_t
@@ -193,7 +197,10 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	cnovr_aamag  rotation_in_model_space;
 	quatrotatevector( rotation_in_model_space, invertedxform.Pos, isospheremotionrotation );
 	//This is effectively a torque vector at this point.
-
+	cnovr_point3d imparted_force;
+	cross3d( imparted_force, rotation_in_model_space, res.collidens );
+	scale3d( imparted_force, -imparted_force, -.01 );
+	printf( "Imparted force: %f %f %f\n", PFTHREE( imparted_force ) );
 	//For now, discard, just apply other motion.
 //	rotation_in_model_space[3] = magnitude3d( tangent_motion );
 	scale3d( rotation_in_model_space, rotation_in_model_space, 0.75 );
@@ -214,6 +221,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	quatrotatevector(reflection_world, modelpose->Rot, reflection_local);
 
 	scale3d( reflection_world, reflection_world, 0.9 );	//Mute the ball a little
+	add3d( reflection_world, imparted_force , reflection_world );
 	add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
 
 	//Need to limit overall speed.
@@ -420,7 +428,7 @@ void RenderFunction( void * tag, void * opaquev )
 	playareacollide->iRenderMesh = 0;
 
 	//Wash over the scene to prevent lines from overdrawing.
-	//CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
+	CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
 
 	glDepthFunc( GL_LEQUAL );
 
@@ -463,6 +471,8 @@ void RenderFunction( void * tag, void * opaquev )
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	CNOVRRender( rendermodelshader );
+	CNOVRRender( eightiessun );
 }
 
 
@@ -472,6 +482,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	int i;
 	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
 	shaderBlack = CNOVRShaderCreate( "assets/black" );
+	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 
 	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64 );
 
@@ -525,6 +536,15 @@ static void example_scene_setup( void * tag, void * opaquev )
 	pose_make_identity( &boomroot );
 	explosion_model->pose = &boomroot;
 
+	eightiessun = CNOVRModelCreate( 0, GL_TRIANGLES );
+	cnovr_point3d eightiessunsize = { 1, 1, 1 };
+	CNOVRModelAppendMesh( eightiessun, 2, 2, 1, eightiessunsize ,0, 0 );
+	pose_make_identity( &eightiessunpose );
+	eightiessunpose.Pos[2] = -102;
+	eightiessunpose.Pos[1] = 17;
+	eightiessunpose.Scale = 10;
+	eightiessun->pose = &eightiessunpose;
+	CNOVRModelApplyTextureFromFileAsync( eightiessun, "ovrball/80sSun.png" );
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
