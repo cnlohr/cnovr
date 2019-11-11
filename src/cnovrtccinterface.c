@@ -759,6 +759,7 @@ struct ImportList
 	TCCExportS( glBufferData )
 	TCCExportS( glMapBuffer )
 	TCCExportS( glUniform4fv )
+	TCCExportS( glUniform4f )
 	TCCExportS( glUniform4fvCHEW )
 	TCCExportS( glBindTexture )
 	TCCExportS( glTexImage2D )

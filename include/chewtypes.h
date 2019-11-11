@@ -88,6 +88,7 @@ typedef void (APIENTRY *GLDEBUGPROC)(
 #define GL_DEPTH_CLAMP                    0x864F
 
 
+#define GL_POINT_SPRITE 0x8861
 #define GL_INVALID_FRAMEBUFFER_OPERATION 0x0506
 #define GL_R32F 0x822E
 #define GL_RG32F 0x8230

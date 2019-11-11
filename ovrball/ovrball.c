@@ -5,11 +5,12 @@
 #include <cnovrcanvas.h>
 #include <cnovr.h>
 #include <cnovrutil.h>
+#include <chew.h>
 #include <stdlib.h>
 #include <string.h>
 
 const char * identifier;
-cnovr_shader * shaderBasic;
+cnovr_shader * shaderLines;
 cnovr_shader * shaderBlack;
 og_thread_t thdmax;
 
@@ -21,10 +22,12 @@ cnovr_model * paddle;
 cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddlepose2[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddetransform;
+int racketslot = 0;
 
 cnovr_model * isosphere;
 cnovr_pose    isospherepose;
 cnovr_pose    isosphereposeLast;
+cnovr_pose    isosphereposehist[TIMESLOTS+EXTRASLOTS];
 cnovr_point3d  isospheremotionlinear;
 cnovr_aamag  isospheremotionrotation;
 float isospherehitcooldown;
@@ -91,8 +94,8 @@ void Boom( float * pos, int npart, float expand, float lifetime )
 
 int cpupoints;
 int playerpoints;
-#define CPUEND -26
-#define ACCELEND -12
+#define CPUEND -27
+#define ACCELEND -13
 #define PLAYEREND    3
 
 struct ovrballstore_t
@@ -208,7 +211,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
 	//First, "fix up" location to make sure we don't overpenetrate.
 	cnovr_point3d fixup;
-	scale3d( fixup, normal, -res.sndist );
+	scale3d( fixup, normal, -res.sndist*1.1 ); //*1.0 would be JUST enough to grace the surface.  This buys us some margin.
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
 
 	//Next we need to "bounce" off. 
@@ -221,8 +224,16 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	//Computing half-angle in object-local settings.
 	float dotmatch = dot3d( res.collidens, direction );
 
+	//Figure out collisionpos in 3dspace
+	cnovr_point3d collide_pos;
+	printf( "CP: %f %f %f\n", PFTHREE( res.collidepos  ) );
+	apply_pose_to_point( collide_pos, modelpose, res.collidepos ); 
+	printf( "CP: %f %f %f\n", PFTHREE( collide_pos  ) );
+	Boom( collide_pos, 10, .1, .5 );
+
 	if( dotmatch > 0 )
 	{
+		//Generally should not happen
 		printf( "Collide in-line\n" );
 		printf( "%f %f %f  // %f %f %f\n", PFTHREE( res.collidens ), PFTHREE( direction ) );
 	}
@@ -244,66 +255,15 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 		printf( "DS: %f %f %f / DIR: %f %f %f\n", PFTHREE( deltastart ), PFTHREE( direction ) );
 		printf( "%f %f %f  // %f %f %f // %f %f %f WT: %f %f %f    %f  COMPTO: %f %f %f\n", PFTHREE( res.collidens ), PFTHREE( direction ), PFTHREE( reflection_local ), PFTHREE( reflection_world ), dotr, PFTHREE( isospheremotionlinear ) );
 
-		//scale3d( isospheremotionlinear, reflection_world, 1.0 );
+		scale3d( reflection_world, reflection_world, 0.9 );
 		add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
+
+		//Need to limit overall speed.
+		if( magnitude3d( isospheremotionlinear ) > 20.0 ) 
+			scale3d( isospheremotionlinear, isospheremotionlinear, 20./magnitude3d( isospheremotionlinear ) );
 	}
 
 
-#if 0
-
-	//Need to compute relative paddle motion at location of impact.
-	cnovr_point3d point_of_impact_paddle_space;
-	copy3d( point_of_impact_paddle_space, res.collidepos );
-	cnovr_point3d paddle_motion_at_impact;  //In world space.
-	{
-		cnovr_point3d motionlocalA, motionlocalB;
-		apply_pose_to_point( motionlocalA, modelpose, point_of_impact_paddle_space );
-		apply_pose_to_point( motionlocalB, modelposelast, point_of_impact_paddle_space );
-		sub3d( paddle_motion_at_impact, motionlocalA, motionlocalB );
-		scale3d( paddle_motion_at_impact, paddle_motion_at_impact, 1./dtimelast );
-	}
-
-	cnovr_point3d relative_motion_vector; //In world space
-	printf( "RMV IN: %f %f %f   %f %f %f\n", PFTHREE( isospheremotionlinear ), PFTHREE( paddle_motion_at_impact ) );
-
-	Boom( isospherepose.Pos,  3, .2, .5 );
-
-	//Tricky: What if we are swatting in the direction the ball is already going?
-	cnovr_point3d reflection, tmp;
-	scale3d( paddle_motion_at_impact, paddle_motion_at_impact, 1 ); //Prentend racket mass high -> Would make this higher
-//	sub3d( relative_motion_vector, isospheremotionlinear, paddle_motion_at_impact );
-	copy3d( relative_motion_vector, direction );
-	if( dot3d( relative_motion_vector, normal ) < 0 )
-	{
-		//If it's the opposite way, we reflect.
-		printf( "+RMV: %f %f %f / NORMAL: %f %f %f\n", PFTHREE( relative_motion_vector ), PFTHREE( normal ) );
-		//If we have paddle motion and normal in world space, what more do we need?
-		//REFLECT: r=d-2(d⋅n)n; d = incoming relative motion vector. (relative_motion_vector)
-		float dotr = 2*dot3d( relative_motion_vector, normal );
-		scale3d( tmp, normal, dotr );
-		sub3d( reflection, relative_motion_vector, tmp );
-	}
-	else
-	{
-		//Otherwise, we mix.
-		printf( "MIXING: %f %f %f  with %f %f %f\n", PFTHREE( relative_motion_vector ), PFTHREE( isospheremotionlinear ) );
-		//add3d( reflection, paddle_motion_at_impact, isospheremotionlinear );
-		//scale3d( reflection, reflection, 0.5 );
-		copy3d( reflection, isospheremotionlinear ); // Turn into a no-op
-	}
-
-	scale3d( isospheremotionlinear, reflection, damper );
-
-	//Also fixup
-	scale3d( fixup, reflection, dtimelast*5 );
-	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
-
-	printf( "%f %f %f   %f %f %f   %f %f %f   %f\n", PFTHREE( reflection ), PFTHREE( isospheremotionlinear ), PFTHREE( relative_motion_vector ), res.t );
-
-
-	//scale3d( fixup, fixup, 10. );
-	//add3d( isospheremotionlinear, fixup, isospheremotionlinear );
-#endif
 	return 0;
 }
 
@@ -318,7 +278,6 @@ void * PhysicsThread( void * v )
 {
 //	cnovr_pose playareapose;
 //	pose_make_identity( &playareapose );
-	int racketslot = 0;
 	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
 	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, CTRLA_TIP );
 
@@ -396,7 +355,8 @@ void * PhysicsThread( void * v )
 
 		memcpy( &poselast1, &paddlepose1[racketslot], sizeof( cnovr_pose ) );
 		memcpy( &poselast2, &paddlepose2[racketslot], sizeof( cnovr_pose ) );
-
+		memcpy( &isosphereposehist[racketslot], &isospherepose, sizeof( isospherepose ) );
+	//	printf( "%d %f %f %f\n", racketslot, PFTHREE( isosphereposehist[racketslot].Pos ) );
 		//Check end stops
 		if( isospherepose.Pos[2] < CPUEND ) { playerpoints++; Boom( isospherepose.Pos, 100, 2.0, 4.0 ); ResetIsosphere(); printf( "cpuend\n" ); }
 		if( isospherepose.Pos[2] > PLAYEREND ) { cpupoints++; ResetIsosphere(); printf( "playerend\n" ); }
@@ -474,40 +434,56 @@ void PrerenderFunction( void * tag, void * opaquev )
 void RenderFunction( void * tag, void * opaquev )
 {
 	int i;
-
-
-	CNOVRRender( shaderBasic );
-	CNOVRRender( isosphere );
+//	CNOVRRender( shaderLines );
+//	CNOVRRender( isosphere );
 
 	CNOVRRender( shaderBlack );
 	playareacollide->iRenderMesh = 0;
-	//CNOVRRender( playareacollide );
-	CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
+
+	//Wash over the scene to prevent lines from overdrawing.
+	//CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
 
 	glDepthFunc( GL_LEQUAL );
-	CNOVRRender( shaderBasic );
+
+	CNOVRRender( shaderLines );
 	playarea->iRenderMesh = 0;
 	CNOVRRender( playarea );
 	playarea->iRenderMesh = 2;
 	CNOVRRender( playarea );
 
-
-
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	glDepthMask(GL_FALSE );
 	paddle->iRenderMesh = 1;
 	for( i = 0 ; i < TIMESLOTS /*+ EXTRASLOTS Not displaying these*/; i++ )
 	{
+		float slotalpha =  (1.0-(float)((racketslot-i+TIMESLOTS*2-1)%TIMESLOTS)/(float)TIMESLOTS) * .3;
+		glUniform4f( 9, slotalpha, 0.0f, 0.0f, 0.0f );
 		CNOVRModelRenderWithPose( paddle, &paddlepose1[i] );
 		CNOVRModelRenderWithPose( paddle, &paddlepose2[i] );
+		CNOVRModelRenderWithPose( isosphere, &isosphereposehist[i] );
+		//printf( "%f ", isosphereposehist[i].Pos[1] );
 	}
 
-	CNOVRRender( canvas );
+	glUniform4f( 9, 1.0f, 0.0f, 0.0f, 0.0f );
 
 #define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 	glEnable( GL_VERTEX_PROGRAM_POINT_SIZE );
 //	glDisable(GL_POINT_SMOOTH);
+
+	glEnable(GL_POINT_SPRITE);
+	glDisable(GL_POINT_SMOOTH);
+	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST );
 	CNOVRRender( explosion_shader );
 	CNOVRRender( explosion_model );
+
+	CNOVRRender( canvas );
+
+	glDepthMask(GL_TRUE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 }
 
 
@@ -515,7 +491,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 {
 	printf( "+++ Example scene setup\n" );
 	int i;
-	shaderBasic = CNOVRShaderCreate( "assets/basic" );
+	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
 	shaderBlack = CNOVRShaderCreate( "assets/black" );
 
 	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64 );
@@ -533,9 +509,8 @@ static void example_scene_setup( void * tag, void * opaquev )
 	playareacollide->pose = &playareaposeepisilondown;
 	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj" );
 
-	isosphere = CNOVRModelCreate( 0, GL_LINES
- );
-	isosphere->pose = &isospherepose;
+	isosphere = CNOVRModelCreate( 0, GL_LINES );
+//	isosphere->pose = &isospherepose;
 	CNOVRModelLoadFromFileAsync( isosphere, "isosphere.obj:lineify" );
 	ResetIsosphere();
 
