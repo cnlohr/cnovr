@@ -773,6 +773,9 @@ struct ImportList
 	TCCExportS( glTexParameteri )
 	TCCExportS( glGetError )
 	TCCExportS( glTexSubImage2D )
+	TCCExportS( glDepthMask )
+	TCCExportS( glHint )
+	TCCExportS( glDisable )
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
 	TCCExportS( _vsnprintf )

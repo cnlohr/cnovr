@@ -482,7 +482,7 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	}
 	else
 	{
-		ovrprintf( "WARNING: stbi_load( %s, ... ) failed. Is it saving? Trying again.\n", ffn );
+		ovrprintf( "WARNING: stbi_load( %s (%s), ... ) failed. Is it saving? Trying again.\n", ffn, t->texfile );
 		CNOVRJobCancel( cnovrQAsync, CNOVRTextureLoadFileTask, t, 0, 0 );
 		CNOVRJobTack( cnovrQAsync, CNOVRTextureLoadFileTask, t, 0, 1 ); //If one's already going, let it finish.
 

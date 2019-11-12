@@ -47,7 +47,7 @@ cnovr_pose    playareapose;
 cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
 cnovr_pose    boomroot; //Must be origin
 
-cnovr_point3d roomoffset = { 0, 0, -1 };
+cnovr_point3d roomoffset = { 0, 0, 0 };
 
 cnovr_model * explosion_model;
 cnovr_shader * explosion_shader;
@@ -280,7 +280,7 @@ void * PhysicsThread( void * v )
 		//Add magnus effect.
 		cnovr_point3d magnus;
 		cross3d( magnus, isospheremotionlinear, isospheremotionrotation );
-		scale3d( magnus, magnus, .00001 );
+		scale3d( magnus, magnus, -.00001 );
 		add3d( isospheremotionlinear, isospheremotionlinear, magnus );
 
 		int did_hit_this_frame = 0;
@@ -451,7 +451,7 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( playarea );
 	playarea->iRenderMesh = 2;
 	CNOVRRender( playarea );
-
+	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glDepthMask(GL_FALSE );
