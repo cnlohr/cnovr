@@ -225,8 +225,8 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
 
 	//Need to limit overall speed.
-	if( magnitude3d( isospheremotionlinear ) > 20.0 ) 
-		scale3d( isospheremotionlinear, isospheremotionlinear, 20./magnitude3d( isospheremotionlinear ) );
+//	if( magnitude3d( isospheremotionlinear ) > 20.0 ) 
+//		scale3d( isospheremotionlinear, isospheremotionlinear, 20./magnitude3d( isospheremotionlinear ) );
 
 
 	return 0;
