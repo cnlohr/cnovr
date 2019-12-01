@@ -656,7 +656,7 @@ int DockableWindowFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pr
 	}
 
 
-	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
 	if( event == CNOVRF_LOSTFOCUS )
 	{
 		CNOVRNamedPtrSave( "draggablewindowsdata" );

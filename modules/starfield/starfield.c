@@ -147,7 +147,7 @@ int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * p
 		prop->NewPassiveRealDistance = 0;
 	}
 
-	CNOVRGeneralHandleFocusEvent( &focuscontrol, starpose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( &focuscontrol, starpose, prop, event, buttoninfo, CTRLA_PINCHBTN );
 	if( ( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS ) )
 	{
 		if( buttoninfo == CTRLA_TRIGGER )

@@ -8,6 +8,9 @@ sudo apt-get install build-essential libgl1-mesa-dev
 `
 
 TODO:
+ * Should probably commonize event system.
+
+TODO:
  * Add optimization for geometry early exit.
  * Add optimization for triangle early exit.
 

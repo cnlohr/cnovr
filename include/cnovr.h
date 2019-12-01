@@ -32,7 +32,7 @@ struct cnovrstate_t
 {
 	//Current rendertarget
 	cnovr_rf_buffer * sterotargets[2];
-	cnovr_rf_buffer * previewtarget;
+	cnovr_rf_buffer * previewtarget[2]; //Background and foreground.
 
 	//GL State Stuff (in the "renderprops" array)
 	float iRTWidth;
@@ -65,6 +65,11 @@ struct cnovrstate_t
 
 	short    iPreviewWidth, iPreviewHeight;
 	short    iEyeRenderWidth, iEyeRenderHeight;
+
+	//For doing final screen-output.
+	cnovr_model * fullscreengeo;
+	cnovr_shader * fullscreenshader;
+	float fPreviewForegroundSplitDistance;
 
 	uint8_t  eyeTarget;
 	uint8_t  has_ovr;

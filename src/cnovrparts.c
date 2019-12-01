@@ -12,6 +12,7 @@
 #include <stb_include_custom.h>
 #include <cnovrtccinterface.h>
 #include <stretchy_buffer.h>
+#include <cnrbtree.h>
 
 //XXX Overall TODO: Replace more FreeLater's with frees
 
@@ -1591,17 +1592,19 @@ struct TempObject
 };
 
 
-#define RBlvpcmp(x,y) memcmp(x,y,sizeof(cnovr_point3d))
-#define RBlvpcpy(x,y,z) { x = malloc( sizeof(cnovr_point3d) ); copy3d( x, y ); }
-#define RBlvpdel(x,y) free( x );
+//int rttt;
+//#define RBlvpcmp(x,y) ( rttt = memcmp( x, y, sizeof(cnovr_point3d) ), printf( "%f %f %f // %f %f %f %d\n", PFTHREE( x ), PFTHREE( y ), rttt ), rttt )
+#define RBlvpcmp(x,y) ( memcmp( x, y, sizeof(cnovr_point3d) ) )
+#define RBlvpcpy(x,y,z) { copy3d( x, y ); }
+#define RBlvpdel(x,y) {}
+// free( x );
 
 typedef cnovr_point3d * cnovr_point3dptr;
-CNRBTREETEMPLATE( rbstrset_t, rbset_null_t, RBstrcmp, RBstrcpy, RBstrdel );
-//CNRBTREETEMPLATE( cnovr_point3dptr, int, RBlvpcmp, RBlvpcpy, RBlvpdel );
-CNRBTREETEMPLATE( uint64_t, rbset_null_t, RBptrcmp, RBptrcpy, RBnullop );
+CNRBTREETEMPLATE( cnovr_point3d, int, RBlvpcmp, RBlvpcpy, RBlvpdel );
+CNRBTREETEMPLATE( int64_t, rbset_null_t, RBptrcmp, RBptrcpy, RBnullop );
 
 typedef cnrbtree_cnovr_point3dint linevertexpair;
-typedef cnrbtree_uint64_trbset_null_t indexpairset;
+typedef cnrbtree_int64_trbset_null_t indexpairset;
 
 static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const char * modifiers )
 {
@@ -1633,12 +1636,12 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 	int lineno;
 	int nObjNo = 0;
 	
-	linevertexpair lvps;
-	indexpairset   lvpsi;
+	linevertexpair * lvps = 0;
+	indexpairset   * lvpsi = 0;
 	if( lineify )
 	{
 		lvps = cnrbtree_cnovr_point3dint_create();
-		lvpsi = cnrbtree_uint64_trbset_null_t_create();
+		lvpsi = cnrbtree_int64_trbset_null_t_create();
 	}
 	
 	for( lineno = 0; (line = splits[lineno]) ; lineno++ )
@@ -1744,35 +1747,76 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 					int iao2o = ( p < r-1 )?(p+1):(p-(r-1));
 					int VNumber1 = atoi( buffer2[iao1o][0] ) - 1;
 					int VNumber2 = atoi( buffer2[iao2o][0] ) - 1;
+					int TNumber1 = atoi( buffer2[iao1o][1] ) - 1;
+					int TNumber2 = atoi( buffer2[iao2o][1] ) - 1;
+					int NNumber1 = atoi( buffer2[iao1o][2] ) - 1;
+					int NNumber2 = atoi( buffer2[iao2o][2] ) - 1;
 
-					int i1 = RBA( lvps, &t.CVerts[VNumber1*3] );
-					int i2 = RBA( lvps, &t.CVerts[VNumber2*3] );
-					
-					if( !i1 )
+					cnovr_point3d va;
+					cnovr_point3d vb;
+					copy3d( va, &t.CVerts[VNumber1*3] );
+					copy3d( vb, &t.CVerts[VNumber2*3] );
+					int i1;
+					int i2;
+					if( !RBHAS( lvps, va ) )
 					{
-						i1 = RBA( lvps, &t.CVerts[VNumber1*3] ) = m->pGeos[0]->iVertexCount;
+						i1 = RBA( lvps, va ) = m->pGeos[0]->iVertexCount;
 						if( VNumber1 < t.CVertCount && VNumber1 >= 0 )
 							CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber1*3] );
 						else
 							CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
-					}
 
-					if( !i2 )
+						if( TNumber1 < t.CTexCount && TNumber1 >= 0 )
+							CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber1*4] );
+						else
+							CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+						if( NNumber1 < t.CNormalCount && NNumber1 >= 0 )
+							CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber1*3] );
+						else
+							CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
+					}
+					else
 					{
-						i1 = RBA( lvps, &t.CVerts[VNumber2*3] ) = m->pGeos[0]->iVertexCount;
+						i1 = RBA( lvps, va );
+					}
+					if( !RBHAS( lvps, vb ) )
+					{
+						i2 = RBA( lvps, vb ) = m->pGeos[0]->iVertexCount;
 						if( VNumber2 < t.CVertCount && VNumber2 >= 0 )
 							CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber2*3] );
 						else
 							CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
-					}
-					
-					uint64_t paria = i1 | (((uint64_t)i2)<<32);
-					uint64_t parib = i2 | (((uint64_t)i1)<<32);
-					if( RBHAS( lvpsi, paria ) || RBHAS( lvpsi, parib ) ) continue;
 
-					//Now, examine if i1, i2 is already in the set.
-					CNOVRModelTackIndex( m, 1, i1 );
-					CNOVRModelTackIndex( m, 1, i2 );
+						if( TNumber2 < t.CTexCount && TNumber2 >= 0 )
+							CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber2*4] );
+						else
+							CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+						if( NNumber2 < t.CNormalCount && NNumber2 >= 0 )
+							CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber2*3] );
+						else
+							CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
+					}
+					else
+					{
+						i2 = RBA( lvps, vb );
+					}
+
+					//printf( "I: %d (%f %f %f) %d (%f %f %f)\n", i1, PFTHREE( va ), i2, PFTHREE( vb ) );
+					
+					int64_t paria = i1 | (((int64_t)i2)<<32);
+					int64_t parib = i2 | (((int64_t)i1)<<32);
+					//printf( "%llx %llx  %p %p\n", (uint64_t)paria, (uint64_t)parib, RBHAS( lvpsi, paria ), RBHAS( lvpsi, parib ) );
+					if( !RBHAS( lvpsi, paria ) && !RBHAS( lvpsi, parib ) )
+					{
+						//printf( "ACCESS: %p {%d %d}\n", 
+							lvpsi->access( lvpsi, paria )
+						//, i1, i2 )
+						;
+						
+						//Now, examine if i1, i2 is already in the set.
+						CNOVRModelTackIndex( m, 2, i1, i2 );
+						indices+=2;
+					}
 				}
 			}
 			else
@@ -1827,7 +1871,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 	if( lvps )
 	{
 		cnrbtree_cnovr_point3dint_destroy( lvps );
-		cnrbtree_uint64_trbset_null_t_destroy( lvpsi );
+		cnrbtree_int64_trbset_null_t_destroy( lvpsi );
 	}
 	if( t.CVerts ) free( t.CVerts ); 
 	if( t.CTexs ) free( t.CTexs ); 

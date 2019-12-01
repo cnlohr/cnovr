@@ -138,7 +138,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->iPreviewHeight = -1;
 		cnovrstate->sterotargets[0] = 0;
 		cnovrstate->sterotargets[1] = 0;
-		cnovrstate->previewtarget = 0;
+		cnovrstate->previewtarget[0] = 0;
+		cnovrstate->previewtarget[1] = 0;
 		cnovrstate->fPreviewFOV = 95;
 
 		//Initial camrea
@@ -212,6 +213,15 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 	ovrprintf( "Setting up focus\n" );
 	InternalCNOVRFocusSetup();
+
+	{
+		cnovrstate->fullscreengeo = CNOVRModelCreate( 0, GL_TRIANGLES );
+		cnovr_point3d size = { 1., 1., 1. };
+		cnovrstate->fPreviewForegroundSplitDistance = 2.6;
+		CNOVRModelAppendMesh( cnovrstate->fullscreengeo, 1, 1, 0, size, 0, 0 );
+		cnovrstate->fullscreenshader = CNOVRShaderCreate( "previewwindow" );
+	}
+
 
 	ovrprintf( "Init complete.\n" );
 
@@ -290,8 +300,10 @@ void CNOVRUpdate()
 		CNFGGetDimensions( &iPreviewWidth, &iPreviewHeight );
 		if( iPreviewWidth != cnovrstate->iPreviewWidth || iPreviewHeight != cnovrstate->iPreviewHeight )
 		{
-			CNOVRDelete( cnovrstate->previewtarget );
-			cnovrstate->previewtarget = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, MULTISAMPLE );
+			CNOVRDelete( cnovrstate->previewtarget[0] );
+			CNOVRDelete( cnovrstate->previewtarget[1] );
+			cnovrstate->previewtarget[0] = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, MULTISAMPLE );
+			cnovrstate->previewtarget[1] = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, MULTISAMPLE );
 			cnovrstate->iPreviewWidth  = iPreviewWidth;
 			cnovrstate->iPreviewHeight = iPreviewHeight;
 		}
@@ -342,7 +354,7 @@ void CNOVRUpdate()
 			CNOVRListCall( cnovrLRender2, 0, 0); 
 			CNOVRListCall( cnovrLRender3, 0, 0); 
 			CNOVRListCall( cnovrLRender4, 0, 0); 
-		//	CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
+			//CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
 			CNOVRFBufferBlitResolve( cnovrstate->sterotargets[i] );
 		}
 		for( i = 0; i < 2; i++ )
@@ -366,22 +378,40 @@ void CNOVRUpdate()
 		int width = cnovrstate->iRTWidth = cnovrstate->iPreviewWidth;
 		int height = cnovrstate->iRTHeight = cnovrstate->iPreviewHeight;
 		cnovrstate->eyeTarget = 2;
-		matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, cnovrstate->fNear, cnovrstate->fFar );
 		matrix44identity( cnovrstate->mModel );
-
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 
-		//CNOVRFBufferActivate( cnovrstate->previewtarget );
-		glViewport(0, 0, width, height );
+		int i;
+		float distancecut = cnovrstate->fPreviewForegroundSplitDistance;
+		for( i = 0; i < 2; i++ )
+		{
+			CNOVRFBufferActivate( cnovrstate->previewtarget[i] );
+			//glEnable( GL_CLIP_PLANE0 );
+			//GLdouble eqn[4] = { 1., 0., 1., 1. };
+			//glClipPlane( GL_CLIP_PLANE0, eqn );
+			matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, i?cnovrstate->fNear:distancecut, i?distancecut:cnovrstate->fFar );
+			glViewport(0, 0, width, height );
+			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+			root->base.header->Render( root );
+			CNOVRListCall( cnovrLRender0, 0, 0); 
+			CNOVRListCall( cnovrLRender1, 0, 0); 
+			CNOVRListCall( cnovrLRender2, 0, 0); 
+			CNOVRListCall( cnovrLRender3, 0, 0); 
+			CNOVRListCall( cnovrLRender4, 0, 0); 
+			//glDisable( GL_CLIP_PLANE0 );
+			CNOVRFBufferBlitResolve( cnovrstate->previewtarget[i] );
+		}
 
+		glDisable( GL_DEPTH_TEST );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		root->base.header->Render( root );
-		CNOVRListCall( cnovrLRender0, 0, 0); 
-		CNOVRListCall( cnovrLRender1, 0, 0); 
-		CNOVRListCall( cnovrLRender2, 0, 0); 
-		CNOVRListCall( cnovrLRender3, 0, 0); 
-		CNOVRListCall( cnovrLRender4, 0, 0); 
-		//CNOVRFBufferDeactivate( cnovrstate->previewtarget );
+		CNOVRRender( cnovrstate->fullscreenshader );
+		glEnable( GL_TEXTURE_2D );
+		//printf( "%d\n", cnovrstate->previewtarget->nResolveTextureId );
+		glActiveTextureCHEW( GL_TEXTURE0 + 0 );
+		glBindTexture( GL_TEXTURE_2D, cnovrstate->previewtarget[0]->nResolveTextureId );
+		glActiveTextureCHEW( GL_TEXTURE0 + 1 );
+		glBindTexture( GL_TEXTURE_2D, cnovrstate->previewtarget[1]->nResolveTextureId );
+		CNOVRRender( cnovrstate->fullscreengeo );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 
@@ -491,12 +521,15 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap )
 
 void CNOVRShaderLoadedSetUniformsInternal()
 {
+	if( CNOVRCheck() ) ovrprintf( "Pre-Uniform Check\n" );
 	static GLint TextureSlots[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
 	glUniformMatrix4fv( UNIFORMSLOT_VIEW, 1, 1, cnovrstate->mView );
 	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 1, cnovrstate->mPerspective );
 	glUniform4fv( UNIFORMSLOT_RENDERPROPS, 1, &cnovrstate->iRTWidth );
-	//glUniform1iv( UNIFORMSLOT_TEXTURES, 8, TextureSlots );
+	glUniform1iv( UNIFORMSLOT_TEXTURES, 8, TextureSlots );
+	//Ignore all uniform errors.
+	glGetError();
 }
 
 

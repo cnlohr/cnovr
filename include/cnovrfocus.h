@@ -23,6 +23,7 @@ typedef enum
 	CTRLA_TRIGGER = 0,
 	CTRLA_BUTTONA,
 	CTRLA_BUTTONB,
+	CTRLA_PINCHBTN,
 	CTRLA_GRASP, //Last "button"
 	CTRLA_TRIG, //Special
 	CTRLA_MODEL, //Special
@@ -115,7 +116,7 @@ typedef struct cnovr_model_focus_controller_t
 // Focus Stuff
 
 void CNOVRModelSetInteractable( struct cnovr_model_t * m, cnovrfocus_capture * focusevent );
-void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo );
+void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo, int grabbutton /*default should be CTRLA_PINCHBTN*/ );
 
 //Expects Opaque to be a model which has a pose assigned.
 int CNOVRFocusDefaultFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
@@ -143,7 +144,7 @@ int EventChecker( int event, cnovrfocus_capture * cap, cnovrfocus_properties * p
 
 	//You can intercept events here and return to prevent them from being passed to CNOVRGeneralHandleFocusEvent
 
-	CNOVRGeneralHandleFocusEvent( &focuscontrol, &some_pose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( &focuscontrol, &some_pose, prop, event, buttoninfo, 3 );
 	return 0;
 }
 

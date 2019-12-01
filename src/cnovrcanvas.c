@@ -51,7 +51,7 @@ static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 	}
 
 //	if( event == CNOVRF_DOWNNOFOCUS && buttoninfo == CTRLA_TRIGGER )
-	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
 	return 0;
 }
 

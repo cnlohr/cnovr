@@ -354,6 +354,7 @@ void InternalCNOVRFocusSetup()
 					"/actions/m/in/trigclick",
 					"/actions/m/in/buttona",
 					"/actions/m/in/buttonb",
+					"/actions/m/in/pinchclick",
 					"/actions/m/in/graspclick",
 					"/actions/m/in/trig",
 					"/actions/m/in/model",
@@ -489,7 +490,7 @@ void CNOVRModelSetInteractable( cnovr_model * m, cnovrfocus_capture * focusevent
 }
 
 
-void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo )
+void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose * pose, cnovrfocus_properties * prop, int event, int buttoninfo, int dragbutton )
 {
 	int devid = prop->devid;
 //	cnovr_model_focus_controller * fc = m->focuscontrol;
@@ -499,7 +500,7 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 	switch( event )
 	{
 		case CNOVRF_DOWNNOFOCUS:
-			if( buttoninfo == 3 ) CNOVRFocusAcquire( fc->focusevent, 1 );
+			if( buttoninfo == dragbutton ) CNOVRFocusAcquire( fc->focusevent, 1 );
 			break;
 		case CNOVRF_DRAG:
 			if( fc->focusgrab )
@@ -626,7 +627,7 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 			}
 			break;
 		case CNOVRF_UPFOCUS:
-			if( buttoninfo == 3 ) CNOVRFocusAcquire( fc->focusevent, 0 );
+			if( buttoninfo == dragbutton ) CNOVRFocusAcquire( fc->focusevent, 0 );
 			break;
 		case CNOVRF_LOSTFOCUS:
 			if( fc->focusgrab && fc->focusgrab[devid] )
@@ -676,7 +677,7 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 int CNOVRFocusDefaultFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	cnovr_model * m = cap->opaque;
-	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
 	return 0;
 }
 

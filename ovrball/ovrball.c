@@ -17,12 +17,13 @@ og_thread_t thdmax;
 
 #define TIMESLOTS 10
 #define EXTRASLOTS 20
-#define PARTICLES 256
+#define PARTICLEVERTS 256
 
 cnovr_pose    eightiessunpose;
 cnovr_model * eightiessun;
 
 cnovr_model * paddle;
+cnovr_model * paddlesolid;
 cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddlepose2[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddetransform;
@@ -44,7 +45,7 @@ int sentinal2;
 cnovr_model * playarea;
 cnovr_model * playareacollide;
 cnovr_pose    playareapose;
-cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
+//cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
 cnovr_pose    boomroot; //Must be origin
 
 cnovr_point3d roomoffset = { 0, 0, 0 };
@@ -59,21 +60,35 @@ float * explosion_extradata;
 void EmitParticle( float * pos, float size, float * dir, float * color, float lifetime )
 {
 	static int exphead;
+	float * extra;
 
+	memcpy( explosion_points + exphead*3, pos, sizeof(float)*3 );
+	cnovr_point3d halfdir;
+	scale3d( halfdir, dir, ((rand()%100)/150.0)+0.2 );
+	memcpy( explosion_data + (exphead*4+1), halfdir, sizeof(float)*3 );
+	*(explosion_data + (exphead*4+0)) = size;
+	memcpy( explosion_color + exphead*4, color, sizeof(float)*4 );
+	extra = (explosion_extradata + exphead*4);
+	extra[0] = lifetime/5.0; //Current lifetime
+	extra[1] = size;
+	extra[2] = lifetime;
+	extra[3] = 0;
+
+	exphead++;
 	memcpy( explosion_points + exphead*3, pos, sizeof(float)*3 );
 	memcpy( explosion_data + (exphead*4+1), dir, sizeof(float)*3 );
 	*(explosion_data + (exphead*4+0)) = size;
 	memcpy( explosion_color + exphead*4, color, sizeof(float)*4 );
-	float * extra = (explosion_extradata + exphead*4);
+	extra = (explosion_extradata + exphead*4);
 	extra[0] = lifetime; //Current lifetime
 	extra[1] = size;
 	extra[2] = lifetime;
 	extra[3] = 0;
 	exphead++;
-	if( exphead == PARTICLES ) exphead = 0;
+	if( exphead == PARTICLEVERTS ) exphead = 0;
 }
 
-void Boom( float * pos, int npart, float expand, float lifetime )
+void Boom( float * pos, int npart, float expand, float lifetime, float * customcolor )
 {
 	int i;
 	for( i = 0; i < npart; i++ )
@@ -82,15 +97,24 @@ void Boom( float * pos, int npart, float expand, float lifetime )
 		dir[0] = (rand()%102)-50.5;
 		dir[1] = (rand()%102)-50.5;
 		dir[2] = (rand()%102)-50.5;
-		normalize3d( dir, dir );
+		//normalize3d( dir, dir );
+		scale3d( dir, dir, 0.4 );
 		//^^^^ Ugh buggy compiler
 		scale3d( dir, dir, expand );
 		float color[4];
-		color[0] = (rand()%100)+1;
-		color[1] = (rand()%100)+1;
-		color[2] = (rand()%100)+1;
-		color[3] = 1;
-		normalize3d( color, color );
+		if( customcolor )
+		{
+			memcpy( color, customcolor, sizeof( color ) );
+
+		}
+		else
+		{
+			color[0] = (rand()%100)+1;
+			color[1] = (rand()%100)+1;
+			color[2] = (rand()%100)+1;
+			color[3] = 1;
+			normalize3d( color, color );
+		}
 		EmitParticle( pos, 20+(rand()%20), dir, color, lifetime );
 	}
 }
@@ -100,7 +124,7 @@ int cpupoints;
 int playerpoints;
 #define CPUEND -40
 #define ACCELEND -26
-#define PLAYEREND    3
+#define PLAYEREND    5
 
 struct ovrballstore_t
 {
@@ -158,8 +182,10 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 
 	//Computing half-angle in object-local settings.
 	float dotmatch = dot3d( res.collidens, direction );
-	if( dotmatch > 0 ) return -1; //don't allow in-line collisions.
+	if( dotmatch > 0 || dotmatch != dotmatch /*check for nan*/ ) return -1; //don't allow in-line collisions.
 
+
+	printf( "COLLIDE: %d ; sndist: %f  res.t: %f  radius: %f  (%f %f %f)\n", r, res.sndist, res.t, radius, PFTHREE( res.collidens ) );
 	//COLLISION
 	//Here we are in a neat position. We have a collision!  Time to bounce!
 
@@ -183,7 +209,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	printf( "CPT %f %f %f   %f\n", PFTHREE( res.collidens ), res.sndist );
 	apply_pose_to_point( collide_pos, modelpose, localcollidepos ); 
 	printf( "CP: %f %f %f\n", PFTHREE( collide_pos  ) );
-	Boom( collide_pos, 10, .1, .5 );
+	Boom( collide_pos, 10, .1, .5, 0 );
 
 	//We have a rotating sphere.  If it is colliding with a surface moving tangent to it,
 	//then we should modify the torque on the ball and torque should affect motion vector 
@@ -305,10 +331,10 @@ void * PhysicsThread( void * v )
 		{
 			cnovr_point3d target = { 0, -.4f, 0 };  //Kludge -> Target center of mesh.
 			int r1 = //-1;
-				CheckCollideBallWithMesh( paddle, 1, &paddlepose1[racketslot], &poselast1, 
+				CheckCollideBallWithMesh( paddlesolid, 1, &paddlepose1[racketslot], &poselast1, 
 				deltatime, tnow, target, 1.5f, 0 ); 
 			int r2 = //-1;
-				CheckCollideBallWithMesh( paddle, 1, &paddlepose2[racketslot], &poselast2, 
+				CheckCollideBallWithMesh( paddlesolid, 1, &paddlepose2[racketslot], &poselast2, 
 				deltatime, tnow, target, 1.5f, 0 );
 			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
 				deltatime, tnow, 0, 0.9f, 1 );
@@ -330,8 +356,8 @@ void * PhysicsThread( void * v )
 		memcpy( &isosphereposehist[racketslot], &isospherepose, sizeof( isospherepose ) );
 	//	printf( "%d %f %f %f\n", racketslot, PFTHREE( isosphereposehist[racketslot].Pos ) );
 		//Check end stops
-		if( isospherepose.Pos[2] < CPUEND ) { playerpoints++; Boom( isospherepose.Pos, 100, 2.0, 4.0 ); ResetIsosphere(); printf( "cpuend\n" ); }
-		if( isospherepose.Pos[2] > PLAYEREND ) { cpupoints++; ResetIsosphere(); printf( "playerend\n" ); }
+		if( isospherepose.Pos[2] < CPUEND ) { playerpoints++; Boom( isospherepose.Pos, 100, 2.0, 4.0, 0 ); ResetIsosphere(); printf( "cpuend\n" ); }
+		if( isospherepose.Pos[2] > PLAYEREND ) { cpupoints++; Boom( isospherepose.Pos, 100, 2.0, 4.0, (float[4]){ 1., 0., 0., 1. }  ); ResetIsosphere(); printf( "playerend\n" ); }
 
 		//Accel out the CPU end.
 		if( isospherepose.Pos[2] < ACCELEND ) { scale3d( isospheremotionlinear, isospheremotionlinear, 1.005 ); }
@@ -348,6 +374,7 @@ void UpdateFunction( void * tag, void * opaquev )
 {
 	int i;
 
+	glLineWidth( 2.0 );
 	static double start;
 	static double last;
 	static double lastframetime;
@@ -381,7 +408,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	canvas->color = 0xffffffff;
 	CNOVRCanvasSwapBuffers( canvas );
 
-	for( i = 0; i < PARTICLES; i++ )
+	for( i = 0; i < PARTICLEVERTS; i++ )
 	{
 		float * pt = explosion_points + i*3;
 		float * dat = explosion_data + i*4;
@@ -422,6 +449,12 @@ void UpdateFunction( void * tag, void * opaquev )
 		}
 	}
 
+	//Determine distance from camera to ball and set as foregreound point.
+	cnovr_point3d fvcamdist;
+	apply_pose_to_point(fvcamdist, &cnovrstate->pPreviewPose, isospherepose.Pos);
+	float fcamdist = -fvcamdist[2];
+	cnovrstate->fPreviewForegroundSplitDistance = fcamdist;
+
 	return;
 }
 
@@ -444,9 +477,9 @@ void RenderFunction( void * tag, void * opaquev )
 	playareacollide->iRenderMesh = 0;
 
 	//Wash over the scene to prevent lines from overdrawing.
-//	CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
+	CNOVRModelRenderWithPose( playareacollide, &playareapose );
 
-	glDepthFunc( GL_LEQUAL );
+	//glDepthFunc( GL_LEQUAL );
 
 	CNOVRRender( shaderLines );
 	playarea->iRenderMesh = 0;
@@ -460,6 +493,7 @@ void RenderFunction( void * tag, void * opaquev )
 	paddle->iRenderMesh = 1;
 	for( i = 0 ; i < TIMESLOTS /*+ EXTRASLOTS Not displaying these*/; i++ )
 	{
+		if( i == TIMESLOTS-1 )	glDepthMask(GL_TRUE);
 		float slotalpha =  (1.0-(float)((racketslot-i+TIMESLOTS*2-1)%TIMESLOTS)/(float)TIMESLOTS) * .3;
 		glUniform4f( 9, slotalpha, 0.0f, 0.0f, 0.0f );
 		CNOVRModelRenderWithPose( paddle, &paddlepose1[i] );
@@ -482,11 +516,8 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( explosion_model );
 
 	CNOVRRender( canvas );
-
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glDepthMask(GL_TRUE);
 }
 
 
@@ -506,11 +537,11 @@ static void example_scene_setup( void * tag, void * opaquev )
 	add3d( playareapose.Pos, playareapose.Pos, roomoffset );
 	CNOVRModelLoadFromFileAsync( playarea, "playarea.obj:lineify" );
 
-	pose_make_identity( &playareaposeepisilondown );
-	playareaposeepisilondown.Pos[1] -= .02;
-	playareaposeepisilondown.Pos[2] = playareapose.Pos[2];
+	//pose_make_identity( &playareaposeepisilondown );
+	//playareaposeepisilondown.Pos[1] -= .02;
+	//playareaposeepisilondown.Pos[2] = playareapose.Pos[2];
 	playareacollide = CNOVRModelCreate( 0, GL_TRIANGLES );
-	playareacollide->pose = &playareaposeepisilondown;
+	playareacollide->pose = &playareapose;
 	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj" );
 
 	isosphere = CNOVRModelCreate( 0, GL_LINES );
@@ -519,17 +550,20 @@ static void example_scene_setup( void * tag, void * opaquev )
 	ResetIsosphere();
 
 	paddle = CNOVRModelCreate( 0, GL_LINES );
-	paddle->pose = 0;
 	CNOVRModelLoadFromFileAsync( paddle, "paddle.obj:lineify" );
+
+	paddlesolid = CNOVRModelCreate( 0, GL_TRIANGLES );
+	CNOVRModelLoadFromFileAsync( paddlesolid, "paddle.obj" );
+
 	pose_make_identity( &paddetransform );
 
 	cnovr_euler_angle eu = { 3.14159-.5, 0, 0 };
 	quatfromeuler( paddetransform.Rot, eu );
 
 	explosion_shader = CNOVRShaderCreate( "ovrball/explosion" );
-	explosion_model = CNOVRModelCreate( 0, GL_POINTS );
+	explosion_model = CNOVRModelCreate( 0, GL_LINES );
 	CNOVRModelSetNumVBOsWithStrides( explosion_model, 4, 3, 4, 4, 4 );
-	for( i = 0; i < PARTICLES; i++ )
+	for( i = 0; i < PARTICLEVERTS; i++ )
 	{
 		float nil[4] = { 0 };
 		CNOVRVBOTackv( explosion_model->pGeos[0], 3, nil );

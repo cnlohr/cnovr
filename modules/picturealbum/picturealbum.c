@@ -73,7 +73,7 @@ int PictureFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 			return 0;
 		} //Catpured event (Return), So, we return the cell to it's place on the palette.
 	}
-	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo );
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
 	return 0;
 }
 

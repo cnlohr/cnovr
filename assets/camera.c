@@ -3,6 +3,7 @@
 #include <cnovrfocus.h>
 #include <cnovropenvr.h>
 #include <cnovr.h>
+#include <string.h>
 #include <cnovrutil.h>
 #include <chew.h>
 
@@ -26,14 +27,20 @@ void init( const char * identifier )
 static void RenderFunction( void * tag, void * opaquev )
 {
 	int i;
-	glEnable( GL_LINE_SMOOTH );
+//	glEnable( GL_LINE_SMOOTH );
 	CNOVRRender( shaderblack );
 	CNOVRModelRenderWithPose( modelcamerasolid, &store->posecamera );
-	glDepthFunc( GL_LEQUAL );
 	CNOVRRender( shaderlines );
 	CNOVRModelRenderWithPose( modelcameralines, &store->posecamera );
 }
 
+static void UpdateCamera()
+{
+	cnovr_pose pinvert;
+	store->posecamera.Scale = 1;
+	pose_invert( &pinvert,  &store->posecamera );
+	memcpy( &cnovrstate->pPreviewPose, &pinvert, sizeof( cnovr_pose ) );
+}
 
 static int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
@@ -44,10 +51,8 @@ static int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 	{
 		CNOVRNamedPtrSave( "camerastore" );
 	}
-	cnovr_pose pinvert;
-	pose_invert( &pinvert,  &store->posecamera );
-	memcpy( &cnovrstate->pPreviewPose, &pinvert, sizeof( cnovr_pose ) );
-	CNOVRGeneralHandleFocusEvent( modelcamerasolid->focuscontrol, modelcamerasolid->pose, prop, event, buttoninfo );
+	UpdateCamera();
+	CNOVRGeneralHandleFocusEvent( modelcamerasolid->focuscontrol, modelcamerasolid->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
 	return 0;
 }
 
@@ -75,6 +80,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 		pose_make_identity( &store->posecamera );
 		store->initialized = 1;
 	}
+	UpdateCamera();
 
 	printf( "...loaded %f %f %f  %f %f %f %f\n", PFTHREE( store->posecamera.Pos ), PFFOUR( store->posecamera.Rot ) );
 }
