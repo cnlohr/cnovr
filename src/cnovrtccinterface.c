@@ -674,6 +674,7 @@ struct ImportList
 	TCCExportS( cross3d )
 	TCCExportS( sub3d )
 	TCCExportS( add3d )
+	TCCExportS( mult3d )
 	TCCExportS( scale3d )
 	TCCExportS( invert3d )
 	TCCExportS( mag3d )

@@ -31,8 +31,9 @@ void CNOVRDeleteBase( cnovr_base * b )
 
 static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 {
+	//Tricky - render and resolve may be the same if no multisampling is used.
+	if( ths->nResolveFramebufferId && ths->nResolveFramebufferId != ths->nRenderFramebufferId ) glDeleteFramebuffers( 1, &ths->nResolveFramebufferId );
 	if( ths->nRenderFramebufferId ) glDeleteFramebuffers( 1, &ths->nRenderFramebufferId );
-	if( ths->nResolveFramebufferId ) glDeleteFramebuffers( 1, &ths->nResolveFramebufferId );
 	if( ths->nResolveTextureId ) glDeleteTextures( 1, &ths->nResolveTextureId );
 	if( ths->nDepthBufferId ) glDeleteRenderbuffers( 1, &ths->nDepthBufferId );
 	if( ths->nColorBufferId ) glDeleteRenderbuffers( 1, &ths->nColorBufferId );
@@ -68,9 +69,13 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glGenRenderbuffers(1, &ret->nDepthBufferId);
 	glBindRenderbuffer(GL_RENDERBUFFER, ret->nDepthBufferId);
 	if( multisample )
+	{
 		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_DEPTH_COMPONENT, nWidth, nHeight );
+	}
 	else
+	{
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight );
+	}
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	ret->nDepthBufferId );
 
 
@@ -92,6 +97,9 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	else
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
 	}
 
 
@@ -112,15 +120,22 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 		printf( "Warning bad framebuffer setup (Render)\n" );
 	}
 
-
-	glGenFramebuffers(1, &ret->nResolveFramebufferId );
-	glBindFramebuffer(GL_FRAMEBUFFER, ret->nResolveFramebufferId);
-	glGenTextures(1, &ret->nResolveTextureId );
-	glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId, 0);
+	if( !multisample )
+	{
+		ret->nResolveFramebufferId = 0;
+		ret->nResolveTextureId = ret->nRenderTextureId;
+	}
+	else
+	{
+		glGenFramebuffers(1, &ret->nResolveFramebufferId );
+		glBindFramebuffer(GL_FRAMEBUFFER, ret->nResolveFramebufferId);
+		glGenTextures(1, &ret->nResolveTextureId );
+		glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId );
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId, 0);
+	}
 
 	// check FBO status
 	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -135,12 +150,19 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
-	//XXX TODO : Remove me.  I think?
-	char stbuf[128];
-	sprintf( stbuf, "#define MULTISAMPLES %d\n", multisample );
-	ret->resolveshader = CNOVRShaderCreateWithPrefix( "resolve", stbuf );
-	ret->resolvegeo = CNOVRModelCreate( 0, GL_TRIANGLES );
-	CNOVRModelAppendMesh( ret->resolvegeo, 1, 1, 0, (cnovr_point3d){ 1, 1, 0 }, 0, 0 );
+	if( !multisample )
+	{
+		ret->resolveshader = 0;
+		ret->resolvegeo = 0;
+	}
+	else
+	{
+		char stbuf[128];
+		sprintf( stbuf, "#define MULTISAMPLES %d\n", multisample );
+		ret->resolveshader = CNOVRShaderCreateWithPrefix( "resolve", stbuf );
+		ret->resolvegeo = CNOVRModelCreate( 0, GL_TRIANGLES );
+		CNOVRModelAppendMesh( ret->resolvegeo, 1, 1, 0, (cnovr_point3d){ 1, 1, 0 }, 0, 0 );
+	}
 	return ret;
 }
 
@@ -183,19 +205,18 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );	
 #else
 
-	//glEnable( GL_MULTISAMPLE );
-	glBindFramebuffer( GL_FRAMEBUFFER, b->nResolveFramebufferId);
-	glActiveTextureCHEW( GL_TEXTURE0 );
 	if( b->multisample )
+	{
+		//glEnable( GL_MULTISAMPLE );
+		glBindFramebuffer( GL_FRAMEBUFFER, b->nResolveFramebufferId);
+		glActiveTextureCHEW( GL_TEXTURE0 );
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, b->nRenderTextureId );
-	else
-		glBindTexture(GL_TEXTURE_2D, b->nRenderTextureId );
-
-	if( CNOVRCheck() ) ovrprintf( "MIDDLE RESOLVE\n" );
-	CNOVRRender( b->resolveshader );
-	if( CNOVRCheck() ) ovrprintf( "MIDDLE1 RESOLVE\n" );
-	if( CNOVRCheck() ) ovrprintf( "MIDDLE2 RESOLVE\n" );
-	CNOVRRender( b->resolvegeo );
+		if( CNOVRCheck() ) ovrprintf( "MIDDLE RESOLVE\n" );
+		CNOVRRender( b->resolveshader );
+		if( CNOVRCheck() ) ovrprintf( "MIDDLE1 RESOLVE\n" );
+		if( CNOVRCheck() ) ovrprintf( "MIDDLE2 RESOLVE\n" );
+		CNOVRRender( b->resolvegeo );
+	}
 #endif
 
 	glBindFramebuffer( GL_FRAMEBUFFER, 0);
@@ -1570,6 +1591,18 @@ struct TempObject
 };
 
 
+#define RBlvpcmp(x,y) memcmp(x,y,sizeof(cnovr_point3d))
+#define RBlvpcpy(x,y,z) { x = malloc( sizeof(cnovr_point3d) ); copy3d( x, y ); }
+#define RBlvpdel(x,y) free( x );
+
+typedef cnovr_point3d * cnovr_point3dptr;
+CNRBTREETEMPLATE( rbstrset_t, rbset_null_t, RBstrcmp, RBstrcpy, RBstrdel );
+//CNRBTREETEMPLATE( cnovr_point3dptr, int, RBlvpcmp, RBlvpcpy, RBlvpdel );
+CNRBTREETEMPLATE( uint64_t, rbset_null_t, RBptrcmp, RBptrcpy, RBnullop );
+
+typedef cnrbtree_cnovr_point3dint linevertexpair;
+typedef cnrbtree_uint64_trbset_null_t indexpairset;
+
 static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const char * modifiers )
 {
 	int filelen;
@@ -1599,6 +1632,15 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 	char * line;
 	int lineno;
 	int nObjNo = 0;
+	
+	linevertexpair lvps;
+	indexpairset   lvpsi;
+	if( lineify )
+	{
+		lvps = cnrbtree_cnovr_point3dint_create();
+		lvpsi = cnrbtree_uint64_trbset_null_t_create();
+	}
+	
 	for( lineno = 0; (line = splits[lineno]) ; lineno++ )
 	{
 		int linelen = strlen( line );
@@ -1667,9 +1709,9 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 
 			//Whatever... they're all populated with something now.
 
+			char buffer2[4 /*max # of elements*/][4][TBUFFERSIZE];
 			for( p = 0; p < r; p++ )
 			{
-				char buffer2[4][TBUFFERSIZE];
 				int mark = 0, markb = 0;
 				int i;
 				int sl = strlen( buffer[p] );
@@ -1677,53 +1719,87 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 				{
 					if( buffer[p][i] == '/' )
 					{
-						buffer2[mark][markb] = 0;
+						buffer2[p][mark][markb] = 0;
 						mark++;
 						if( mark >= r ) break;
 						markb = 0;
 					}
 					else
-						buffer2[mark][markb++] = buffer[p][i];
+						buffer2[p][mark][markb++] = buffer[p][i];
 				}
-				buffer2[mark][markb] = 0;
+				buffer2[p][mark][markb] = 0;
 				for( i = mark+1; i < r; i++ )
 				{
-					buffer2[i][0] = '0';
-					buffer2[i][1] = 0;
+					buffer2[p][i][0] = '0';
+					buffer2[p][i][1] = 0;
 				}
+			}
+			
 
-				int VNumber = atoi( buffer2[0] ) - 1;
-				int TNumber = atoi( buffer2[1] ) - 1;
-				int NNumber = atoi( buffer2[2] ) - 1;
-
-				if( lineify )
+			if( lineify )
+			{
+				for( p = 0; p < r; p++ )
 				{
-					CNOVRModelTackIndex( m, 1, indices );
-					if( p < r-1 )
-						CNOVRModelTackIndex( m, 1, indices+1 );
-					else
-						CNOVRModelTackIndex( m, 1, indices-(r-1) );
-					indices++;
+					int iao1o = p;
+					int iao2o = ( p < r-1 )?(p+1):(p-(r-1));
+					int VNumber1 = atoi( buffer2[iao1o][0] ) - 1;
+					int VNumber2 = atoi( buffer2[iao2o][0] ) - 1;
+
+					int i1 = RBA( lvps, &t.CVerts[VNumber1*3] );
+					int i2 = RBA( lvps, &t.CVerts[VNumber2*3] );
+					
+					if( !i1 )
+					{
+						i1 = RBA( lvps, &t.CVerts[VNumber1*3] ) = m->pGeos[0]->iVertexCount;
+						if( VNumber1 < t.CVertCount && VNumber1 >= 0 )
+							CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber1*3] );
+						else
+							CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+					}
+
+					if( !i2 )
+					{
+						i1 = RBA( lvps, &t.CVerts[VNumber2*3] ) = m->pGeos[0]->iVertexCount;
+						if( VNumber2 < t.CVertCount && VNumber2 >= 0 )
+							CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber2*3] );
+						else
+							CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+					}
+					
+					uint64_t paria = i1 | (((uint64_t)i2)<<32);
+					uint64_t parib = i2 | (((uint64_t)i1)<<32);
+					if( RBHAS( lvpsi, paria ) || RBHAS( lvpsi, parib ) ) continue;
+
+					//Now, examine if i1, i2 is already in the set.
+					CNOVRModelTackIndex( m, 1, i1 );
+					CNOVRModelTackIndex( m, 1, i2 );
 				}
-				else
+			}
+			else
+			{
+				for( p = 0; p < r; p++ )
 				{
+					int VNumber = atoi( buffer2[p][0] ) - 1;
+					int TNumber = atoi( buffer2[p][1] ) - 1;
+					int NNumber = atoi( buffer2[p][2] ) - 1;
+
 					CNOVRModelTackIndex( m, 1, indices++ );
+					if( VNumber < t.CVertCount && VNumber >= 0 )
+						CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
+					else
+						CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+
+					if( TNumber < t.CTexCount && TNumber >= 0 )
+						CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber*4] );
+					else
+						CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+
+					if( NNumber < t.CNormalCount && NNumber >= 0 )
+						CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber*3] );
+					else
+						CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
 				}
 
-				if( VNumber < t.CVertCount && VNumber >= 0 )
-					CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber*3] );
-				else
-					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
-
-				if( TNumber < t.CTexCount && TNumber >= 0 )
-					CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber*4] );
-				else
-					CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
-
-				if( NNumber < t.CNormalCount && NNumber >= 0 )
-					CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber*3] );
-				else
-					CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
 			}
 		}
 		else if( tolower( line[0] ) == 'o' )
@@ -1746,8 +1822,13 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 		}
 	}
 
-	//printf( "LOADED MODEL %d INDICES\n", indices );
+	printf( "LOADED MODEL {%s} %d INDICES\n", filename, indices );
 
+	if( lvps )
+	{
+		cnrbtree_cnovr_point3dint_destroy( lvps );
+		cnrbtree_uint64_trbset_null_t_destroy( lvpsi );
+	}
 	if( t.CVerts ) free( t.CVerts ); 
 	if( t.CTexs ) free( t.CTexs ); 
 	if( t.CNormals ) free( t.CNormals ); 

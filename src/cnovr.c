@@ -37,7 +37,7 @@ void InternalCNOVRFocusShutdown();
 void InternalCNOVRFocusUpdate();
 void InternalSetupNamedPtrs();
 
-#define MULTISAMPLE 1
+#define MULTISAMPLE 0
 
 void HandleKey( int keycode, int bDown )
 {
@@ -140,8 +140,13 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->sterotargets[1] = 0;
 		cnovrstate->previewtarget = 0;
 		cnovrstate->fPreviewFOV = 95;
-		pose_make_identity( &cnovrstate->pPreviewPose );
 
+		//Initial camrea
+		pose_make_identity( &cnovrstate->pPreviewPose );
+		cnovrstate->pPreviewPose.Pos[0] = 0;
+		cnovrstate->pPreviewPose.Pos[1] = 0;
+		cnovrstate->pPreviewPose.Pos[2] = -3;
+		
 		ovrprintf( "Continuing state update.\n" );
 
 		if( has_vr )
@@ -188,6 +193,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		ovrprintf( "Debug installed\n" );
 	}
 
+
+
 	//More OpenGL Setup
 	int i;
 	for( i = 0; i < 8; i++ )
@@ -198,6 +205,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
 	printf( "Malloced State: %p;;; %p = %p\n", cnovrstate, &cnovrstate->pRootNode, cnovrstate->pRootNode );
+
 
 	CNOVRInternalStartCacheSystem();
 	CNOVRJobInit();
@@ -361,9 +369,6 @@ void CNOVRUpdate()
 		matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, cnovrstate->fNear, cnovrstate->fFar );
 		matrix44identity( cnovrstate->mModel );
 
-		cnovrstate->pPreviewPose.Pos[0] = 0;
-		cnovrstate->pPreviewPose.Pos[1] = 0;
-		cnovrstate->pPreviewPose.Pos[2] = -3;
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 
 		//CNOVRFBufferActivate( cnovrstate->previewtarget );
@@ -381,7 +386,6 @@ void CNOVRUpdate()
 	}
 
 	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );
-	cnovrstate->fFrameTimems = (OGGetAbsoluteTime()-FrameStart)*1000;
 
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
 #else
@@ -396,6 +400,8 @@ void CNOVRUpdate()
 	CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
+	glFinish();
+	cnovrstate->fFrameTimems = (OGGetAbsoluteTime()-FrameStart)*1000;
 
 }
 

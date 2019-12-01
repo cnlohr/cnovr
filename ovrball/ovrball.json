@@ -14,13 +14,9 @@
 			"disabled" : true,
 		},
 		{
-			"cfile" : "example_setup/example.c",
-			"identifier" : "example1",
-			"additionalfiles" : [
-				"another1.h",
-				"another2.h"
-			],
-			"disabled" : true,
+			"cfile" : "assets/camera.c",
+			"identifier" : "",
+			"disabled" : false,
 		},
 		{
 			"cfile" : "ovrball.c",

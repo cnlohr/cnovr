@@ -444,7 +444,7 @@ void RenderFunction( void * tag, void * opaquev )
 	playareacollide->iRenderMesh = 0;
 
 	//Wash over the scene to prevent lines from overdrawing.
-	CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
+//	CNOVRModelRenderWithPose( playareacollide, &playareaposeepisilondown );
 
 	glDepthFunc( GL_LEQUAL );
 
@@ -518,9 +518,9 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRModelLoadFromFileAsync( isosphere, "isosphere.obj:lineify" );
 	ResetIsosphere();
 
-	paddle = CNOVRModelCreate( 0, GL_LINE_STRIP );
+	paddle = CNOVRModelCreate( 0, GL_LINES );
 	paddle->pose = 0;
-	CNOVRModelLoadFromFileAsync( paddle, "paddle.obj" );
+	CNOVRModelLoadFromFileAsync( paddle, "paddle.obj:lineify" );
 	pose_make_identity( &paddetransform );
 
 	cnovr_euler_angle eu = { 3.14159-.5, 0, 0 };
