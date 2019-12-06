@@ -36,9 +36,12 @@ static void RenderFunction( void * tag, void * opaquev )
 
 static void UpdateCamera()
 {
+	cnovr_pose pin;
+	memcpy( &pin,  &store->posecamera, sizeof( cnovr_pose ) );
+	pin.Scale = 1;
 	cnovr_pose pinvert;
-	store->posecamera.Scale = 1;
-	pose_invert( &pinvert,  &store->posecamera );
+	pose_invert( &pinvert, &pin );
+	pinvert.Scale = 1;
 	memcpy( &cnovrstate->pPreviewPose, &pinvert, sizeof( cnovr_pose ) );
 }
 
