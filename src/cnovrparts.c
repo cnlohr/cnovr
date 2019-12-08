@@ -1891,6 +1891,14 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 {
 	RenderModel_t * pModel = NULL;
 
+	int lineify = 0;
+	int flipv = 1;
+	if( modifiers )
+	{
+		if( strstr( modifiers, "lineify" ) ) lineify = 1;
+		if( strstr( modifiers, "noflipv" ) ) flipv = 0;
+	}
+
 	int rnnamelen = pchRenderModelNameIn?strlen( pchRenderModelNameIn ):0;
 	if( !rnnamelen )
 	{
@@ -1939,16 +1947,100 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 	CNOVRModelSetNumIndices( m, 0 );
 	CNOVRDelinateGeometry( m, pchRenderModelName );
 	int i;
-	for( i = 0; i < pModel->unVertexCount; i++ )
+	if( lineify )
 	{
-		RenderModel_Vertex_t * v = pModel->rVertexData + i;
-		CNOVRVBOTackv( m->pGeos[0], 3, v->vPosition.v );
-		CNOVRVBOTackv( m->pGeos[1], 2,  v->rfTextureCoord );
-		CNOVRVBOTackv( m->pGeos[2], 3, v->vNormal.v );
+		linevertexpair * lvps = 0;
+		indexpairset   * lvpsi = 0;
+		lvps = cnrbtree_cnovr_point3dint_create();
+		lvpsi = cnrbtree_int64_trbset_null_t_create();
+
+		for( i = 0; i < pModel->unTriangleCount*3; i++ )
+		{
+			int iao1o = i;
+			int iao2o = ((i%3)!=2)?(i+1):(i-2);
+			int VNumber1 = pModel->rIndexData[iao1o];
+			int VNumber2 = pModel->rIndexData[iao2o];
+
+			RenderModel_Vertex_t * v1 = pModel->rVertexData + VNumber1;
+			RenderModel_Vertex_t * v2 = pModel->rVertexData + VNumber2;
+
+			cnovr_point3d va;
+			cnovr_point3d vb;
+			copy3d( va, v1->vPosition.v );
+			copy3d( vb, v2->vPosition.v );
+			int i1;
+			int i2;
+			if( !RBHAS( lvps, va ) )
+			{
+				i1 = RBA( lvps, va ) = m->pGeos[0]->iVertexCount;
+				if( VNumber1 < pModel->unVertexCount && VNumber1 >= 0 )
+				{
+					CNOVRVBOTackv( m->pGeos[0], 3, v1->vPosition.v );
+					CNOVRVBOTackv( m->pGeos[1], 2, v1->rfTextureCoord );
+					CNOVRVBOTackv( m->pGeos[2], 3, v1->vNormal.v );
+				}
+				else
+				{
+					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+					CNOVRVBOTack( m->pGeos[1], 2, 0, 0 );
+					CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
+				}
+			}
+			else
+			{
+				i1 = RBA( lvps, va );
+			}
+			if( !RBHAS( lvps, vb ) )
+			{
+				i2 = RBA( lvps, vb ) = m->pGeos[0]->iVertexCount;
+				if( VNumber2 < pModel->unVertexCount && VNumber2 >= 0 )
+				{
+					CNOVRVBOTackv( m->pGeos[0], 3, v2->vPosition.v );
+					CNOVRVBOTackv( m->pGeos[1], 2, v2->rfTextureCoord );
+					CNOVRVBOTackv( m->pGeos[2], 3, v2->vNormal.v );
+				}
+				else
+				{
+					CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+					CNOVRVBOTack( m->pGeos[1], 2, 0, 0 );
+					CNOVRVBOTack( m->pGeos[2], 3, 0, 0, 0 );
+				}
+			}
+			else
+			{
+				i2 = RBA( lvps, vb );
+			}
+			int64_t paria = i1 | (((int64_t)i2)<<32);
+			int64_t parib = i2 | (((int64_t)i1)<<32);
+			//printf( "%llx %llx  %p %p\n", (uint64_t)paria, (uint64_t)parib, RBHAS( lvpsi, paria ), RBHAS( lvpsi, parib ) );
+			if( !RBHAS( lvpsi, paria ) && !RBHAS( lvpsi, parib ) )
+			{
+				lvpsi->access( lvpsi, paria );
+				
+				//Now, examine if i1, i2 is already in the set.
+				CNOVRModelTackIndex( m, 2, i1, i2 );
+			}
+		}
+
+		cnrbtree_cnovr_point3dint_destroy( lvps );
+		cnrbtree_int64_trbset_null_t_destroy( lvpsi );
+
 	}
-	for( i = 0; i < pModel->unTriangleCount; i++ )
+	else
 	{
-		CNOVRModelTackIndex( m, 3, pModel->rIndexData[i*3+0], pModel->rIndexData[i*3+1], pModel->rIndexData[i*3+2] );
+		//Regular triangles
+		for( i = 0; i < pModel->unVertexCount; i++ )
+		{
+			RenderModel_Vertex_t * v = pModel->rVertexData + i;
+			CNOVRVBOTackv( m->pGeos[0], 3, v->vPosition.v );
+			if( !flipv ) v->rfTextureCoord[1] = 1-v->rfTextureCoord[1];
+			CNOVRVBOTackv( m->pGeos[1], 2, v->rfTextureCoord );
+			CNOVRVBOTackv( m->pGeos[2], 3, v->vNormal.v );
+		}
+		for( i = 0; i < pModel->unTriangleCount; i++ )
+		{
+			CNOVRModelTackIndex( m, 3, pModel->rIndexData[i*3+0], pModel->rIndexData[i*3+1], pModel->rIndexData[i*3+2] );
+		}
 	}
 
 	if( m->iTextures == 0 )

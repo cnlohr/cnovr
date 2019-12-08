@@ -14,7 +14,13 @@
 			"disabled" : true,
 		},
 		{
-			"cfile" : "assets/camera.c",
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "",
+			"comment":"lineify",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/camera/camera.c",
 			"identifier" : "",
 			"disabled" : false,
 		},

@@ -526,7 +526,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	printf( "+++ Example scene setup\n" );
 	int i;
 	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
-	shaderBlack = CNOVRShaderCreate( "assets/black" );
+	shaderBlack = CNOVRShaderCreate( "assets/blackmask" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 
 	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64 );

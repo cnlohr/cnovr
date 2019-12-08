@@ -53,10 +53,10 @@ struct cnovrstate_t
 	//These are things like lighthouses, HMD, controllers, etc.
 	struct TrackedDevicePose_t * openvr_renderposes;
 	struct TrackedDevicePose_t * openvr_trackedposes;
-	cnovr_pose * pRenderPoses;
-	cnovr_pose * pTrackedPoses;
-	uint8_t * bRenderPosesValid;
-	uint8_t * bTrackedPosesValid;
+	cnovr_pose * pRenderPoses; //Array
+	cnovr_pose * pTrackedPoses; //Array
+	uint8_t * bRenderPosesValid; //Array
+	uint8_t * bTrackedPosesValid; //Array
 	cnovr_pose * pEyeToHead; 
 
 	cnovr_pose pPreviewPose;

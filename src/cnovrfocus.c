@@ -16,11 +16,8 @@ typedef struct internal_focus_system_t
 	VRActionHandle_t actionhandles[CNOVRINPUTDEVS][CTRLA_MAX];
 	InputOriginInfo_t originInfo[CNOVRINPUTDEVS];
 	InputPoseActionData_t poseData[CNOVRINPUTDEVS];
-	char * rendermodelnames[CNOVRINPUTDEVS];
-	cnovr_shader * shdRenderModel;
-	cnovr_model  * mdlRenderModels[CNOVRINPUTDEVS];
 	cnovr_pose      poseController[CNOVRINPUTDEVS];
-	bool bShowController[CNOVRINPUTDEVS];
+	int bShowController[CNOVRINPUTDEVS];
 
 	cnovr_model * mdlPointer;
 	cnovr_model * mdlHitPos;
@@ -53,6 +50,7 @@ cnovr_pose * CNOVRFocusGetTipPose( int device )
 void FocusSystemRender( void * tag, void * opaque )
 {
 	internal_focus_system * f = &FOCUS;
+#if 0
 	if( f->shdRenderModel )
 	{
 		int i;
@@ -67,7 +65,7 @@ void FocusSystemRender( void * tag, void * opaque )
 			}
 		}
 	}
-
+#endif
 	if( f->shdPointer )
 	{
 		int i;
@@ -236,6 +234,7 @@ void InternalCNOVRFocusUpdate()
 		}
 		else
 		{
+#if 0
 			CNOVRPoseFromHMDMatrix( &FOCUS.poseController[ctrl], &p->pose.mDeviceToAbsoluteTracking );
 
 			InputOriginInfo_t * o = &FOCUS.originInfo[ctrl];
@@ -262,9 +261,10 @@ void InternalCNOVRFocusUpdate()
 					}
 				}
 			}
+#endif
 			FOCUS.bShowController[ctrl] = 1;
 		}
-		
+
 		if( FOCUS.capFocusTemp != props->capturedFocus )
 		{
 			OGLockMutex( FOCUS.mutFocus );
@@ -289,7 +289,7 @@ void InternalCNOVRFocusPrerenderStartup()
 	CNOVRModelAppendCube( FOCUS.mdlHitPos, (cnovr_point3d){ .0055, .0055, .0055 }, 0, 0 );
 	CNOVRModelAppendCube( FOCUS.mdlPointer, (cnovr_point3d){ .002, .002, CNOVRFOCUS_FAR }, 0, 0 );
 	FOCUS.shdPointer = CNOVRShaderCreate( "pointer" );	
-	FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
+	//FOCUS.shdRenderModel = CNOVRShaderCreate( "rendermodel" );
 }
 
 

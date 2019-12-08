@@ -670,6 +670,7 @@ struct ImportList
 	TCCExport( CNOVRFocusRemoveTag )
 	TCCExportS( CNOVRFocusGetTipPose )
 	TCCExportS( CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA )
+	TCCExportS( CNOVRGetTrackedDeviceString )
 	TCCExportS( cnovr_interpolate )
 	TCCExportS( cross3d )
 	TCCExportS( sub3d )
