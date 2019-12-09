@@ -136,7 +136,7 @@ void CalibrateCameraFromTrackingPoints( cnovr_pose * pcamout, cnovr_point3d * ca
 	float f1 = pcamout->Rot[1];
 	float f2 = pcamout->Rot[2];
 	float f3 = pcamout->Rot[3];
-	pcamout->Rot[0] = -f0; //?!?!?!
+	pcamout->Rot[0] = -f0; //?!?!?! WAT?!
 	pcamout->Rot[1] = f1;
 	pcamout->Rot[2] = f2;
 	pcamout->Rot[3] = f3;
@@ -145,9 +145,11 @@ void CalibrateCameraFromTrackingPoints( cnovr_pose * pcamout, cnovr_point3d * ca
 
 	printf( "QUAT: %f %f %f %f\n", PFFOUR( pcamout->Rot ) );
 	printf( "Dot apart: %f\n", dot3d( vsa, vsb ) );
-	float calfov = acos( dot3d( vsa, vsb ) ) * 1080./1920.;
-	printf( "Calfov: %f\n", calfov );
-	cnovrstate->fPreviewFOV = 180.0 * calfov / (1.-CAM_CAL_EDGE_DIST_RATIO) / 3.14159;
+	float vfov = acos( dot3d( vsa, vsb ) );
+	//From https://wiki.panotools.org/Field_of_View
+	float hfov = 2 * atan( tan( vfov/2.0 ) * (float)videoH / (float)videoW );
+	printf( "vfov: %f  hfov: %f\n", vfov*180/3.14159, hfov*180/3.14159 );
+	cnovrstate->fPreviewFOV = 180.0 * hfov / (1.-CAM_CAL_EDGE_DIST_RATIO) / 3.14159;
 	printf( "fPreviewFOV: %f\n", cnovrstate->fPreviewFOV );
 }
 
