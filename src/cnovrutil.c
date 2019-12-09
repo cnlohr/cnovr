@@ -1234,11 +1234,12 @@ void CNOVRListSystemDestroy()
 	}
 }
 
-void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
+int CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 {
 	cnhashtable * t = ListHTs[l];
 	og_mutex_t  m = ListMTs[l];
 	int i;
+	int hit = 0;
 	OGTSLockMutex( m );
 	for( i = 0; i < t->array_size; i++ )
 	{
@@ -1247,12 +1248,14 @@ void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 		//printf( "Update CALL %p %p\n", e, jle );
 		if( jle && jle->fn )
 		{
+			hit++;
 			OGTSUnlockMutex( m );
 			if( jle->fn ) TCCInvocation( jle->tcctag, jle->fn( e->key, data ) );
 			OGTSLockMutex( m );
 		}
 	}
 	OGTSUnlockMutex( m );
+	return hit;
 }
 
 

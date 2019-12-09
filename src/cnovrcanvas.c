@@ -20,7 +20,10 @@ static void CNOVRCanvasDelete( cnovr_canvas * ths )
 
 static void CNOVRCanvasRender( cnovr_canvas * ths )
 {
-	CNOVRRender( ths->shd );
+	if( ths->overrideshd )
+		CNOVRRender( ths->overrideshd );
+	else
+		CNOVRRender( ths->shd );
 	if( ths->set_filter_type < 10 )
 	{
 		glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
@@ -129,6 +132,26 @@ void CNOVRCanvasResize( cnovr_canvas * c, int w, int h )
 	c->h = h;
 	c->data = rmap;
 }
+
+void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy )
+{
+	sx /= 2;
+	sy /= 2;
+	float * pf = c->model->pGeos[0]->pVertices;
+	
+	pf[0] = pf[6] = pf[15] = pf[21] = -sx;
+	pf[3] = pf[9] = pf[12] = pf[18] = sx;
+
+	pf[1] = pf[4] = pf[13] = pf[16] = -sy;
+	pf[7] = pf[10] = pf[19] = pf[22] = sy;
+
+	CNOVRVBOTaint( c->model->pGeos[0] );
+//	CNOVRModelClearMeshes( c->model );
+//	cnovr_point4d extradata = { 0, 0, 0, 0 };
+//	CNOVRModelAppendMesh( c->model, 1, 1, 1, (cnovr_point3d){  aspect_ratio, 1, 0 }, 0, &extradata );
+//	CNOVRModelAppendMesh( c->model, 1, 1, 1, (cnovr_point3d){ -aspect_ratio, 1, 0 }, 0, &extradata );
+}
+
 
 void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y )
 {

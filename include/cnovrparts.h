@@ -117,6 +117,7 @@ typedef struct cnovr_texture_t
 	uint8_t bLoading;
 	uint8_t bFileChangeFlag;
 	uint8_t bCalculateMipMaps;
+	uint8_t bBypassTextureID;
 
 	og_mutex_t mutProtect;
 } cnovr_texture;
@@ -212,6 +213,7 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices );
 void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices );
 void CNOVRModelResetMarks( cnovr_model * m );
 
+void CNOVRModelClearMeshes( cnovr_model * m );
 void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata );
 void CNOVRModelAppendMesh( cnovr_model * m, int rows, int cols, int flipv, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata );
 

@@ -18,6 +18,7 @@ typedef struct cnovr_canvas_t
 	cnovr_model * model;
 	cnovr_pose  * pose;
 	cnovr_shader * shd;
+	cnovr_shader * overrideshd;
 	cnovrfocus_capture capture;
 	char * canvasname;
 	int set_filter_type;
@@ -30,6 +31,7 @@ typedef struct cnovr_canvas_t
 
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h );
 void CNOVRCanvasResize( cnovr_canvas * c, int w, int h );
+void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy );
 void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y );
 void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int scale );
 void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 );

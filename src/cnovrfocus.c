@@ -17,7 +17,7 @@ typedef struct internal_focus_system_t
 	InputOriginInfo_t originInfo[CNOVRINPUTDEVS];
 	InputPoseActionData_t poseData[CNOVRINPUTDEVS];
 	cnovr_pose      poseController[CNOVRINPUTDEVS];
-	int bShowController[CNOVRINPUTDEVS];
+	int bShowControllerPointer[CNOVRINPUTDEVS];
 
 	cnovr_model * mdlPointer;
 	cnovr_model * mdlHitPos;
@@ -50,22 +50,6 @@ cnovr_pose * CNOVRFocusGetTipPose( int device )
 void FocusSystemRender( void * tag, void * opaque )
 {
 	internal_focus_system * f = &FOCUS;
-#if 0
-	if( f->shdRenderModel )
-	{
-		int i;
-		CNOVRRender( f->shdRenderModel );
-		for( i = 0; i < CNOVRINPUTDEVS; i++ )
-		{
-			if( !FOCUS.bShowController[i] ) continue;
-			cnovr_model * m = f->mdlRenderModels[i];
-			if( m )
-			{
-				CNOVRModelRenderWithPose( m, &f->poseController[i] );
-			}
-		}
-	}
-#endif
 	if( f->shdPointer )
 	{
 		int i;
@@ -75,7 +59,7 @@ void FocusSystemRender( void * tag, void * opaque )
 		
 		for( i = 0; i < CNOVRINPUTDEVS; i++ )
 		{
-			if( !FOCUS.bShowController[i] ) continue;
+			if( !FOCUS.bShowControllerPointer[i] ) continue;
 			cnovrfocus_properties * props = f->focusProps + i;
 
 			if( mp )
@@ -230,39 +214,11 @@ void InternalCNOVRFocusUpdate()
 			ETrackingUniverseOrigin_TrackingUniverseStanding, p, sizeof( *p ), k_ulInvalidInputValueHandle ); 
 		if( ret || !p->bActive || !p->pose.bPoseIsValid )
 		{
-			FOCUS.bShowController[ctrl] = 0;
+			FOCUS.bShowControllerPointer[ctrl] = 0;
 		}
 		else
 		{
-#if 0
-			CNOVRPoseFromHMDMatrix( &FOCUS.poseController[ctrl], &p->pose.mDeviceToAbsoluteTracking );
-
-			InputOriginInfo_t * o = &FOCUS.originInfo[ctrl];
-
-			if ( cnovrstate->oInput->GetOriginTrackedDeviceInfo( p->activeOrigin, o, sizeof( *o ) ) == EVRInputError_VRInputError_None 
-				&& o->trackedDeviceIndex != k_unTrackedDeviceIndexInvalid )
-			{
-				if( FOCUS.rendermodelnames[ctrl] == 0 || FOCUS.bShowController[ctrl] == 0 )
-				{
-					char * rmname = CNOVRGetTrackedDeviceString( o->trackedDeviceIndex, ETrackedDeviceProperty_Prop_RenderModelName_String );
-					if( rmname && (!FOCUS.rendermodelnames[ctrl] || strcmp( FOCUS.rendermodelnames[ctrl], rmname ) != 0 ) )
-					{
-						int rmlen = strlen( rmname );
-						if( rmlen < 128 )
-						{
-							if( FOCUS.rendermodelnames[ctrl] ) free(  FOCUS.rendermodelnames[ctrl] );
-							rmname = FOCUS.rendermodelnames[ctrl] = strdup( rmname );
-							cnovr_model * m = FOCUS.mdlRenderModels[ctrl];
-							if( !m ) m = FOCUS.mdlRenderModels[ctrl] = CNOVRModelCreate( 0, GL_TRIANGLES );
-							char rmname2[256];
-							sprintf( rmname2, "%s.rendermodel", rmname );
-							CNOVRModelLoadFromFileAsync( m, rmname2 );
-						}
-					}
-				}
-			}
-#endif
-			FOCUS.bShowController[ctrl] = 1;
+			FOCUS.bShowControllerPointer[ctrl] = 1;
 		}
 
 		if( FOCUS.capFocusTemp != props->capturedFocus )

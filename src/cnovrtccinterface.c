@@ -669,8 +669,14 @@ struct ImportList
 	TCCExport( CNOVRFocusAcquire )
 	TCCExport( CNOVRFocusRemoveTag )
 	TCCExportS( CNOVRFocusGetTipPose )
+	TCCExportS( CNOVRRFBufferCreate )
 	TCCExportS( CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA )
 	TCCExportS( CNOVRGetTrackedDeviceString )
+	TCCExportS( CNOVRListCall )
+	TCCExportS( CNOVRFBufferActivate )
+	TCCExportS( CNOVRFBufferBlitResolve )
+	TCCExportS( CNOVRCanvasSetPhysicalSize )
+	TCCExportS( glActiveTextureCHEW )
 	TCCExportS( cnovr_interpolate )
 	TCCExportS( cross3d )
 	TCCExportS( sub3d )
@@ -777,6 +783,7 @@ struct ImportList
 	TCCExportS( glTexSubImage2D )
 	TCCExportS( glDepthMask )
 	TCCExportS( glHint )
+	
 	TCCExportS( glDisable )
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
@@ -793,6 +800,7 @@ struct ImportList
 	TCCExportS( strcpy )
 	TCCExportS( snprintf )
 	TCCExportS( sprintf )
+	TCCExportS( stat )
 	TCCExportS( atoi )
 
 	TCCExportS( strncpy )

@@ -147,8 +147,6 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 		return 0;
 	}
 
-	printf( "Framebuffers set up\n" );
-
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
 	if( !multisample )
@@ -1068,6 +1066,15 @@ void CNOVRModelTackIndexv( cnovr_model * m, int nindices, uint32_t * indices )
 	m->iIndexCount = m->iIndexCount + nindices;
 }
 
+void CNOVRModelClearMeshes( cnovr_model * m )
+{
+	OGLockMutex( m->model_mutex );
+	CNOVRModelSetNumVBOsWithStrides( m, 0 );
+	CNOVRModelSetNumIndices( m, 0 );
+	CNOVRModelResetMarks( m );
+	OGUnlockMutex( m->model_mutex );
+}
+
 void CNOVRModelAppendCube( cnovr_model * m, cnovr_point3d size, cnovr_pose * poseofs_optional, cnovr_point4d * extradata )
 {
 	cnovr_pose * pose = poseofs_optional?poseofs_optional:&cnovr_pose_identity;
@@ -1940,7 +1947,6 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	if( m->iGeos != 3 )
 	{
-		printf( "Setting with strides\n" );
 		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 2, 3 );
 		CNOVRModelResetMarks( m );
 	}

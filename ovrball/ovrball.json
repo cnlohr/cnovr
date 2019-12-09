@@ -15,13 +15,13 @@
 		},
 		{
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
-			"identifier" : "",
+			"identifier" : "lineify",
 			"comment":"lineify",
 			"disabled" : false,
 		},
 		{
 			"cfile" : "modules/camera/camera.c",
-			"identifier" : "",
+			"identifier" : "advanced,preview",
 			"disabled" : false,
 		},
 		{

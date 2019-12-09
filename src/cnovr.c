@@ -129,7 +129,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		
 		memset( cnovrstate, 0, sizeof( *cnovrstate ) );
 		cnovrstate->fNear = 0.01;
-		cnovrstate->fFar = 100.0;
+		cnovrstate->fFar = 1000.0;
 		cnovrstate->has_ovr = has_vr;
 		cnovrstate->has_preview = screenx!=0 && screeny != 0;
 		cnovrstate->iEyeRenderWidth = -1;
@@ -138,9 +138,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->iPreviewHeight = -1;
 		cnovrstate->sterotargets[0] = 0;
 		cnovrstate->sterotargets[1] = 0;
-		cnovrstate->previewtarget[0] = 0;
-		cnovrstate->previewtarget[1] = 0;
-		cnovrstate->fPreviewFOV = 95;
+		cnovrstate->fPreviewFOV = 100;
+		cnovrstate->multisample = MULTISAMPLE;
 
 		//Initial camrea
 		pose_make_identity( &cnovrstate->pPreviewPose );
@@ -203,9 +202,11 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		glEnableVertexAttribArray( i ); //m->pGeos[i]->nVBO);
 	}
 
+	cnovrstate->asTrackedDeviceSerialStrings = calloc( MAX_POSES_TO_PULL_FROM_OPENVR, sizeof( const char * ) );
+	cnovrstate->asTrackedDeviceModelStrings = calloc( MAX_POSES_TO_PULL_FROM_OPENVR, sizeof( const char * ) );
 
-	cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
-	printf( "Malloced State: %p;;; %p = %p\n", cnovrstate, &cnovrstate->pRootNode, cnovrstate->pRootNode );
+	//cnovrstate->pRootNode = CNOVRNodeCreateSimple( 1 );
+	//printf( "Malloced State: %p;;; %p = %p\n", cnovrstate, &cnovrstate->pRootNode, cnovrstate->pRootNode );
 
 
 	CNOVRInternalStartCacheSystem();
@@ -217,9 +218,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	{
 		cnovrstate->fullscreengeo = CNOVRModelCreate( 0, GL_TRIANGLES );
 		cnovr_point3d size = { 1., 1., 1. };
-		cnovrstate->fPreviewForegroundSplitDistance = 2.6;
 		CNOVRModelAppendMesh( cnovrstate->fullscreengeo, 1, 1, 0, size, 0, 0 );
-		cnovrstate->fullscreenshader = CNOVRShaderCreate( "previewwindow" );
 	}
 
 
@@ -248,21 +247,40 @@ void CNOVRUpdate()
 
 		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
 		{
-			if( ( cnovrstate->bRenderPosesValid[i] = cnovrstate->openvr_renderposes[i].bPoseIsValid ) )
+			struct TrackedDevicePose_t * trenderpose = &cnovrstate->openvr_renderposes[i];
+			struct TrackedDevicePose_t * ttrackedpose = &cnovrstate->openvr_trackedposes[i];
+
+			if( ( cnovrstate->bRenderPosesValid[i] = trenderpose->bPoseIsValid ) )
 			{
-				CNOVRPoseFromHMDMatrix( &cnovrstate->pRenderPoses[i], &cnovrstate->openvr_renderposes[i].mDeviceToAbsoluteTracking );
+				CNOVRPoseFromHMDMatrix( &cnovrstate->pRenderPoses[i], &trenderpose->mDeviceToAbsoluteTracking );
 			}
 
-			if( ( cnovrstate->bTrackedPosesValid[i] = cnovrstate->openvr_trackedposes[i].bPoseIsValid ) )
+			if( ( cnovrstate->bTrackedPosesValid[i] = ttrackedpose->bPoseIsValid ) )
 			{
-				CNOVRPoseFromHMDMatrix( &cnovrstate->pTrackedPoses[i], &cnovrstate->openvr_trackedposes[i].mDeviceToAbsoluteTracking );
+				CNOVRPoseFromHMDMatrix( &cnovrstate->pTrackedPoses[i], &ttrackedpose->mDeviceToAbsoluteTracking );
+			}
+
+			if( ttrackedpose->bPoseIsValid || trenderpose->bPoseIsValid )
+			{
+				if( !cnovrstate->asTrackedDeviceSerialStrings[i] )
+				{
+					const char * rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_SerialNumber_String );
+					if( rv && rv[0] )
+					{
+						cnovrstate->asTrackedDeviceSerialStrings[i] = strdup( rv );
+						//We should be able to get model number by now.  If not something crazy happened.
+						rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_ModelNumber_String );
+						cnovrstate->asTrackedDeviceModelStrings[i] = rv?strdup( rv ):strdup("");
+						printf( "Found tracked device %d: %s: %s\n", i, cnovrstate->asTrackedDeviceSerialStrings[i], cnovrstate->asTrackedDeviceModelStrings[i] );
+					}
+				}
 			}
 		}
 	}
 	FrameStart = OGGetAbsoluteTime();
 
 	//Update + prerender
-	cnovr_simple_node * root = cnovrstate->pRootNode;
+	//cnovr_simple_node * root = cnovrstate->pRootNode;
 
 	//Scene Graph Pre-Render
 	CNOVRListCall( cnovrLUpdate, 0, 0 );
@@ -300,10 +318,6 @@ void CNOVRUpdate()
 		CNFGGetDimensions( &iPreviewWidth, &iPreviewHeight );
 		if( iPreviewWidth != cnovrstate->iPreviewWidth || iPreviewHeight != cnovrstate->iPreviewHeight )
 		{
-			CNOVRDelete( cnovrstate->previewtarget[0] );
-			CNOVRDelete( cnovrstate->previewtarget[1] );
-			cnovrstate->previewtarget[0] = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, MULTISAMPLE );
-			cnovrstate->previewtarget[1] = CNOVRRFBufferCreate( iPreviewWidth, iPreviewHeight, MULTISAMPLE );
 			cnovrstate->iPreviewWidth  = iPreviewWidth;
 			cnovrstate->iPreviewHeight = iPreviewHeight;
 		}
@@ -348,7 +362,7 @@ void CNOVRUpdate()
 			int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
 			glViewport(0, 0, width, height );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-			root->base.header->Render( root );
+			//root->base.header->Render( root );
 			CNOVRListCall( cnovrLRender0, 0, 0); 
 			CNOVRListCall( cnovrLRender1, 0, 0); 
 			CNOVRListCall( cnovrLRender2, 0, 0); 
@@ -371,10 +385,29 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Render Check\n" );
 
-	//XXX TODO: How do we know when we need to update the preview window?
-	//XXX TODO: blit renderbuffer to frame?  (as an alternative to a separate render view for preview)
 	if( cnovrstate->has_preview )
 	{
+		int r = CNOVRListCall( cnovrLPreviewRender, 0, 0 );
+		if( !r )
+		{
+			int width = cnovrstate->iPreviewWidth;
+			int height = cnovrstate->iPreviewHeight;
+			cnovrstate->eyeTarget = 2;
+			matrix44identity( cnovrstate->mModel );
+//			printf( "%f %f %f   %f %f %f %f   %f\n", PFTHREE( cnovrstate->pPreviewPose.Pos ), PFFOUR( cnovrstate->pPreviewPose.Rot ), cnovrstate->pPreviewPose.Scale );
+			pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
+			matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, cnovrstate->fNear, cnovrstate->fFar );
+			glViewport(0, 0, width, height );
+			//glClearColor( 1, 0, 1, 1 );
+			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+			//root->base.header->Render( root );
+			CNOVRListCall( cnovrLRender0, 0, 0); 
+			CNOVRListCall( cnovrLRender1, 0, 0); 
+			CNOVRListCall( cnovrLRender2, 0, 0); 
+			CNOVRListCall( cnovrLRender3, 0, 0); 
+			CNOVRListCall( cnovrLRender4, 0, 0); 
+		}
+#if 0
 		int width = cnovrstate->iRTWidth = cnovrstate->iPreviewWidth;
 		int height = cnovrstate->iRTHeight = cnovrstate->iPreviewHeight;
 		cnovrstate->eyeTarget = 2;
@@ -413,6 +446,7 @@ void CNOVRUpdate()
 		glBindTexture( GL_TEXTURE_2D, cnovrstate->previewtarget[1]->nResolveTextureId );
 		CNOVRRender( cnovrstate->fullscreengeo );
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+#endif
 	}
 
 	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );

@@ -79,6 +79,7 @@ int CNOVRJobProcessQueueElement( cnovrQueueType q ); //returns 1 if queue still 
 //For real-time immediate responses, continuously calling, will not remove upon job completion.
 typedef enum
 {
+	//XXX Also need an asychronous "Update" function.
 	cnovrLUpdate,
 	cnovrLPrerender,
 	cnovrLCollide,
@@ -88,10 +89,12 @@ typedef enum
 	cnovrLRender3,
 	cnovrLRender4,
 	cnovrLPostRender,
+	cnovrLPreviewRender,
 	cnovrLMAX,
 } cnovrRunList;
 
-void CNOVRListCall( cnovrRunList l, void * data, int delete_on_call ); 
+//Returns # of called events.
+int CNOVRListCall( cnovrRunList l, void * data, int delete_on_call ); 
 void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
 void CNOVRListDeleteTag( void * base_object );
 void CNOVRListDeleteTCCTag( void * tcctag );

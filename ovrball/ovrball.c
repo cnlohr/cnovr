@@ -450,10 +450,10 @@ void UpdateFunction( void * tag, void * opaquev )
 	}
 
 	//Determine distance from camera to ball and set as foregreound point.
-	cnovr_point3d fvcamdist;
-	apply_pose_to_point(fvcamdist, &cnovrstate->pPreviewPose, isospherepose.Pos);
-	float fcamdist = -fvcamdist[2];
-	cnovrstate->fPreviewForegroundSplitDistance = fcamdist;
+	//cnovr_point3d fvcamdist;
+	//apply_pose_to_point(fvcamdist, &cnovrstate->pPreviewPose, isospherepose.Pos);
+	//float fcamdist = -fvcamdist[2];
+	//cnovrstate->fPreviewForegroundSplitDistance = fcamdist;
 
 	return;
 }

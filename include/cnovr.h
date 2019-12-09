@@ -31,8 +31,7 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap );
 struct cnovrstate_t
 {
 	//Current rendertarget
-	cnovr_rf_buffer * sterotargets[2];
-	cnovr_rf_buffer * previewtarget[2]; //Background and foreground.
+	cnovr_rf_buffer * sterotargets[2];	//Left and right eyes.
 
 	//GL State Stuff (in the "renderprops" array)
 	float iRTWidth;
@@ -43,12 +42,16 @@ struct cnovrstate_t
 	float mView[16];	//Current view matrix, changes per eye.     (SLOT=5)
 	float mPerspective[16];                                      // (SLOT=6)
 
-	cnovr_simple_node * pRootNode;
+	//cnovr_simple_node * pRootNode;
 
 	struct VR_IVRSystem_FnTable * oSystem;
 	struct VR_IVRRenderModels_FnTable * oRenderModels;
 	struct VR_IVRCompositor_FnTable * oCompositor;
 	struct VR_IVRInput_FnTable * oInput;
+
+	//Will be array of size MAX_POSES_TO_PULL_FROM_OPENVR of const char *
+	char ** asTrackedDeviceSerialStrings;
+	char ** asTrackedDeviceModelStrings;
 
 	//These are things like lighthouses, HMD, controllers, etc.
 	struct TrackedDevicePose_t * openvr_renderposes;
@@ -68,12 +71,11 @@ struct cnovrstate_t
 
 	//For doing final screen-output.
 	cnovr_model * fullscreengeo;
-	cnovr_shader * fullscreenshader;
-	float fPreviewForegroundSplitDistance;
 
 	uint8_t  eyeTarget;
 	uint8_t  has_ovr;
 	uint8_t  has_preview;
+	uint8_t  multisample;
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )
