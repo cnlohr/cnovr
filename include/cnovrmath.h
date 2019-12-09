@@ -227,7 +227,8 @@ void pose_to_matrix44(FLT *mat44, const cnovr_pose *pose_in);
 void matrix44_to_pose(cnovr_pose * poseout, const FLT * m44 );	//HMD43-safe.
 
 void matrix44copy(FLT *mout, const FLT *minm);
-void matrix44transpose(FLT *mout, const FLT *minm);
+void matrix44transposeunsafe(FLT *mout, const FLT *minm); //Cannot operate on self.
+void matrix44transposeself(FLT *mout );
 
 //General Matrix Functions
 void matrix44identity( FLT * f );

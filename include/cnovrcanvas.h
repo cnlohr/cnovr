@@ -5,8 +5,9 @@
 #include "cnovrfocus.h"
 
 struct cnovr_canvas_t;
+struct cnovr_canvas_canned_gui_element_t;
 
-typedef void (*canvas_canned_gui_cb)( struct cnovr_canvas_t * canvas, int iopaque, int rx, int ry, cnovrfocus_event event );
+typedef void (*canvas_canned_gui_cb)( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid );
 
 typedef struct cnovr_canvas_canned_gui_element_t
 {
@@ -14,7 +15,10 @@ typedef struct cnovr_canvas_canned_gui_element_t
 	int x, y;
 	canvas_canned_gui_cb cb;
 	const char * text;
+	const void * vopaque;
 	int iopaque;
+	int allowdrag;
+	int * disabled;
 } cnovr_canvas_canned_gui_element;
 
 typedef struct cnovr_canvas_t

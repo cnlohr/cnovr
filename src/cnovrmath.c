@@ -700,7 +700,7 @@ void quatfrom2vectors(FLT *q, const FLT *src, const FLT *dest) {
 
 void matrix44copy(FLT *mout, const FLT *minm) { memcpy(mout, minm, sizeof(FLT) * 16); }
 
-void matrix44transpose(FLT *mout, const FLT *minm) {
+void matrix44transposeunsafe(FLT *mout, const FLT *minm) {
 	mout[0] = minm[0];
 	mout[1] = minm[4];
 	mout[2] = minm[8];
@@ -720,6 +720,13 @@ void matrix44transpose(FLT *mout, const FLT *minm) {
 	mout[13] = minm[7];
 	mout[14] = minm[11];
 	mout[15] = minm[15];
+}
+
+void matrix44transposeself(FLT *mout )
+{
+	float mtmp[16];
+	memcpy( mtmp, mout, sizeof( mtmp ) );
+	matrix44transposeunsafe( mout, mtmp );
 }
 
 void apply_pose_to_point(cnovr_point3d pout, const cnovr_pose *pose, const cnovr_point3d pin) {

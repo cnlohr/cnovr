@@ -52,23 +52,34 @@ static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 	{
 		CNOVRNamedPtrSave( c->canvasname );
 	}
-	if( ( event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS ) && ( c->pCannedGUI ) && buttoninfo == CTRLA_TRIGGER )
+	if( ( event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_MOTION ) && ( c->pCannedGUI ) && buttoninfo == CTRLA_TRIGGER )
 	{
-		int hx = (int)(prop->NewPassiveProps[0] * c->w);
-		int hy = (int)(prop->NewPassiveProps[1] * c->h);
-		const cnovr_canvas_canned_gui_element * curcan = c->pCannedGUI;
-		while( curcan->w != 0 || curcan->h != 0 )
+		int skip = 0;
+		if( event == CNOVRF_MOTION ) 
 		{
-			int x = curcan->x;
-			int y = curcan->y;
-			int w = curcan->w;
-			int h = curcan->h;
-
-			if( curcan->cb && hx >= x && hx <= x + w && hy >= y && hy <= y + h )
+			if( !( prop->buttonmask[0] & 1 ) ) skip = 1;
+		}
+		if( !skip )
+		{
+			int hx = (int)(prop->NewPassiveProps[0] * c->w);
+			int hy = (int)(prop->NewPassiveProps[1] * c->h);
+			const cnovr_canvas_canned_gui_element * curcan = c->pCannedGUI;
+			while( curcan->w != 0 || curcan->h != 0 )
 			{
-				curcan->cb( c, curcan->iopaque, hx-x, hy-y, event );
+				int x = curcan->x;
+				int y = curcan->y;
+				int w = curcan->w;
+				int h = curcan->h;
+				int allowdrag = curcan->allowdrag;
+				if( event == CNOVRF_MOTION && !allowdrag ) { curcan++; continue; }
+
+				if( curcan->cb && hx >= x && hx <= x + w && hy >= y && hy <= y + h && 
+					( curcan->disabled == 0 || (*curcan->disabled) == 0 ) )
+				{
+					curcan->cb( c, curcan, hx-x, hy-y, event, prop->devid );
+				}
+				curcan++;
 			}
-			curcan++;
 		}
 	}
 
@@ -164,7 +175,8 @@ void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_
 	{
 		int x = curcan->x;
 		int y = curcan->y;
-		CNOVRCanvasDrawBox( c, x, y, x + curcan->w, y + curcan->h );
+		if( curcan->cb )
+			CNOVRCanvasDrawBox( c, x, y, x + curcan->w, y + curcan->h );
 		CNOVRCanvasDrawText( c, x+2, y+2, curcan->text, 2 );
 		curcan++;
 	}

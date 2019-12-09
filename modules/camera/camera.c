@@ -23,7 +23,6 @@ cnovr_shader * shaderlines;
 cnovr_shader * shaderblack;
 cnovr_shader * previewcomposite;
 cnovr_shader * previewbasic;
-cnovr_shader * previewyuyv;
 cnovr_model *  modelcameralines;
 cnovr_model *  modelcamerasolid;
 cnovrfocus_capture capture;
@@ -44,6 +43,13 @@ struct camerastore_t
 	cnovr_pose  paired_relative_offset_pose;
 } * store;
 
+int paired_object_id;
+
+int cal_cam_controller;
+int cal_cam_stage = 0;
+cnovr_point3d cal_cam_points[3];
+#define CAM_CAL_EDGE_DIST_RATIO 0.0
+
 //Possible identifier options... "advanced,preview"
 int advanced_view;
 int preview_view;
@@ -55,12 +61,230 @@ int videoW = 1920;
 int videoH = 1080;
 
 int pboid;
+int dragging_camera = 0;
 void * mapptr;
 uint8_t * lastdat;
 int quit = 0;
 int framegrabbed;
 og_thread_t videodatathread;
+float videoosdvals[4];
 //og_thread_t camerabusinessthread;
+
+
+const cnovr_canvas_canned_gui_element cvp_main_menu[];
+
+char camstatustext[63];
+char fovsettext[63];
+char notetext[63];
+char devlist[MAX_POSES_TO_PULL_FROM_OPENVR][32];
+
+void CalibrateCameraFromTrackingPoints( cnovr_pose * pcamout, cnovr_point3d * cal_cam_points )
+{
+	//Good: ORIGINAL XFORM: 1.752586 1.646361 1.247994   //  -0.977304 0.043990 -0.204548 -0.033270 // 1.000000
+
+
+	//Ok, this is hard.
+	printf( "ORIGINAL XFORM: %f %f %f   //  %f %f %f %f // %f\n", PFTHREE( pcamout->Pos ), PFFOUR( pcamout->Rot ), pcamout->Scale );
+	printf( "POINTS: \n%f %f %f\n%f %f %f\n%f %f %f\n", PFTHREE( (cal_cam_points[0]) ), PFTHREE( (cal_cam_points[1]) ), PFTHREE( (cal_cam_points[2]) ) );
+	cnovr_point3d vsa;
+	cnovr_point3d vsb;
+	sub3d( vsa, cal_cam_points[1], cal_cam_points[0] );
+	sub3d( vsb, cal_cam_points[2], cal_cam_points[0] );
+	normalize3d( vsa, vsa );
+	normalize3d( vsb, vsb );
+	cnovr_point3d vec_fwd;
+	add3d( vec_fwd, vsa, vsb );
+	normalize3d( vec_fwd, vec_fwd );
+	printf(" VSA: %f %f %f VSB: %f %f %f  VF: %f %f %f\n", PFTHREE( vsa ), PFTHREE( vsb ), PFTHREE( vec_fwd ) );
+	//BELOW is trying to find based on a diagonal.  That is a pain.  Let's try horizontal.
+
+	//Ok, we have an origin, a vector for forward... Now... fov and up
+	///also, we know CAM_CAL_EDGE_DIST_RATIO, which is usually about 0.1
+#if 0
+	float calfov = acos( dot3d( vsa, vsb ) );
+	float diagfov = calfov / (1.-CAM_CAL_EDGE_DIST_RATIO);
+	float camaspect = videoW/((float)videoH);
+	float verticalFOV = 2.0*atan(tan(diagonalFOV)/sqrt(1 + (camAspect*camAspect)));
+	cnovrstate->fPreviewFOV = verticalFOV;
+
+	//Now we know forward and a point... how to compute up? 
+	//Maybe compute the cross of the diagonals?
+	//This should be in-line with the view plane.
+#endif
+	copy3d( pcamout->Pos, cal_cam_points[0] );
+
+	scale3d( vec_fwd, vec_fwd, -1 );
+
+	cnovr_point3d vec_up;
+	cross3d( vec_up, vsb, vsa );
+	normalize3d( vec_up, vec_up );
+	cnovr_point3d vec_side;
+	cross3d( vec_side, vec_up, vec_fwd );
+	normalize3d( vec_side, vec_side );
+
+	printf( "Genning Quat from: \n%f %f %f\n%f %f %f\n%f %f %f\n", PFTHREE( vec_side ), PFTHREE( vec_up ), PFTHREE( vec_fwd ) );
+	float m44[16];
+	copy3d( m44+0, vec_side ); m44[3] = 0;
+	copy3d( m44+4, vec_up ); m44[7] = 0;
+	copy3d( m44+8, vec_fwd ); m44[11] = 0;
+	m44[12] = m44[13] = m44[14] = 0; m44[15] = 1;
+	//matrix44transposeself( m44 );
+	matrix44print( m44 );
+
+	quatfrommatrix( pcamout->Rot, m44 );
+	float f0 = pcamout->Rot[0];
+	float f1 = pcamout->Rot[1];
+	float f2 = pcamout->Rot[2];
+	float f3 = pcamout->Rot[3];
+	pcamout->Rot[0] = -f0; //?!?!?!
+	pcamout->Rot[1] = f1;
+	pcamout->Rot[2] = f2;
+	pcamout->Rot[3] = f3;
+	pcamout->Scale = 1;
+	quatnormalize( pcamout->Rot, pcamout->Rot );
+
+	printf( "QUAT: %f %f %f %f\n", PFFOUR( pcamout->Rot ) );
+	printf( "Dot apart: %f\n", dot3d( vsa, vsb ) );
+	float calfov = acos( dot3d( vsa, vsb ) ) * 1080./1920.;
+	printf( "Calfov: %f\n", calfov );
+	cnovrstate->fPreviewFOV = 180.0 * calfov / (1.-CAM_CAL_EDGE_DIST_RATIO) / 3.14159;
+	printf( "fPreviewFOV: %f\n", cnovrstate->fPreviewFOV );
+}
+
+void UpdateMenuStatuses()
+{
+	sprintf( camstatustext, "CAM TRK: %s\n", store->paired_object_serial_number );
+	sprintf( fovsettext, "FOV: %3.1f", cnovrstate->fPreviewFOV );
+	if( canvascontrol && canvascontrol->pCannedGUI )
+		CNOVRCanvasApplyCannedGUI( canvascontrol, canvascontrol->pCannedGUI );
+	int i;
+	for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
+	{
+		char * stk = cnovrstate->asTrackedDeviceSerialStrings[i];
+		if( stk ) stk+= 2;
+		int r = snprintf( devlist[i], 26, "%s: %s\n", stk, cnovrstate->asTrackedDeviceModelStrings[i] );
+		devlist[i][r] = 0;
+	}
+}
+
+void coarse_fov( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	cnovrstate->fPreviewFOV = rx + 10;
+	UpdateMenuStatuses();
+}
+void fine_fov( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	cnovrstate->fPreviewFOV += elem->iopaque/10.0;
+	UpdateMenuStatuses();
+}
+
+void changemenu( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	UpdateMenuStatuses();
+	CNOVRCanvasApplyCannedGUI( canvascontrol, elem->vopaque );
+}
+
+void resetcam( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	store->use_paired_object = 0;
+	paired_object_id = -1;
+	pose_make_identity( &store->posecamera );
+	memset( store->paired_object_serial_number, 0, sizeof( store->paired_object_serial_number ) );
+	sprintf( notetext, "Reset.\n" );
+	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+}
+
+void attachtodev( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	int a = elem->iopaque;
+	if( a < 0 )
+	{
+		store->use_paired_object = 0;
+		paired_object_id = -1;
+		memset( store->paired_object_serial_number, 0, sizeof( store->paired_object_serial_number ) );
+		sprintf( notetext, "Disassociated.\n" );
+		CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+	}
+	else
+	{
+		//We are attaching to a device.
+		//Figure out where we are in the device's coordinate frame based on our camera's location.
+		if( cnovrstate->bTrackedPosesValid[a] )
+		{
+			sprintf( notetext, "Associated.\n" );
+			unapply_pose_from_pose( &store->paired_relative_offset_pose, &cnovrstate->pTrackedPoses[a], &store->posecamera );
+			store->use_paired_object = 1;
+			paired_object_id = a;
+			strcpy( store->paired_object_serial_number, cnovrstate->asTrackedDeviceSerialStrings[a] );
+			CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+		}
+		else
+		{
+			//Untrackable..
+			sprintf( notetext, "Untrackable.\n" );
+			CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+		}
+	}
+	UpdateMenuStatuses();
+}
+
+#define MENUH 16
+#define MENUY(y) ((MENUH*(y))+2)
+#define DEF_WIDTH (160-26)
+#define EXTRA_WIDTH (160-4)
+
+const cnovr_canvas_canned_gui_element cvp_tweak[] = {
+	{ .x = 2, .y = MENUY(0), .w = 90, .h = 14, .cb = 0, .text = camstatustext },
+	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Main Menu", .cb = changemenu, .vopaque = cvp_main_menu },
+	{ .x = 12, .y = MENUY(2), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = fovsettext, .cb = coarse_fov, .allowdrag = 1 },
+	{ .x = 2, .y = MENUY(2), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = fine_fov, .iopaque = -1 },
+	{ .x = 160-12, .y = MENUY(2), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = fine_fov, .iopaque = 1  },
+	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Reset Cam", .cb = resetcam },
+	{ .cb = 0, .w = 0, .h = 0 }
+};
+
+
+const cnovr_canvas_canned_gui_element cvp_dev_menu[] = {
+	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
+	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .text = "Main Menu", .cb = changemenu, .vopaque = cvp_main_menu },
+	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .text = devlist[0], .cb = attachtodev, .iopaque = 0 },
+	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .text = devlist[1], .cb = attachtodev, .iopaque = 1 },
+	{ .x = 2, .y = MENUY(4), .w = EXTRA_WIDTH, .h = 14, .text = devlist[2], .cb = attachtodev, .iopaque = 2 },
+	{ .x = 2, .y = MENUY(5), .w = EXTRA_WIDTH, .h = 14, .text = devlist[3], .cb = attachtodev, .iopaque = 3 },
+	{ .x = 2, .y = MENUY(6), .w = EXTRA_WIDTH, .h = 14, .text = devlist[4], .cb = attachtodev, .iopaque = 4 },
+	{ .x = 2, .y = MENUY(7), .w = EXTRA_WIDTH, .h = 14, .text = devlist[5], .cb = attachtodev, .iopaque = 5 },
+	{ .x = 2, .y = MENUY(8), .w = EXTRA_WIDTH, .h = 14, .text = devlist[6], .cb = attachtodev, .iopaque = 6 },
+	{ .x = 2, .y = MENUY(9), .w = EXTRA_WIDTH, .h = 14, .text = devlist[7], .cb = attachtodev, .iopaque = 7 },
+	{ .x = 2, .y = MENUY(10), .w = EXTRA_WIDTH, .h = 14, .text = devlist[8], .cb = attachtodev, .iopaque = 8 },
+	{ .x = 2, .y = MENUY(11), .w = EXTRA_WIDTH, .h = 14, .text = "Detach", .cb = attachtodev, .iopaque = -1 },
+	{ .cb = 0, .w = 0, .h = 0 }
+};
+
+void stopcamcal( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	cal_cam_stage = 0;
+	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+}
+
+const cnovr_canvas_canned_gui_element cvp_cal1[] = {
+	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
+	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Main Menu", .cb = stopcamcal },
+	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Use OSD. Click to Go.", .iopaque = 0 },
+	{ .x = 2, .y = MENUY(11), .w = 90, .h = 14, .cb = 0, .text = notetext },
+	{ .cb = 0, .w = 0, .h = 0 }
+};
+
+void startcamcal( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	cal_cam_stage = 1;
+	cal_cam_controller = devid;
+	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_cal1 );
+}
+
+
+const cnovr_canvas_canned_gui_element cvp_main_menu[] = {
+	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
+	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .text = "Tweak Cam", .cb = changemenu, .vopaque = cvp_tweak },
+	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .text = "Attach To Dev", .cb = changemenu, .vopaque = cvp_dev_menu },
+	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .text = "Cal Cam", .cb = startcamcal, .vopaque = cvp_cal1 },
+	{ .x = 2, .y = MENUY(11), .w = 90, .h = 14, .cb = 0, .text = notetext },
+	{ .cb = 0, .w = 0, .h = 0 }
+};
+
+
 
 void init( const char * identifier )
 {
@@ -94,14 +318,6 @@ void * videodatathreadfunction( void * v )
 	return 0;
 }
 
-void mcb_test( struct cnovr_canvas_t * canvas, int iopaque, int rx, int ry, cnovrfocus_event event ) { 
-	printf( "HIT %d %d %d\n", rx, ry, event );
-}
-
-const cnovr_canvas_canned_gui_element cvp_test[] = {
-	{ .x = 2, .y = 2, .w = 35, .h = 14, .cb = mcb_test, .text = "test", .iopaque = 5 },
-	{ .cb = 0, .w = 0, .h = 0 }
-};
 
 void PrerenderFunction( void * tag, void * opaquev )
 {
@@ -110,6 +326,95 @@ void PrerenderFunction( void * tag, void * opaquev )
 	#endif
 
 	static int did_set_aspect_ratio;
+
+	if( cal_cam_stage )
+	{
+		cnovrfocus_properties * prop = CNOVRFocusGetPropsForDev( cal_cam_controller );
+		switch( cal_cam_stage )
+		{
+			case 1:
+			case 2:
+			case 3:
+				videoosdvals[0] = 1;
+				videoosdvals[1] = 0.5;
+				videoosdvals[2] = 0.5;
+				videoosdvals[3] = 0;
+				if( !( prop->buttonmask[0] & 1 ) && cal_cam_stage == 1 )
+					cal_cam_stage = 2;
+				if( ( prop->buttonmask[0] & 1 ) && cal_cam_stage == 2 )
+					cal_cam_stage = 3;
+				if( !( prop->buttonmask[0] & 1 ) && cal_cam_stage == 3 )
+				{
+					copy3d( cal_cam_points[0], prop->poseTip.Pos );
+					cal_cam_stage = 4;
+				}
+				break;
+			case 4:
+			case 5:
+				videoosdvals[0] = 1;
+				videoosdvals[1] = CAM_CAL_EDGE_DIST_RATIO;
+				videoosdvals[2] = 0.5;
+				videoosdvals[3] = 0;
+				if( ( prop->buttonmask[0] & 1 ) && cal_cam_stage == 4 )
+					cal_cam_stage = 5;
+				if( !( prop->buttonmask[0] & 1 ) && cal_cam_stage == 5 )
+				{
+					copy3d( cal_cam_points[1], prop->poseTip.Pos );
+					cal_cam_stage = 6;
+				}
+				break;
+			case 6:
+			case 7:
+				videoosdvals[0] = 1;
+				videoosdvals[1] = 1.0-CAM_CAL_EDGE_DIST_RATIO;
+				videoosdvals[2] = 0.5;
+				videoosdvals[3] = 0;
+				if( ( prop->buttonmask[0] & 1 ) && cal_cam_stage == 6 )
+					cal_cam_stage = 7;
+				if( !( prop->buttonmask[0] & 1 ) && cal_cam_stage == 7 )
+				{
+					copy3d( cal_cam_points[2], prop->poseTip.Pos );
+					//Actually perform calibration.
+					CalibrateCameraFromTrackingPoints( &store->posecamera, cal_cam_points );
+					unapply_pose_from_pose( &store->paired_relative_offset_pose, &cnovrstate->pTrackedPoses[paired_object_id], &store->posecamera );
+
+					cal_cam_stage = 0;
+				}
+				break;
+		}
+	}
+	else
+	{
+		videoosdvals[0] = 0;
+		videoosdvals[1] = 0;
+		videoosdvals[2] = 0;
+		videoosdvals[3] = 0;
+	}
+
+	//Need to figure out what our paired object is.
+	if( store->use_paired_object && paired_object_id < 0 )
+	{
+		int i;
+		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
+		{
+			const char * sernum = cnovrstate->asTrackedDeviceSerialStrings[i];
+			if( sernum )
+			{
+				if( strcmp( sernum, store->paired_object_serial_number ) == 0 )
+				{
+					paired_object_id = i;
+					break;
+				}
+			}
+		}
+		printf( "PAIR ATTEMPT: %d\n", paired_object_id );
+	}
+
+	if( paired_object_id >= 0 && !dragging_camera )
+	{
+		apply_pose_to_pose( &store->posecamera, &cnovrstate->pTrackedPoses[paired_object_id], &store->paired_relative_offset_pose );
+		pose_invert( &cnovrstate->pPreviewPose, &store->posecamera );
+	}
 
 	if( v4l2interface )
 	{
@@ -268,7 +573,8 @@ void RenderFunction( void * tag, void * opaquev )
 
 	if( canvasvideo )
 	{
-		//CNOVRRender( previewyuyv );
+		CNOVRRender( canvasvideo->overrideshd );
+		glUniform4fv( 9, 1, videoosdvals );
 		CNOVRRender( canvasvideo );
 	}
 
@@ -291,6 +597,9 @@ void UpdateCamera()
 	pose_invert( &pinvert, &pin );
 	pinvert.Scale = 1;
 	memcpy( &cnovrstate->pPreviewPose, &pinvert, sizeof( cnovr_pose ) );
+
+	UpdateMenuStatuses();
+
 	if( canvascontrol )
 	{
 		const cnovr_pose relative_pose_control = { .Pos = { 0 ,.6 ,0 }, .Rot = { 1, 0, 0, 0 }, .Scale = 1 };
@@ -343,8 +652,21 @@ int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties
 	CNOVRF_LOSTFOCUS,
 	CNOVRF_MAX_EVENTS,
 */
-	if( event == CNOVRF_DRAG )
+	if( event == CNOVRF_ACQUIREDFOCUS )
+	{
+		dragging_camera = 1;
+	}
+	else if( event == CNOVRF_DRAG )
+	{
 		UpdateCamera();
+	}
+	else if( event == CNOVRF_LOSTFOCUS )
+	{
+		//Recompute attach point.
+		if( paired_object_id >= 0 )
+			unapply_pose_from_pose( &store->paired_relative_offset_pose, &cnovrstate->pTrackedPoses[paired_object_id], &store->posecamera );
+		dragging_camera = 0;
+	}
 
 	#ifdef SECTIONDEBUG
 		printf( "CameraFocusEvent end\n" );
@@ -355,6 +677,8 @@ int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties
 
 
 const char * usecamtex = 0;
+
+
 
 void example_scene_setup( void * tag, void * opaquev )
 {
@@ -374,7 +698,6 @@ void example_scene_setup( void * tag, void * opaquev )
 	CNOVRListAdd( cnovrLPrerender, 0, PrerenderFunction );
 	CNOVRListAdd( cnovrLPreviewRender, 0, AdvancedPreviewRender );
 
-
 	capture.tag = 0;
 	capture.tcctag = GetTCCTag();
 	capture.opaque = 0;
@@ -391,8 +714,8 @@ void example_scene_setup( void * tag, void * opaquev )
 
 	if( advanced_view )
 	{
-		canvascontrol = CNOVRCanvasCreate( "VideoSetupControl", 96, 192 );
-		CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_test );
+		canvascontrol = CNOVRCanvasCreate( "VideoSetupControl", 160, 192 );
+		CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
 		canvasvideo = CNOVRCanvasCreate( "VideoSetupVideoView", videoW/2, videoH );
 		CNOVRCanvasSwapBuffers( canvasvideo );
 		canvasvideo->overrideshd = CNOVRShaderCreate( "modules/camera/previewyuyv" );
@@ -432,6 +755,7 @@ void camcnv4l2enumcb( void * opaque, const char * dev, const char * name, const 
 
 void start( const char * identifier )
 {
+	paired_object_id = -1;
 	store = CNOVRNamedPtrData( "camerastore", "camerastore", sizeof( *store ) + 128 );
 	printf( "=== Initializing %p\n", store );
 

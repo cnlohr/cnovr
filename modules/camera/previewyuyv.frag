@@ -4,6 +4,7 @@
 out vec4 colorOut;
 
 layout(location = 8) uniform sampler2D textures[];
+layout(location = 9) uniform vec4 osdtarget;
 
 in vec2 texcoords;
 
@@ -30,6 +31,15 @@ void main()
 	vec4 yuyv = texture( textures[0], uv );
 	vec2 tp = floor( mod( texcoords.xy*ts*2.0, 2.0 ) );
 	colorOut = vec4( tp.xx, 0.0, 1.0 );
+
+	if( osdtarget.x > 0.5 )
+	{
+		if( length( (uv - osdtarget.yz)*vec2(1.0,0.5) ) < 0.1 && ( length( uv.x - osdtarget.y ) < 0.0005 || length( uv.y - osdtarget.z ) < 0.001 )  )
+		{
+			colorOut = vec4( 1., 0., 1., 1. );
+			return;
+		}
+	}
 	vec3 yuv = ( tp.x < 1.0 )?yuyv.rga:yuyv.bga;
 	colorOut = vec4( yuvtorgb( yuv ), 1. );
 }
