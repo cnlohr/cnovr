@@ -12,14 +12,14 @@ OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o
 
-CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
-LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
-#LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
-LDFLAGS+=./libopenvr_api.so
 
+CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
 
+LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
+#LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
+LDFLAGS+=./libopenvr_api.so
 
 #CFLAGS+=-Os -ffunction-sections -fdata-sections
 #LDFLAGS+=-Wl,--gc-sections

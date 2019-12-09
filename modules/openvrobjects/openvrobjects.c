@@ -6,6 +6,7 @@
 #include <string.h>
 #include <cnovrutil.h>
 #include <openvr_capi.h>
+#include <stdio.h>
 #include <chew.h>
 
 const char *  identifier;
@@ -30,7 +31,7 @@ void init( const char * identifier )
 {
 }
 
-static void RenderObjects( int lines )
+void RenderObjects( int lines )
 {
 	int i;
 	//Don't render HMD in the HMD.
@@ -55,7 +56,7 @@ static void RenderObjects( int lines )
 	}
 }
 
-static void UpdateFunction( void * tag, void * opaquev )
+void UpdateFunction( void * tag, void * opaquev )
 {
 	int i;
 
@@ -78,7 +79,7 @@ static void UpdateFunction( void * tag, void * opaquev )
 	}
 }
 
-static void RenderFunction( void * tag, void * opaquev )
+void RenderFunction( void * tag, void * opaquev )
 {
 	int i;
 	if( do_wireframe )
@@ -95,7 +96,7 @@ static void RenderFunction( void * tag, void * opaquev )
 	}
 }
 
-static void scene_setup( void * tag, void * opaquev )
+void scene_setup( void * tag, void * opaquev )
 {
 	shaderlines = CNOVRShaderCreate( "assets/basic" );
 	shadersolid = CNOVRShaderCreate( "assets/blackmask" );

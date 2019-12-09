@@ -267,6 +267,7 @@ void init( const char * identifier )
 
 void * PhysicsThread( void * v )
 {
+	int after_first;
 //	cnovr_pose playareapose;
 //	pose_make_identity( &playareapose );
 	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
@@ -328,6 +329,7 @@ void * PhysicsThread( void * v )
 		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform );
 
 		//if( isospherehitcooldown > .05f )
+		if( after_first )
 		{
 			cnovr_point3d target = { 0, -.4f, 0 };  //Kludge -> Target center of mesh.
 			int r1 = //-1;
@@ -350,6 +352,7 @@ void * PhysicsThread( void * v )
 				}
 			}
 		}
+		after_first = 1;
 
 		memcpy( &poselast1, &paddlepose1[racketslot], sizeof( cnovr_pose ) );
 		memcpy( &poselast2, &paddlepose2[racketslot], sizeof( cnovr_pose ) );
@@ -521,7 +524,7 @@ void RenderFunction( void * tag, void * opaquev )
 }
 
 
-static void example_scene_setup( void * tag, void * opaquev )
+void example_scene_setup( void * tag, void * opaquev )
 {
 	printf( "+++ Example scene setup\n" );
 	int i;

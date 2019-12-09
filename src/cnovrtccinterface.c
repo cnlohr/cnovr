@@ -232,6 +232,7 @@ static void * cnovr_internal_thread_starter( void * v )
 	memcpy( &tp, v, sizeof( tp ) );
 	free( v );
 
+	printf( "Invocation check: %p\n", tp.tag );
 	TCCInvocation( tp.tag, 
 	{
 		if( tcccrash_checkpoint() )
@@ -677,6 +678,7 @@ struct ImportList
 	TCCExportS( CNOVRFBufferBlitResolve )
 	TCCExportS( CNOVRCanvasSetPhysicalSize )
 	TCCExportS( CNOVRCanvasYFlip )
+	TCCExportS( CNOVRCanvasApplyCannedGUI )
 	TCCExportS( glActiveTextureCHEW )
 	TCCExportS( cnovr_interpolate )
 	TCCExportS( cross3d )

@@ -4,6 +4,18 @@
 #include "cnovrparts.h"
 #include "cnovrfocus.h"
 
+struct cnovr_canvas_t;
+
+typedef void (*canvas_canned_gui_cb)( struct cnovr_canvas_t * canvas, int iopaque, int rx, int ry, cnovrfocus_event event );
+
+typedef struct cnovr_canvas_canned_gui_element_t
+{
+	int w, h;
+	int x, y;
+	canvas_canned_gui_cb cb;
+	const char * text;
+	int iopaque;
+} cnovr_canvas_canned_gui_element;
 
 typedef struct cnovr_canvas_t
 {
@@ -21,6 +33,7 @@ typedef struct cnovr_canvas_t
 	cnovr_shader * shd;
 	cnovr_shader * overrideshd;
 	cnovrfocus_capture capture;
+	const cnovr_canvas_canned_gui_element * pCannedGUI;
 	char * canvasname;
 	int set_filter_type;
 	float presw;
@@ -31,6 +44,7 @@ typedef struct cnovr_canvas_t
 //Tricky:  If you want to use this in some advanced way, abusing the model/texture, you can create a model that is w=1, h=1
 
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h );
+void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_element * canned ); //Applies, or re-renders canned GUI.
 void CNOVRCanvasResize( cnovr_canvas * c, int w, int h );
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy );
 void CNOVRCanvasYFlip( cnovr_canvas * c, int yes_flip_y );

@@ -68,11 +68,10 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 {
 	int r;
 
+	InternalSetupTCCInterface();
 	InternalSetupNamedPtrs();
-
 	OGResetSafeMutices();
 
-	InternalSetupTCCInterface();
 	CNOVRListSystemInit();
 	CNOVRFileSearchAddPath( "assets" ); //Base fallback (also initializes file search system)
 	CNOVRFileSearchAddPath( "modules" ); //Base fallback (also initializes file search system)

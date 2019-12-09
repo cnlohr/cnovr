@@ -436,7 +436,7 @@ static void CNOVRShaderFileChange( void * tag, void * opaquev )
 static void CNOVRShaderRender( cnovr_shader * ths )
 {
 	int shdid = ths->nShaderID;
-	if( !shdid ) return;
+	if( !shdid ) { return; }
 	glUseProgram( shdid );
 	CNOVRShaderLoadedSetUniformsInternal();
 }
@@ -942,8 +942,9 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	if( initial_indices < 1 ) initial_indices = 1;
 	ret->pIndices = malloc( initial_indices * sizeof( GLuint ) );
 	ret->nRenderType = rendertype;
-	ret->iMeshMarks = malloc( sizeof( int ) );
+	ret->iMeshMarks = malloc( sizeof( int ) * 2 );
 	ret->iMeshMarks[0] = 0;
+	ret->iMeshMarks[1] = 0;
 	ret->nMeshes = 1;
 	ret->sMeshMarks = 0;
 	ret->iRenderMesh = -1;
@@ -1012,11 +1013,11 @@ void CNOVRModelResetMarks( cnovr_model * m )
 	{
 		if( m->sMeshMarks && m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
 	}
-	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) );
-	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) );
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * )*2 );
+	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t )*2 );
 	m->nMeshes = 1;
 	m->iMeshMarks[0] = 0;
-	m->sMeshMarks[0] = 0;
+	m->sMeshMarks[1] = 0;
 	m->iLastVertMark = 0;
 }
 
@@ -1030,8 +1031,8 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 	{
 		m->nMeshes++;
 	}
-	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 1 ) );
-	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes + 1 ) );
+	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 2 ) );
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes + 2 ) );
 	m->iMeshMarks[m->nMeshes-1] = m->iIndexCount;
 	m->sMeshMarks[m->nMeshes-1] = strdup( sectionname );
 }

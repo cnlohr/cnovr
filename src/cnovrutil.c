@@ -467,7 +467,7 @@ char * CNOVRFileSearch( const char * fname )
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
-	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH*4+4 ) ) ); }
+	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+4 ) ) ); }
 
 	int fnamelen = strlen( fname );
 

@@ -243,7 +243,7 @@ void CNOVRTCCLog( void * data, const char * tolog )
 	//XXX TODO
 }
 
-static void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
+void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 {
 	printf( "File change event\n" );
 	const char * tccsuitefile = cnovrtccsystem.suitefile;

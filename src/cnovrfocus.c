@@ -204,8 +204,14 @@ void InternalCNOVRFocusUpdate()
 					TCCInvocation( props->capturedPassive->tcctag, props->capturedPassive->cb( CNOVRF_IN, props->capturedPassive, props, 0 ) );
 				}
 			}
-			if( ( cap = props->capturedFocus   ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_DRAG, cap, props, 0 ) ); }
-			if( ( cap = props->capturedPassive ) ) { TCCInvocation( cap->tcctag, cap->cb( CNOVRF_MOTION, cap, props, 0 ) ); }
+			if( ( cap = props->capturedFocus   ) )
+			{
+				TCCInvocation( cap->tcctag, cap->cb( CNOVRF_DRAG, cap, props, 0 ) );
+			}
+			if( ( cap = props->capturedPassive ) )
+			{
+				TCCInvocation( cap->tcctag, cap->cb( CNOVRF_MOTION, cap, props, 0 ) );
+			}
 			OGUnlockMutex( FOCUS.mutFocus );
 		}
 

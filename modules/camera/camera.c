@@ -15,6 +15,8 @@
 #define CNV4L2_NOSTAT
 #include "cntools/cnv4l2/cnv4l2.c"
 
+//#define SECTIONDEBUG
+
 const char *  identifier;
 cnovr_shader * shaderrendermodel;
 cnovr_shader * shaderlines;
@@ -58,7 +60,7 @@ uint8_t * lastdat;
 int quit = 0;
 int framegrabbed;
 og_thread_t videodatathread;
-og_thread_t camerabusinessthread;
+//og_thread_t camerabusinessthread;
 
 void init( const char * identifier )
 {
@@ -68,7 +70,11 @@ void v4l2framecb( struct cnv4l2_t * match, uint8_t * payload, int payloadlen )
 {
 	//Stream new data to GPU
 	//lastdat = payload;
-	if( framegrabbed ) { ovrprintf( "Pending camera frame transfer.  Frame dropped\n" ); return; }
+	if( framegrabbed )
+	{
+		ovrprintf( "Pending camera frame transfer.  Frame dropped\n" );
+		return;
+	}
 	if( mapptr ) memcpy( mapptr, payload, payloadlen );
 	framegrabbed = 1;
 }
@@ -88,35 +94,21 @@ void * videodatathreadfunction( void * v )
 	return 0;
 }
 
-void * camerabusinessthreadfunction( void * v )
-{
-	int did_set_physical_size;
-	OGUSleep( 50000 );
-	if( !canvascontrol ) return;
-
-	while( !quit )
-	{
-		OGUSleep( 50000 );
-		if( !did_set_physical_size )
-		{
-			CNOVRCanvasSetPhysicalSize( canvascontrol, canvascontrol->w/(float)canvascontrol->h, 1.0 );
-			did_set_physical_size = 1;
-		}
-
-		CNOVRCanvasClearFrame( canvascontrol );
-		static int frameno;
-		frameno++;
-		CNOVRCanvasSetLineWidth( canvascontrol, 1 );
-		CNOVRCanvasDrawText( canvascontrol, 2, 2, trprintf( "Hello %d", frameno ), 3 );
-		canvascontrol->color = 0xffffffff;
-		CNOVRCanvasSwapBuffers( canvascontrol );
-
-	}
-	return 0;
+void mcb_test( struct cnovr_canvas_t * canvas, int iopaque, int rx, int ry, cnovrfocus_event event ) { 
+	printf( "HIT %d %d %d\n", rx, ry, event );
 }
+
+const cnovr_canvas_canned_gui_element cvp_test[] = {
+	{ .x = 2, .y = 2, .w = 35, .h = 14, .cb = mcb_test, .text = "test", .iopaque = 5 },
+	{ .cb = 0, .w = 0, .h = 0 }
+};
 
 void PrerenderFunction( void * tag, void * opaquev )
 {
+	#ifdef SECTIONDEBUG
+		printf( "PrerenderFunction start\n" );
+	#endif
+
 	static int did_set_aspect_ratio;
 
 	if( v4l2interface )
@@ -124,7 +116,6 @@ void PrerenderFunction( void * tag, void * opaquev )
 		uint32_t textureid;
 		if( !canvasvideo || !canvasvideo->model->pTextures[0] ||
 			!(textureid = canvasvideo->model->pTextures[0]->nTextureId) ) return;
-
 		glBindTexture( GL_TEXTURE_2D, textureid );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
@@ -156,10 +147,18 @@ void PrerenderFunction( void * tag, void * opaquev )
 			framegrabbed = 0;
 		}
 	}
+	#ifdef SECTIONDEBUG
+		printf( "PrerenderFunction end\n" );
+	#endif
+
 }
 
-static void AdvancedPreviewRender( void * tag, void * opaquev )
+void AdvancedPreviewRender( void * tag, void * opaquev )
 {
+	#ifdef SECTIONDEBUG
+		printf( "AdvancedPreviewRender start\n" );
+	#endif
+
 	if( cnovrstate->iPreviewHeight == 0 || cnovrstate->iPreviewWidth == 0 ) return;
 	if( advanced_view )
 	{
@@ -241,14 +240,24 @@ static void AdvancedPreviewRender( void * tag, void * opaquev )
 		CNOVRListCall( cnovrLRender3, 0, 0); 
 		CNOVRListCall( cnovrLRender4, 0, 0); 
 	}
+
+	#ifdef SECTIONDEBUG
+		printf( "AdvancedPreviewRender end\n" );
+	#endif
 }
 
-static void RenderFunction( void * tag, void * opaquev )
+void RenderFunction( void * tag, void * opaquev )
 {
+	#ifdef SECTIONDEBUG
+		printf( "RenderFunction start\n" );
+	#endif
+
+
 	int i;
 	CNOVRRender( shaderlines );
 	CNOVRModelRenderWithPose( modelcameralines, &store->posecamera );
 	CNOVRRender( shaderrendermodel );
+
 	if( canvascontrol ) CNOVRRender( canvascontrol );
 	if( canvaspreview && previewtarget[2] )
 	{
@@ -256,15 +265,24 @@ static void RenderFunction( void * tag, void * opaquev )
 			canvaspreview->model->pTextures[0]->nTextureId = previewtarget[2]->nResolveTextureId;
 		CNOVRRender( canvaspreview->model );
 	}
+
 	if( canvasvideo )
 	{
 		//CNOVRRender( previewyuyv );
 		CNOVRRender( canvasvideo );
 	}
+
+	#ifdef SECTIONDEBUG
+		printf( "RenderFunction end\n" );
+	#endif
 }
 
-static void UpdateCamera()
+void UpdateCamera()
 {
+	#ifdef SECTIONDEBUG
+		printf( "UpdateCamera start\n" );
+	#endif
+
 	cnovr_pose pin;
 	cnovr_pose * posecam = &store->posecamera;
 	memcpy( &pin, posecam, sizeof( cnovr_pose ) );
@@ -277,7 +295,7 @@ static void UpdateCamera()
 	{
 		const cnovr_pose relative_pose_control = { .Pos = { 0 ,.6 ,0 }, .Rot = { 1, 0, 0, 0 }, .Scale = 1 };
 		apply_pose_to_pose( canvascontrol->pose, posecam, &relative_pose_control );
-		canvascontrol->pose->Scale *= .5;
+		canvascontrol->pose->Scale *= .4;
 	}
 	if( canvasvideo )
 	{
@@ -291,10 +309,17 @@ static void UpdateCamera()
 		apply_pose_to_pose( canvaspreview->pose, posecam, &relative_pose_preview );
 		canvaspreview->pose->Scale *= .5;
 	}
+	#ifdef SECTIONDEBUG
+		printf( "UpdateCamera end\n" );
+	#endif
 }
 
-static int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
+	#ifdef SECTIONDEBUG
+		printf( "CameraFocusEvent start\n" );
+	#endif
+	
 	//void * c = (void*)cap->opaque;
 	//cnovr_model * m = c->model;
 	//int id = m->iOpaque;
@@ -321,11 +346,17 @@ static int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 	if( event == CNOVRF_DRAG )
 		UpdateCamera();
 
+	#ifdef SECTIONDEBUG
+		printf( "CameraFocusEvent end\n" );
+	#endif
+
 	return 0;
 }
 
 
-static void example_scene_setup( void * tag, void * opaquev )
+const char * usecamtex = 0;
+
+void example_scene_setup( void * tag, void * opaquev )
 {
 	shaderrendermodel = CNOVRShaderCreate( "rendermodel" );
 	shaderlines = CNOVRShaderCreate( "assets/basic" );
@@ -345,6 +376,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 
 	capture.tag = 0;
+	capture.tcctag = GetTCCTag();
 	capture.opaque = 0;
 	capture.cb = CameraFocusEvent;
 	CNOVRModelSetInteractable( modelcamerasolid, &capture );
@@ -359,7 +391,8 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 	if( advanced_view )
 	{
-		canvascontrol = CNOVRCanvasCreate( "VideoSetupControl", 96, 64 );
+		canvascontrol = CNOVRCanvasCreate( "VideoSetupControl", 96, 192 );
+		CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_test );
 		canvasvideo = CNOVRCanvasCreate( "VideoSetupVideoView", videoW/2, videoH );
 		CNOVRCanvasSwapBuffers( canvasvideo );
 		canvasvideo->overrideshd = CNOVRShaderCreate( "modules/camera/previewyuyv" );
@@ -370,14 +403,26 @@ static void example_scene_setup( void * tag, void * opaquev )
 		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0 );
 	}
 
-	if( advanced_view )
+	//if( advanced_view )
+	//{
+	//	camerabusinessthread = OGCreateThread( camerabusinessthreadfunction, 0 );
+	//}
+
+	if( usecamtex )
 	{
-		camerabusinessthread = OGCreateThread( camerabusinessthreadfunction, 0 );
+		v4l2interface = cnv4l2_open( usecamtex, videoW, videoH, CNV4L2_YUYV, CNV4L2_MMAP, v4l2framecb );
+		printf( "Opening cam interface %s got %p\n", usecamtex, v4l2interface );
+		if( v4l2interface )
+		{
+			cnv4l2_set_framerate( v4l2interface, 1, 60 );
+			cnv4l2_start_capture( v4l2interface );
+			videodatathread = OGCreateThread( videodatathreadfunction, 0 );
+		}
 	}
+
 	printf( "Is setup\n" );
 }
 
-const char * usecamtex = 0;
 
 void camcnv4l2enumcb( void * opaque, const char * dev, const char * name, const char * bus )
 {
@@ -397,17 +442,6 @@ void start( const char * identifier )
 	{
 		cnv4l2_enumerate( 0, camcnv4l2enumcb );
 	}
-	if( usecamtex )
-	{
-		v4l2interface = cnv4l2_open( usecamtex, videoW, videoH, CNV4L2_YUYV, CNV4L2_MMAP, v4l2framecb );
-		printf( "Opening cam interface %s got %p\n", usecamtex, v4l2interface );
-		if( v4l2interface )
-		{
-			cnv4l2_set_framerate( v4l2interface, 1, 60 );
-			cnv4l2_start_capture( v4l2interface );
-			videodatathread = OGCreateThread( videodatathreadfunction, 0 );
-		}
-	}
 
 	//cnovrstate->fPreviewFOV = 45;
 
@@ -425,7 +459,7 @@ void stop( const char * identifier )
 		cnv4l2_close( v4l2interface );
 	}
 	OGJoinThread( videodatathread );
-	OGJoinThread( camerabusinessthread );
+	//OGJoinThread( camerabusinessthread );
 
 	printf( "=== End Example stop\n" );
 }

@@ -25,7 +25,7 @@ static void CNOVRCanvasRender( cnovr_canvas * ths )
 	else
 		CNOVRRender( ths->shd );
 
-	if( ths->set_filter_type == 0 && ths->model->pTextures[0]->nTextureId )
+	if( ths->set_filter_type == 0 && ths->model && ths->model->pTextures && ths->model->pTextures[0]->nTextureId )
 	{
 		glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
@@ -52,6 +52,25 @@ static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 	{
 		CNOVRNamedPtrSave( c->canvasname );
 	}
+	if( ( event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS ) && ( c->pCannedGUI ) && buttoninfo == CTRLA_TRIGGER )
+	{
+		int hx = (int)(prop->NewPassiveProps[0] * c->w);
+		int hy = (int)(prop->NewPassiveProps[1] * c->h);
+		const cnovr_canvas_canned_gui_element * curcan = c->pCannedGUI;
+		while( curcan->w != 0 || curcan->h != 0 )
+		{
+			int x = curcan->x;
+			int y = curcan->y;
+			int w = curcan->w;
+			int h = curcan->h;
+
+			if( curcan->cb && hx >= x && hx <= x + w && hy >= y && hy <= y + h )
+			{
+				curcan->cb( c, curcan->iopaque, hx-x, hy-y, event );
+			}
+			curcan++;
+		}
+	}
 
 //	if( event == CNOVRF_DOWNNOFOCUS && buttoninfo == CTRLA_TRIGGER )
 	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
@@ -72,6 +91,8 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
 	ret->presw = 1;
 	ret->presh = ((float)h)/((float)w);
 	ret->iOpaque = 0;
+	ret->pCannedGUI = 0;
+	ret->overrideshd = 0;
 	ret->data = malloc( w * h * 4 );
 	ret->linewidth = 1;
 	ret->set_filter_type = 0;
@@ -80,13 +101,14 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
 
 	ret->model = CNOVRModelCreate( 0, GL_TRIANGLES );
 	cnovr_point4d extradata = { 0, 0, 0, 0 };
-	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){  ret->presw/2, ret->presh/2, 0 }, 0, &extradata );
-	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){ -ret->presw/2, ret->presw/2, 0 }, 0, &extradata );
+	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){  ret->presw/2, ret->presh/2, .001 }, 0, &extradata );
+	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){ -ret->presw/2, ret->presh/2, -.001 }, 0, &extradata );
 	if( ret->pose->Scale == 0 ) pose_make_identity( ret->pose );
 	ret->model->iOpaque = -1;
 	ret->model->pose = ret->pose;
 	CNOVRModelSetNumTextures( ret->model, 1 );
 
+	ret->capture.tcctag = TCCGetTag();
 	ret->capture.tag = 0;
 	ret->capture.opaque = ret;
 	ret->capture.cb = CanvasFocusEvent;
@@ -97,7 +119,6 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
 //	glBind
 //	for( i = m->iTextures; i < textures; i++ )
 //		m->pTextures[i] = CNOVRTextureCreate( 1, 1, 4 );
-
 
 	ret->shd = CNOVRShaderCreate( "rendermodel" );
 	//We have our model, but nothing applied.
@@ -131,6 +152,24 @@ void CNOVRCanvasResize( cnovr_canvas * c, int w, int h )
 	c->w = w;
 	c->h = h;
 	c->data = rmap;
+}
+
+void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_element * canned )
+{
+	c->pCannedGUI = canned;
+	CNOVRCanvasClearFrame( c );
+	CNOVRCanvasSetLineWidth( c, 1 );
+	const cnovr_canvas_canned_gui_element * curcan = canned;
+	while( curcan->w != 0 || curcan->h != 0 )
+	{
+		int x = curcan->x;
+		int y = curcan->y;
+		CNOVRCanvasDrawBox( c, x, y, x + curcan->w, y + curcan->h );
+		CNOVRCanvasDrawText( c, x+2, y+2, curcan->text, 2 );
+		curcan++;
+	}
+	c->color = 0xffffffff;
+	CNOVRCanvasSwapBuffers( c );
 }
 
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy )

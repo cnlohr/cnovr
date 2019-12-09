@@ -17,9 +17,10 @@ void OGUnlockSafeMutices();
 
 //////////////////////////////////////////////////////////////////////////////
 
-//#define INVOCATEDEBUG(x) printf( "ICDBG %d\n", x ); 
+//#define INVOCATEDEBUG(x) fprintf( stderr, "ICDBG %d\n", x ); 
 #define INVOCATEDEBUG(x)
 
+//This is done so we can try running some code, but in a way that if it crashes, we can recover back from it via the tcccrash_theckpoint() function.
 #define TCCInvocation( v, code ) \
 { \
 	INVOCATEDEBUG(1); \
