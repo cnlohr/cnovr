@@ -24,17 +24,17 @@ static void CNOVRCanvasRender( cnovr_canvas * ths )
 		CNOVRRender( ths->overrideshd );
 	else
 		CNOVRRender( ths->shd );
-	if( ths->set_filter_type < 10 )
+
+	if( ths->set_filter_type == 0 && ths->model->pTextures[0]->nTextureId )
 	{
 		glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 		glBindTexture( GL_TEXTURE_2D, 0 );
-		ths->set_filter_type++;
+		ths->set_filter_type = 1;
 	}
 	CNOVRRender( ths->model );
 }
-
 
 cnovr_header cnovr_canvas_header = {
 	(cnovrfn)CNOVRCanvasDelete, //Delete
@@ -135,21 +135,30 @@ void CNOVRCanvasResize( cnovr_canvas * c, int w, int h )
 
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy )
 {
+	//if( !c || !c->model || !c->model->pGeos || !c->model->pGeos[0] || !c->model->pGeos[0]->pVertices ) return;
 	sx /= 2;
 	sy /= 2;
 	float * pf = c->model->pGeos[0]->pVertices;
-	
 	pf[0] = pf[6] = pf[15] = pf[21] = -sx;
 	pf[3] = pf[9] = pf[12] = pf[18] = sx;
-
 	pf[1] = pf[4] = pf[13] = pf[16] = -sy;
 	pf[7] = pf[10] = pf[19] = pf[22] = sy;
-
 	CNOVRVBOTaint( c->model->pGeos[0] );
 //	CNOVRModelClearMeshes( c->model );
 //	cnovr_point4d extradata = { 0, 0, 0, 0 };
 //	CNOVRModelAppendMesh( c->model, 1, 1, 1, (cnovr_point3d){  aspect_ratio, 1, 0 }, 0, &extradata );
 //	CNOVRModelAppendMesh( c->model, 1, 1, 1, (cnovr_point3d){ -aspect_ratio, 1, 0 }, 0, &extradata );
+}
+
+void CNOVRCanvasYFlip( cnovr_canvas * c, int yes_flip_y )
+{
+	if( !c || !c->model || !c->model->pGeos || !c->model->pGeos[1] || !c->model->pGeos[1]->pVertices ) return;
+	float * pf = c->model->pGeos[1]->pVertices;
+	float top = yes_flip_y?0.0:1.0;
+	float bot = yes_flip_y?1.0:0.0;
+	pf[4] = pf[1] = pf[13] = pf[16] = top;
+	pf[7] = pf[10] = pf[19] = pf[22] = bot;
+	CNOVRVBOTaint( c->model->pGeos[1] );
 }
 
 

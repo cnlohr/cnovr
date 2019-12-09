@@ -4,6 +4,7 @@
 #include "cnovrparts.h"
 #include "cnovrfocus.h"
 
+
 typedef struct cnovr_canvas_t
 {
 	cnovr_base base;
@@ -32,6 +33,7 @@ typedef struct cnovr_canvas_t
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h );
 void CNOVRCanvasResize( cnovr_canvas * c, int w, int h );
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy );
+void CNOVRCanvasYFlip( cnovr_canvas * c, int yes_flip_y );
 void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y );
 void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int scale );
 void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 );

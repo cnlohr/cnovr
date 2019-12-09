@@ -221,6 +221,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		CNOVRModelAppendMesh( cnovrstate->fullscreengeo, 1, 1, 0, size, 0, 0 );
 	}
 
+	//???! How do we make sure OpenVR initialization is complete?
+	OGUSleep( 100000 );
 
 	ovrprintf( "Init complete.\n" );
 

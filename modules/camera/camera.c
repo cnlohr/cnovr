@@ -68,7 +68,7 @@ void v4l2framecb( struct cnv4l2_t * match, uint8_t * payload, int payloadlen )
 {
 	//Stream new data to GPU
 	//lastdat = payload;
-	if( framegrabbed ) return;
+	if( framegrabbed ) { ovrprintf( "Pending camera frame transfer.  Frame dropped\n" ); return; }
 	if( mapptr ) memcpy( mapptr, payload, payloadlen );
 	framegrabbed = 1;
 }
@@ -90,8 +90,27 @@ void * videodatathreadfunction( void * v )
 
 void * camerabusinessthreadfunction( void * v )
 {
+	int did_set_physical_size;
+	OGUSleep( 50000 );
+	if( !canvascontrol ) return;
+
 	while( !quit )
 	{
+		OGUSleep( 50000 );
+		if( !did_set_physical_size )
+		{
+			CNOVRCanvasSetPhysicalSize( canvascontrol, canvascontrol->w/(float)canvascontrol->h, 1.0 );
+			did_set_physical_size = 1;
+		}
+
+		CNOVRCanvasClearFrame( canvascontrol );
+		static int frameno;
+		frameno++;
+		CNOVRCanvasSetLineWidth( canvascontrol, 1 );
+		CNOVRCanvasDrawText( canvascontrol, 2, 2, trprintf( "Hello %d", frameno ), 3 );
+		canvascontrol->color = 0xffffffff;
+		CNOVRCanvasSwapBuffers( canvascontrol );
+
 	}
 	return 0;
 }
@@ -112,14 +131,6 @@ void PrerenderFunction( void * tag, void * opaquev )
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 
-
-#if 0
-		//This is INSANELY slow.
-		if( r )
-		{
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, videoW/2, videoH, GL_RGBA, GL_UNSIGNED_BYTE, lastdat );
-		}
-#endif
 		if( framegrabbed )
 		{
 			if( !did_set_aspect_ratio )
@@ -127,26 +138,22 @@ void PrerenderFunction( void * tag, void * opaquev )
 				did_set_aspect_ratio = 1;
 				CNOVRCanvasSetPhysicalSize( canvasvideo, videoW/(float)videoH, 1.0 );
 			}
-
 			if( !pboid )
 			{
 				glGenBuffers( 1, &pboid );
-				glBindBuffer( GL_PIXEL_UNPACK_BUFFER, pboid ); //bind pbo
+				glBindBuffer( GL_PIXEL_UNPACK_BUFFER, pboid );
 				glBufferData(GL_PIXEL_UNPACK_BUFFER, videoW*videoH*2, NULL, GL_STREAM_DRAW);
 				mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, videoW*videoH*4/2, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
 				glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 );
 			}
-
-			//memcpy( mapptr, lastdat, videoW*videoH*2 );	//XXXX YARFFFFFFFFFFFFF Slow.  This could be done in a thread or something.
-
 			glBindBuffer( GL_PIXEL_UNPACK_BUFFER, pboid ); 
 			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER );
 			glBindTexture( GL_TEXTURE_2D, textureid );
 			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, videoW/2, videoH, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 			glBindTexture( GL_TEXTURE_2D, 0 );
 			mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, videoW*videoH*4/2, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
-			framegrabbed = 0;
 			glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 ); 
+			framegrabbed = 0;
 		}
 	}
 }
@@ -166,7 +173,8 @@ static void AdvancedPreviewRender( void * tag, void * opaquev )
 			previewtarget[0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
 			previewtarget[1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
 			previewtarget[2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
-			CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, 1.0 );
+			CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
+			CNOVRCanvasYFlip( canvaspreview, 1 );
 		}
 
 		//Find cutting distance.
@@ -244,7 +252,8 @@ static void RenderFunction( void * tag, void * opaquev )
 	if( canvascontrol ) CNOVRRender( canvascontrol );
 	if( canvaspreview && previewtarget[2] )
 	{
-		canvaspreview->model->pTextures[0]->nTextureId = previewtarget[2]->nResolveTextureId;
+		if( canvaspreview->model )
+			canvaspreview->model->pTextures[0]->nTextureId = previewtarget[2]->nResolveTextureId;
 		CNOVRRender( canvaspreview->model );
 	}
 	if( canvasvideo )
@@ -266,13 +275,13 @@ static void UpdateCamera()
 	memcpy( &cnovrstate->pPreviewPose, &pinvert, sizeof( cnovr_pose ) );
 	if( canvascontrol )
 	{
-		const cnovr_pose relative_pose_control = { .Pos = { 0 ,.6 ,0 }, .Rot = { 0, 0, 0, 1 }, .Scale = 1 };
+		const cnovr_pose relative_pose_control = { .Pos = { 0 ,.6 ,0 }, .Rot = { 1, 0, 0, 0 }, .Scale = 1 };
 		apply_pose_to_pose( canvascontrol->pose, posecam, &relative_pose_control );
 		canvascontrol->pose->Scale *= .5;
 	}
 	if( canvasvideo )
 	{
-		const cnovr_pose relative_pose_video = { .Pos = { .5 ,0 ,0 }, .Rot = { 0, 0, 0, 1 }, .Scale = 1 };
+		const cnovr_pose relative_pose_video = { .Pos = { .5 ,0 ,0 }, .Rot = { 1, 0, 0, 0 }, .Scale = 1 };
 		apply_pose_to_pose( canvasvideo->pose, posecam, &relative_pose_video );
 		canvasvideo->pose->Scale *= .5;
 	}
@@ -321,7 +330,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	shaderrendermodel = CNOVRShaderCreate( "rendermodel" );
 	shaderlines = CNOVRShaderCreate( "assets/basic" );
 	shaderblack = CNOVRShaderCreate( "assets/black" );
-	previewcomposite = CNOVRShaderCreate( "previewwindow" );
+	previewcomposite = CNOVRShaderCreate( "modules/camera/previewwindow" );
 	previewbasic = CNOVRShaderCreate( "previewbasic" );
 
 	modelcameralines = CNOVRModelCreate( 0, GL_LINES );
@@ -348,7 +357,6 @@ static void example_scene_setup( void * tag, void * opaquev )
 	}
 	UpdateCamera();
 
-
 	if( advanced_view )
 	{
 		canvascontrol = CNOVRCanvasCreate( "VideoSetupControl", 96, 64 );
@@ -360,6 +368,11 @@ static void example_scene_setup( void * tag, void * opaquev )
 	if( preview_view )
 	{
 		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0 );
+	}
+
+	if( advanced_view )
+	{
+		camerabusinessthread = OGCreateThread( camerabusinessthreadfunction, 0 );
 	}
 	printf( "Is setup\n" );
 }
@@ -396,10 +409,7 @@ void start( const char * identifier )
 		}
 	}
 
-	if( advanced_view )
-	{
-		camerabusinessthread = OGCreateThread( camerabusinessthreadfunction, 0 );
-	}
+	//cnovrstate->fPreviewFOV = 45;
 
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );

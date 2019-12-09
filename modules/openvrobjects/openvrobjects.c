@@ -33,9 +33,11 @@ void init( const char * identifier )
 static void RenderObjects( int lines )
 {
 	int i;
+	//Don't render HMD in the HMD.
+	int start = (cnovrstate->eyeTarget<2)?1:0;
 	if( lines )
 	{
-		for( i = 1; i < MAXRNS; i++ )
+		for( i = start; i < MAXRNS; i++ )
 		{
 			struct renderpair * rp = &rps[i];
 			if( rp->loaded && cnovrstate->bRenderPosesValid[i] )
@@ -44,7 +46,7 @@ static void RenderObjects( int lines )
 	}
 	else
 	{
-		for( i = 1; i < MAXRNS; i++ )
+		for( i = start; i < MAXRNS; i++ )
 		{
 			struct renderpair * rp = &rps[i];
 			if( rp->loaded && cnovrstate->bRenderPosesValid[i] )

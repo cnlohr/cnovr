@@ -676,6 +676,7 @@ struct ImportList
 	TCCExportS( CNOVRFBufferActivate )
 	TCCExportS( CNOVRFBufferBlitResolve )
 	TCCExportS( CNOVRCanvasSetPhysicalSize )
+	TCCExportS( CNOVRCanvasYFlip )
 	TCCExportS( glActiveTextureCHEW )
 	TCCExportS( cnovr_interpolate )
 	TCCExportS( cross3d )
