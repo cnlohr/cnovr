@@ -804,7 +804,6 @@ struct ImportList
 	TCCExportS( strcpy )
 	TCCExportS( snprintf )
 	TCCExportS( sprintf )
-	TCCExportS( stat )
 	TCCExportS( atoi )
 
 	TCCExportS( strncpy )
@@ -865,6 +864,7 @@ struct ImportList
 	{ "_findfirst64", FindFirstFileA },
 	{ "_findnext64", FindNextFile },
 #else
+	TCCExportS( stat )
 	TCCExportS( XShmCreateImage )
 	TCCExportS( XShmAttach )
 	TCCExportS( XShmGetImage )
