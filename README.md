@@ -49,6 +49,10 @@ Ovrball:
 New modules:
  * Terminal
 
+Model Loading:
+ * Optimize model loading
+ * Add more features to custom effects for model loading the the colon operator.
+
 Parts:
  * Make textures + shaders instancable, i.e. you make a new shader that's the same as an old one, it re-uses the object #.
 
