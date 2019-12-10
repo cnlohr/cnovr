@@ -6,7 +6,7 @@ OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
 	lib/symbol_enumerator_link.o lib/cnhash_link.o lib/jsmn.o \
 	lib/os_generic_link.o
 
-OBJS+=rawdraw/CNFGXDriver.o rawdraw/CNFGFunctions.o
+OBJS+=rawdraw/CNFGDriver.o rawdraw/CNFGFunctions.o
 
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
@@ -17,15 +17,19 @@ CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
 
+#Linux
+CC=gcc
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
-#LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
 LDFLAGS+=./libopenvr_api.so
+#You can get it from ./openvr/lib/linux64/libopenvr_api.so
 
 #if you need it extra small...
 #CFLAGS+=-Os -ffunction-sections -fdata-sections
 #LDFLAGS+=-Wl,--gc-sections -s
 
-CC=gcc
+#Windows
+#LDFLAGS:=-lgdi32 -luser32 -lopengl32 ./openvr_api.lib -ldbghelp
+#CC=x86_64-w64-mingw32-gcc
 
 %.o : %.c
 	$(CC) -c -o $@ $^ $(CFLAGS)

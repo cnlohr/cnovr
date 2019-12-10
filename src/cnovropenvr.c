@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void * CNOVRGetOpenVRFunctionTable( const char * interface )
+void * CNOVRGetOpenVRFunctionTable( const char * interfacename )
 {
 	EVRInitError e;
 	char fnTableName[128];
-	int result1 = snprintf( fnTableName, 128, "FnTable:%s", interface );
+	int result1 = snprintf( fnTableName, 128, "FnTable:%s", interfacename );
 	void * ret = (void *)VR_GetGenericInterface(fnTableName, &e );
 	ovrprintf( "Getting System FnTable: %s = %p (%d)", fnTableName, ret, e );
 	if( !ret )

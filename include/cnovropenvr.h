@@ -22,7 +22,7 @@ S_API bool VR_IsInterfaceVersionValid(const char *pchInterfaceVersion);
 
 
 
-void * CNOVRGetOpenVRFunctionTable( const char * interface );
+void * CNOVRGetOpenVRFunctionTable( const char * interfacename );
 void CNOVRPoseFromHMDMatrix( cnovr_pose * pose, struct HmdMatrix34_t * matrix ); 
 char * CNOVRGetTrackedDeviceString( TrackedDeviceIndex_t unDevice, TrackedDeviceProperty prop );
 
