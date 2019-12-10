@@ -3,19 +3,19 @@ CNLohr's OpenVR Foray
 
 Prerequisites:
 
-`
+```
 sudo apt-get install build-essential libgl1-mesa-dev
-`
+```
 
 ## Operating
 
-`
+```
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
 cp openvr/lib/linux64/libopenvr_api.so .
 make -j4
 ./main ovrball/ovrball.json
-`
+```
 
 
 ## TODO
