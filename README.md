@@ -9,6 +9,7 @@ sudo apt-get install build-essential libgl1-mesa-dev
 
 ## Operating
 
+On Linux:
 ```
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
@@ -16,6 +17,17 @@ cp openvr/lib/linux64/libopenvr_api.so .
 make -j4
 ./main ovrball/ovrball.json
 ```
+
+On Windows, download and install tinycc 0.9.27 to C:\tcc.  Then,
+```
+git clone https://github.com/cnlohr/cnovr --recurse-submodules
+cd cnovr
+winbuild
+main ovrball\ovrball.json
+```
+
+
+No OSX Support planned because there are no VR platforms for OSX. 
 
 
 ## TODO
