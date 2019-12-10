@@ -7,48 +7,49 @@ Prerequisites:
 sudo apt-get install build-essential libgl1-mesa-dev
 `
 
-TODO:
- * Should probably commonize event system.
+## Operating
 
-TODO:
+`
+git clone https://github.com/cnlohr/cnovr --recurse-submodules
+cd cnovr
+cp openvr/lib/linux64/libopenvr_api.so .
+make -j4
+./main ovrball/ovrball.json
+`
+
+
+## TODO
+
+Event System:
+ * Should probably commonize event system.
+ * Should probably make event system or at least lists be able to have priorities.
+ * Should we rejigger the jobs task/list?  Should it ONLY be a list?  Removal will be slow, maybe we can mark the job as "unused" and go from there.
+
+Collisions:
  * Add optimization for geometry early exit.
  * Add optimization for triangle early exit.
 
-HMM:
- * Should we make the "remove callback" more generic for any kind of callback?
- * Should we have some convenient object thing?
-
-NOW:
- * Windows Windows
- * Rawdraw 2 extra modes.
-
-GAMEPLAN:
- * Make camera you can move around.
- * Model Loading
+New modules:
  * Terminal
+
+Parts:
  * Make textures + shaders instancable, i.e. you make a new shader that's the same as an old one, it re-uses the object #.
 
-NEWER:
- * Make some global "now" or delta timer.
- * Should lists be allowed to have "priorities"?
- * There should be some default shader for if a shader with a 0 id is activated, it can go to the default.
- * When shutting down TCC, the actual destruction should maybe happen a frame later to give TCC a chance to actually shutdown instead of us canceling threads mid-run.
- * Should models have a transform matrix?
+General:
+ * Make some global "now" or delta timer, "time of next frame flip"?  (i.e. 1/fps + frame start time)?
 
-Mid future todo:
+Maybe:
+ * There should be some default shader for if a shader with a 0 id is activated, it can go to the default.
  * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?
 
 Distant-future todo:
  * Input animations: { "name": "/actions/m/anim", "type": "skeleton", "skeleton": "/skeleton/hand/right" }
  * Check this out: https://github.com/NVIDIA/NvPipe/blob/master/src/Video_Codec_SDK_9.0.20/Samples/NvCodec/NvEncoder/NvEncoder.cpp  CNOVRStreaming?
 
-Further consider (long-term)
- * Should we continue using "Tag" as an ambiguous term meaning "TCC Instance" or "Node" or should we standardize?
- * Should we rejigger the jobs task/list?  Should it ONLY be a list?  Removal will be slow, maybe we can mark
-    the job as "unused" and go from there.
- * Should we refcount objects?  I don't particularly like that idea.
+Camera:
+ * Improve cnv4l2 to allow for advanced userptr, to allow direct streaming into GPU.
 
-Considerations:
+Past Considerations:
  * The cnovr_header base.
    * Should this be a pointer to a structure of common pointers (like C++) or contain all basic props right there?
    * Decision: It should be like C++, where we have "types" in memory instead of willy nilly funptrs.
