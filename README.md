@@ -28,6 +28,11 @@ Event System:
 Collisions:
  * Add optimization for geometry early exit.
  * Add optimization for triangle early exit.
+ * When intersecting with an object with a larger bubble, convex edges aren't perfectly smooth, space kinda wraps around them. and you intersect the edge even though you should the flat piece if you just extrude the face outward.  Need to also "stretch" the face.
+
+Ovrball:
+ * Write AI
+ * Fix issues when you have a skipped timestamp.
 
 New modules:
  * Terminal
@@ -37,6 +42,7 @@ Parts:
 
 General:
  * Make some global "now" or delta timer, "time of next frame flip"?  (i.e. 1/fps + frame start time)?
+ * Figure out why OpenGL is crashing on Linux if you add the -rdynamic flag.  This is crucial for better debugging.
 
 Maybe:
  * There should be some default shader for if a shader with a 0 id is activated, it can go to the default.

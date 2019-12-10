@@ -21,8 +21,9 @@ LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
 #LDFLAGS+=./openvr/lib/linux64/libopenvr_api.so
 LDFLAGS+=./libopenvr_api.so
 
+#if you need it extra small...
 #CFLAGS+=-Os -ffunction-sections -fdata-sections
-#LDFLAGS+=-Wl,--gc-sections
+#LDFLAGS+=-Wl,--gc-sections -s
 
 CC=gcc
 
