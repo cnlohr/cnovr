@@ -6,7 +6,7 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable",
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "starfield/starfield.c",
@@ -15,7 +15,7 @@
 		},
 		{
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
-			"identifier" : "lineify",
+			"identifier" : "wireframe",
 			"comment":"lineify",
 			"disabled" : false,
 		},

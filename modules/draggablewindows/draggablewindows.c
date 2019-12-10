@@ -649,7 +649,7 @@ int DockableWindowFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pr
 		}
 		if( dw && !dw->setptr )
 		{
-			dw->mptrx = (1.0-prop->NewPassiveProps[0]) * dw->width;
+			dw->mptrx = (prop->NewPassiveProps[0]) * dw->width;
 			dw->mptry = (prop->NewPassiveProps[1]) * dw->height;
 			dw->setptr = (event == CNOVRF_MOTION)?1:(buttoninfo+2);
 		}

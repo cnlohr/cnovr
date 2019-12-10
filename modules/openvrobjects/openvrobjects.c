@@ -26,6 +26,7 @@ struct renderpair
 struct renderpair rps[MAXRNS];
 
 int do_wireframe;
+int do_lineify;
 
 void init( const char * identifier )
 {
@@ -82,10 +83,13 @@ void UpdateFunction( void * tag, void * opaquev )
 void RenderFunction( void * tag, void * opaquev )
 {
 	int i;
-	if( do_wireframe )
+	if( do_wireframe || do_lineify )
 	{
-		CNOVRRender( shadersolid );
-		RenderObjects( 0 );
+		if( do_lineify )
+		{
+			CNOVRRender( shadersolid );
+			RenderObjects( 0 );
+		}
 		CNOVRRender( shaderlines );
 		RenderObjects( 1 );
 	}
@@ -110,10 +114,15 @@ void scene_setup( void * tag, void * opaquev )
 
 void start( const char * identifier )
 {
-	if( strstr( identifier, "lineify" ) != 0 )
+	if( strstr( identifier, "wireframe" ) != 0 )
 	{
 		printf( "Wireframe objects\n" );
 		do_wireframe = 1;
+	}
+	if( strstr( identifier, "lineify" ) != 0 )
+	{
+		printf( "Lineify objects\n" );
+		do_lineify = 1;
 	}
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, scene_setup, 0, 0, 0 );

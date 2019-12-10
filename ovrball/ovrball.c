@@ -48,7 +48,7 @@ cnovr_pose    playareapose;
 //cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
 cnovr_pose    boomroot; //Must be origin
 
-cnovr_point3d roomoffset = { 0, 0, 0 };
+cnovr_point3d roomoffset = { 0, 0, -1 };
 
 cnovr_model * explosion_model;
 cnovr_shader * explosion_shader;
@@ -400,7 +400,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	static int histhead;
 	ovrhist[histhead] = cnovrstate->fFrameTimems;
 	histhead = (histhead+1)%96;
-	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n%4d%4d\n%.2f", 10./fpstime, cpupoints, playerpoints, cnovrstate->fFrameTimems ), 3 );
+	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n%4d%4d\n%.2fms", 10./fpstime, cpupoints, playerpoints, cnovrstate->fFrameTimems ), 3 );
 	for( i = 0; i < 96; i++ )
 	{
 		int px = ovrhist[(i+histhead)%96]*2.0; 

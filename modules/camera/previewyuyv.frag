@@ -9,8 +9,6 @@ layout(location = 9) uniform vec4 osdtarget;
 in vec2 texcoords;
 
 //From Wikipedia
-//const vec3 cvr = { 1.402, -.714, 0.0 };
-//const vec3 cvb = { 0.0, -.344, 1.772 };
 const vec3 cvr = { 1.402, -.714, 0.0 };
 const vec3 cvb = { 0.0, -.344, 1.772 };
 
@@ -23,14 +21,18 @@ vec3 yuvtorgb( vec3 yuv )
 	return clamp( ret, 0., 1. );
 }
 
+vec3 getyuyvpixel( sampler2D texi, vec2 uv )
+{
+	ivec2 ts = textureSize( texi, 0 );
+	//uv = vec2( 1. ) - uv;
+	vec4 yuyv = texture( texi, uv );
+	vec2 tp = floor( mod( texcoords.xy*ts*2.0, 2.0 ) );
+	return yuvtorgb(( tp.x < 1.0 )?yuyv.rga:yuyv.bga);
+}
+
 void main()
 {
-	ivec2 ts = textureSize( textures[0], 0 );
 	vec2 uv = texcoords;
-	//uv = vec2( 1. ) - uv;
-	vec4 yuyv = texture( textures[0], uv );
-	vec2 tp = floor( mod( texcoords.xy*ts*2.0, 2.0 ) );
-	colorOut = vec4( tp.xx, 0.0, 1.0 );
 
 	if( osdtarget.x > 0.5 )
 	{
@@ -40,6 +42,6 @@ void main()
 			return;
 		}
 	}
-	vec3 yuv = ( tp.x < 1.0 )?yuyv.rga:yuyv.bga;
-	colorOut = vec4( yuvtorgb( yuv ), 1. );
+	vec3 rgbpix = getyuyvpixel( textures[0], uv );
+	colorOut = vec4( rgbpix, 1. );
 }

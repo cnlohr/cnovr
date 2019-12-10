@@ -23,6 +23,7 @@ cnovr_shader * shaderlines;
 cnovr_shader * shaderblack;
 cnovr_shader * previewcomposite;
 cnovr_shader * previewbasic;
+cnovr_shader * alphawash;
 cnovr_model *  modelcameralines;
 cnovr_model *  modelcamerasolid;
 cnovrfocus_capture capture;
@@ -30,7 +31,9 @@ cnovrfocus_capture capture;
 cnovr_canvas * canvascontrol;
 cnovr_canvas * canvaspreview;
 cnovr_canvas * canvasvideo;
-cnovr_rf_buffer * previewtarget[3]; //Background, foreground, and final
+#define PREVIEWFRAMEHIST 13
+int previewframehisthead;
+cnovr_rf_buffer * previewtarget[PREVIEWFRAMEHIST][3]; //Background, foreground, and final
 
 cnv4l2 * v4l2interface;
 
@@ -40,6 +43,7 @@ struct camerastore_t
 	cnovr_pose  posecamera;
 	int use_paired_object;
 	char paired_object_serial_number[64];
+	float set_fov;
 	cnovr_pose  paired_relative_offset_pose;
 } * store;
 
@@ -71,7 +75,7 @@ float videoosdvals[4];
 //og_thread_t camerabusinessthread;
 
 
-const cnovr_canvas_canned_gui_element cvp_main_menu[];
+const const struct cnovr_canvas_canned_gui_element_t cvp_main_menu[];
 
 char camstatustext[63];
 char fovsettext[63];
@@ -149,7 +153,7 @@ void CalibrateCameraFromTrackingPoints( cnovr_pose * pcamout, cnovr_point3d * ca
 	//From https://wiki.panotools.org/Field_of_View
 	float hfov = 2 * atan( tan( vfov/2.0 ) * (float)videoH / (float)videoW );
 	printf( "vfov: %f  hfov: %f\n", vfov*180/3.14159, hfov*180/3.14159 );
-	cnovrstate->fPreviewFOV = 180.0 * hfov / (1.-CAM_CAL_EDGE_DIST_RATIO) / 3.14159;
+	store->set_fov = cnovrstate->fPreviewFOV = 180.0 * hfov / (1.-CAM_CAL_EDGE_DIST_RATIO) / 3.14159;
 	printf( "fPreviewFOV: %f\n", cnovrstate->fPreviewFOV );
 }
 
@@ -168,22 +172,21 @@ void UpdateMenuStatuses()
 		devlist[i][r] = 0;
 	}
 }
-
-void coarse_fov( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
-	cnovrstate->fPreviewFOV = rx + 10;
+void coarse_fov( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	store->set_fov = cnovrstate->fPreviewFOV = rx + 10;
 	UpdateMenuStatuses();
 }
-void fine_fov( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
-	cnovrstate->fPreviewFOV += elem->iopaque/10.0;
+void fine_fov( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	store->set_fov = cnovrstate->fPreviewFOV += elem->iopaque/10.0;
 	UpdateMenuStatuses();
 }
 
-void changemenu( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+void changemenu( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	UpdateMenuStatuses();
 	CNOVRCanvasApplyCannedGUI( canvascontrol, elem->vopaque );
 }
 
-void resetcam( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+void resetcam( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	store->use_paired_object = 0;
 	paired_object_id = -1;
 	pose_make_identity( &store->posecamera );
@@ -192,7 +195,7 @@ void resetcam( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element *
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
 }
 
-void attachtodev( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+void attachtodev( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	int a = elem->iopaque;
 	if( a < 0 )
 	{
@@ -225,12 +228,18 @@ void attachtodev( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_elemen
 	UpdateMenuStatuses();
 }
 
+void camsavebuttonhit( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	CNOVRNamedPtrSave( "camerastore" );
+	sprintf( notetext, "Saved.\n" );
+	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+}
+
 #define MENUH 16
 #define MENUY(y) ((MENUH*(y))+2)
 #define DEF_WIDTH (160-26)
 #define EXTRA_WIDTH (160-4)
 
-const cnovr_canvas_canned_gui_element cvp_tweak[] = {
+const const struct cnovr_canvas_canned_gui_element_t cvp_tweak[] = {
 	{ .x = 2, .y = MENUY(0), .w = 90, .h = 14, .cb = 0, .text = camstatustext },
 	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Main Menu", .cb = changemenu, .vopaque = cvp_main_menu },
 	{ .x = 12, .y = MENUY(2), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = fovsettext, .cb = coarse_fov, .allowdrag = 1 },
@@ -241,7 +250,7 @@ const cnovr_canvas_canned_gui_element cvp_tweak[] = {
 };
 
 
-const cnovr_canvas_canned_gui_element cvp_dev_menu[] = {
+const const struct cnovr_canvas_canned_gui_element_t cvp_dev_menu[] = {
 	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
 	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .text = "Main Menu", .cb = changemenu, .vopaque = cvp_main_menu },
 	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .text = devlist[0], .cb = attachtodev, .iopaque = 0 },
@@ -257,12 +266,12 @@ const cnovr_canvas_canned_gui_element cvp_dev_menu[] = {
 	{ .cb = 0, .w = 0, .h = 0 }
 };
 
-void stopcamcal( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+void stopcamcal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	cal_cam_stage = 0;
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
 }
 
-const cnovr_canvas_canned_gui_element cvp_cal1[] = {
+const const struct cnovr_canvas_canned_gui_element_t cvp_cal1[] = {
 	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
 	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Main Menu", .cb = stopcamcal },
 	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Use OSD. Click to Go.", .iopaque = 0 },
@@ -270,18 +279,19 @@ const cnovr_canvas_canned_gui_element cvp_cal1[] = {
 	{ .cb = 0, .w = 0, .h = 0 }
 };
 
-void startcamcal( struct cnovr_canvas_t * canvas, cnovr_canvas_canned_gui_element * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+void startcamcal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	cal_cam_stage = 1;
 	cal_cam_controller = devid;
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_cal1 );
 }
 
 
-const cnovr_canvas_canned_gui_element cvp_main_menu[] = {
+const const struct cnovr_canvas_canned_gui_element_t cvp_main_menu[] = {
 	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
 	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .text = "Tweak Cam", .cb = changemenu, .vopaque = cvp_tweak },
 	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .text = "Attach To Dev", .cb = changemenu, .vopaque = cvp_dev_menu },
 	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .text = "Cal Cam", .cb = startcamcal, .vopaque = cvp_cal1 },
+	{ .x = 2, .y = MENUY(4), .w = EXTRA_WIDTH, .h = 14, .text = "Save Cam", .cb = camsavebuttonhit },
 	{ .x = 2, .y = MENUY(11), .w = 90, .h = 14, .cb = 0, .text = notetext },
 	{ .cb = 0, .w = 0, .h = 0 }
 };
@@ -469,18 +479,23 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	if( cnovrstate->iPreviewHeight == 0 || cnovrstate->iPreviewWidth == 0 ) return;
 	if( advanced_view )
 	{
-		if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || !previewtarget[0] || !previewtarget[1] || !previewtarget[2] )
+		if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
 		{
-			previewW = cnovrstate->iPreviewWidth;
-			previewH = cnovrstate->iPreviewHeight;
-			if( previewtarget[0] ) CNOVRDelete( previewtarget[0] );
-			if( previewtarget[1] ) CNOVRDelete( previewtarget[1] );
-			if( previewtarget[2] ) CNOVRDelete( previewtarget[2] );
-			previewtarget[0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-			previewtarget[1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-			previewtarget[2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
-			CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
-			CNOVRCanvasYFlip( canvaspreview, 1 );
+			int ih;
+			for( ih = 0; ih < PREVIEWFRAMEHIST; ih++ )
+			{
+				previewW = cnovrstate->iPreviewWidth;
+				previewH = cnovrstate->iPreviewHeight;
+				if( previewtarget[ih][0] ) CNOVRDelete( previewtarget[ih][0] );
+				if( previewtarget[ih][1] ) CNOVRDelete( previewtarget[ih][1] );
+				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
+				previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+				previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+				previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
+				CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
+				CNOVRCanvasYFlip( canvaspreview, 1 );
+				previewframehisthead = 0;
+			}
 		}
 
 		//Find cutting distance.
@@ -495,40 +510,69 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 		int i;
 		float distancecut = fPreviewForegroundSplitDistance;
-		for( i = 0; i < 2; i++ )
+		for( i = 0; i < 2; i++ ) //Foreground then background
 		{
-			CNOVRFBufferActivate( previewtarget[i] );
+			int ihprev = (previewframehisthead - 1 + PREVIEWFRAMEHIST)%PREVIEWFRAMEHIST;
+			CNOVRFBufferActivate( previewtarget[ihprev][i] );
 			matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, i?cnovrstate->fNear:distancecut, i?distancecut:cnovrstate->fFar );
 			glViewport(0, 0, width, height );
-			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+			if( cnovrstate->multisample )
+			{
+#if 0
+				//glDisable(GL_MULTISAMPLE);
+				//glBlendFunc(GL_ONE_MINUS_SRC_ALPHA,GL_SRC_ALPHA);
+				glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+				glEnable( GL_SAMPLE_ALPHA_TO_ONE );
+				glBlendFunc(GL_ONE,GL_ZERO);
+				glEnable(GL_BLEND);
+				glDepthFunc( GL_ALWAYS);
+				CNOVRRender( alphawash );
+				CNOVRRender( cnovrstate->fullscreengeo );
+				glDepthFunc( GL_LESS);
+				glClear( GL_DEPTH_BUFFER_BIT );
+				glEnable(GL_BLEND);
+				glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+				glBlendFunc(GL_ONE, GL_ZERO);
+#endif
+				glClearColor( 0., 0., 0., 0. );
+				glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+			}
+			else
+			{
+				glClearColor( 0., 0., 0., 0. );
+				glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+			}
 			CNOVRListCall( cnovrLRender0, 0, 0); 
 			CNOVRListCall( cnovrLRender1, 0, 0); 
 			CNOVRListCall( cnovrLRender2, 0, 0); 
 			CNOVRListCall( cnovrLRender3, 0, 0); 
 			CNOVRListCall( cnovrLRender4, 0, 0); 
-			CNOVRFBufferBlitResolve( previewtarget[i] );
+			CNOVRFBufferBlitResolve( previewtarget[ihprev][i] );
 		}
 		glDisable( GL_DEPTH_TEST );
 
-		CNOVRFBufferActivate( previewtarget[2] );
-	//	glClearColor( 1., 0., 0., 1. );
+		CNOVRFBufferActivate( previewtarget[previewframehisthead][2] );
 		glViewport(0, 0, width, height );
+		glClearColor( 1., 0., 0., 1. );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 		glEnable( GL_TEXTURE_2D );
 		glActiveTextureCHEW( GL_TEXTURE0 + 0 );
-		glBindTexture( GL_TEXTURE_2D, previewtarget[0]->nResolveTextureId );
+		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][0]->nResolveTextureId );
 		glActiveTextureCHEW( GL_TEXTURE0 + 1 );
-		glBindTexture( GL_TEXTURE_2D, previewtarget[1]->nResolveTextureId );
+		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][1]->nResolveTextureId );
+		glActiveTextureCHEW( GL_TEXTURE0 + 2 );
+		glBindTexture( GL_TEXTURE_2D, canvasvideo->model->pTextures[0]->nTextureId );
 		CNOVRRender( previewcomposite );
 		CNOVRRender( cnovrstate->fullscreengeo );
-		CNOVRFBufferBlitResolve( previewtarget[2] );
+		CNOVRFBufferBlitResolve( previewtarget[previewframehisthead][2] );
 
 		CNOVRRender( previewbasic );
 		glEnable( GL_TEXTURE_2D );
 		glActiveTextureCHEW( GL_TEXTURE0 + 0 );
-		glBindTexture( GL_TEXTURE_2D, previewtarget[2]->nResolveTextureId );
+		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][2]->nResolveTextureId );
 		CNOVRRender( cnovrstate->fullscreengeo );
 
+		previewframehisthead = (previewframehisthead+1)%PREVIEWFRAMEHIST;
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 	else
@@ -559,18 +603,20 @@ void RenderFunction( void * tag, void * opaquev )
 		printf( "RenderFunction start\n" );
 	#endif
 
-
 	int i;
 	CNOVRRender( shaderlines );
 	CNOVRModelRenderWithPose( modelcameralines, &store->posecamera );
 	CNOVRRender( shaderrendermodel );
 
 	if( canvascontrol ) CNOVRRender( canvascontrol );
-	if( canvaspreview && previewtarget[2] )
+	if( previewframehisthead != -1 )
 	{
-		if( canvaspreview->model )
-			canvaspreview->model->pTextures[0]->nTextureId = previewtarget[2]->nResolveTextureId;
-		CNOVRRender( canvaspreview->model );
+		if( canvaspreview && previewtarget[previewframehisthead][2] )
+		{
+			if( canvaspreview->model )
+				canvaspreview->model->pTextures[0]->nTextureId = previewtarget[previewframehisthead][2]->nResolveTextureId;
+			CNOVRRender( canvaspreview->model );
+		}
 	}
 
 	if( canvasvideo )
@@ -636,7 +682,7 @@ int CameraFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties
 	//int id = m->iOpaque;
 	if( event == CNOVRF_LOSTFOCUS )
 	{
-		CNOVRNamedPtrSave( "camerastore" );
+		//CNOVRNamedPtrSave( "camerastore" );
 	}
 
 	CNOVRGeneralHandleFocusEvent( modelcamerasolid->focuscontrol, modelcamerasolid->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
@@ -689,6 +735,8 @@ void example_scene_setup( void * tag, void * opaquev )
 	shaderblack = CNOVRShaderCreate( "assets/black" );
 	previewcomposite = CNOVRShaderCreate( "modules/camera/previewwindow" );
 	previewbasic = CNOVRShaderCreate( "previewbasic" );
+	alphawash = CNOVRShaderCreate( "alphawash" );
+
 
 	modelcameralines = CNOVRModelCreate( 0, GL_LINES );
 	modelcamerasolid = CNOVRModelCreate( 0, GL_TRIANGLES );
@@ -758,6 +806,7 @@ void camcnv4l2enumcb( void * opaque, const char * dev, const char * name, const 
 void start( const char * identifier )
 {
 	paired_object_id = -1;
+	previewframehisthead = -1;
 	store = CNOVRNamedPtrData( "camerastore", "camerastore", sizeof( *store ) + 128 );
 	printf( "=== Initializing %p\n", store );
 
@@ -770,6 +819,11 @@ void start( const char * identifier )
 	}
 
 	//cnovrstate->fPreviewFOV = 45;
+
+	if( store->set_fov > 1 )
+	{
+		cnovrstate->fPreviewFOV = store->set_fov;
+	}
 
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );

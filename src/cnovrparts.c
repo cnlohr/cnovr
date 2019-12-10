@@ -211,6 +211,7 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 		glActiveTextureCHEW( GL_TEXTURE0 );
 		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, b->nRenderTextureId );
 		if( CNOVRCheck() ) ovrprintf( "MIDDLE RESOLVE\n" );
+		glDisable( GL_BLEND ); // XXX TODO: Want to be in for a wild ride?  With multisample on in mixed reality, enable blending here! HAHAHAHAH
 		CNOVRRender( b->resolveshader );
 		if( CNOVRCheck() ) ovrprintf( "MIDDLE1 RESOLVE\n" );
 		if( CNOVRCheck() ) ovrprintf( "MIDDLE2 RESOLVE\n" );
