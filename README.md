@@ -2,15 +2,18 @@
 
 This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it.
 
-Prerequisites:
+
+
+## Operating
+
+### On Linux:
+#### Prerequisites:
 
 ```
 sudo apt-get install build-essential libgl1-mesa-dev
 ```
 
-## Operating
-
-On Linux:
+#### Operating:
 ```
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
@@ -19,7 +22,13 @@ make -j4
 ./main ovrball/ovrball.json
 ```
 
-On Windows, download and install tinycc 0.9.27 to C:\tcc.  Then,
+### On Windows
+
+#### Prerequisites
+
+* Download and install tinycc 0.9.27 to C:\tcc.  Then,
+
+#### Operating:
 ```
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
