@@ -183,6 +183,7 @@ typedef struct cnovr_model_t
 	int iTextures;
 	og_mutex_t model_mutex;
 	char * geofile;
+	int iLoadOpaque1, iLoadOpaque2; //These are specific to whatever model loader is being used, but are always initialized to zero.
 
 	cnovr_pose * pose;
 	cnovr_model_focus_controller * focuscontrol;

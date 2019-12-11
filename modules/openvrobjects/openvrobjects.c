@@ -71,9 +71,15 @@ void UpdateFunction( void * tag, void * opaquev )
 			rp->modellines = CNOVRModelCreate( 0, GL_LINES );
 			rp->modelsolid = CNOVRModelCreate( 0, GL_TRIANGLES );
 			char tempname[300];
-			sprintf( tempname, "%s.rendermodel:lineify", rmname );
+			const char * dotrendermodel = ".rendermodel";
+			if( strstr( rmname, "generic_hmd" ) != 0 )
+			{
+				rmname = "assets/indexvisor.obj";
+				dotrendermodel = "";
+			}
+			sprintf( tempname, "%s%s:lineify", rmname, dotrendermodel );
 			CNOVRModelLoadFromFileAsync( rp->modellines, tempname);
-			sprintf( tempname, "%s.rendermodel", rmname );
+			sprintf( tempname, "%s%s", rmname, dotrendermodel );
 			CNOVRModelLoadFromFileAsync( rp->modelsolid, tempname );
 			rps[i].loaded = 1;
 		}
