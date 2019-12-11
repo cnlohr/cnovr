@@ -82,7 +82,7 @@ static void RenderFunction( void * tag, void * opaquev )
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-	glDepthFunc( GL_ALWAYS );
+//	glDepthFunc( GL_ALWAYS );
     glEnable(GL_DEPTH_CLAMP);
 
 	glPointSize( 4 );

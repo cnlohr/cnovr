@@ -16,8 +16,8 @@ void main()
 
 	r *= props.y;
 
+	if( r > 900 ) r = 900;
 	if( r < 0 ) r *= -1;
-	//if( r > 90. ) r = 80.;
 	vec3 posout = vec3( 
 		cos(position.x) * cos(position.y), 
 		sin( position.y ),
