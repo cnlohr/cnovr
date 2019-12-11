@@ -70,6 +70,7 @@ Distant-future todo:
 
 Camera:
  * Improve cnv4l2 to allow for advanced userptr, to allow direct streaming into GPU.
+ * Change the green-screen algorithm to more quickly perform the composite.  Probably by pyramidally calculating the green-pass.
 
 Past Considerations:
  * The cnovr_header base.

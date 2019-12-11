@@ -951,6 +951,8 @@ cnovr_model * CNOVRModelCreate( int initial_indices, int rendertype )
 	ret->iRenderMesh = -1;
 	ret->sModifiers = 0;
 	ret->iCollideMesh = -1;
+	ret->iLoadOpaque1 = 0;
+	ret->iLoadOpaque2 = 0;
 
 	ret->pGeos = malloc( sizeof( cnovr_vbo * ) * 1 );
 	ret->iGeos = 0;
@@ -1600,6 +1602,7 @@ struct TempObject
 	float * CTexs;
 };
 
+void CNOVRModelLoadFromFileAsyncCallback( void * vm, void * dump );
 
 //int rttt;
 //#define RBlvpcmp(x,y) ( rttt = memcmp( x, y, sizeof(cnovr_point3d) ), printf( "%f %f %f // %f %f %f %d\n", PFTHREE( x ), PFTHREE( y ), rttt ), rttt )
@@ -1619,6 +1622,20 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 {
 	int filelen;
 	char * file = CNOVRFileToString( filename, &filelen );
+
+	if( m->iLoadOpaque1 != filelen )
+	{
+		m->iLoadOpaque2 = 0;
+		m->iLoadOpaque1 = filelen;
+	}
+	else if( m->iLoadOpaque2 < 2 )
+	{
+		m->iLoadOpaque2++;
+		CNOVRJobTack( cnovrQAsync, CNOVRModelLoadFromFileAsyncCallback, m, 0, 1 );
+		free( file );
+		return;
+	}
+	m->iLoadOpaque2 = 0;
 	char ** splits = CNOVRSplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );
 

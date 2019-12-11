@@ -29,19 +29,33 @@ vec3 getyuyvpixel( sampler2D texi, vec2 uv )
 	return yuvtorgb(( tp.x < 1.0 )?yuyv.rga:yuyv.bga);
 }
 
-
-
-void main()
+float greennessfn( vec2 uv )
 {
-	vec4 texbg = texture( textures[0], texcoords.xy ); 
-	vec4 texfg = texture( textures[1], texcoords.xy ); 
-	vec3 video = getyuyvpixel( textures[2], texcoords.xy );
+	vec3 video = getyuyvpixel( textures[2], uv );
 	//colorOut = vec4( video, 1.0 );
 	vec3 normvideo = normalize(video)*.6 + video;
 	vec3 target = vec3( 0.2, 1.4, 0.2 );
 	float dist = length( target - normvideo )*1.2;
 	float greenness = (1.0-dist)*3.0;
 	greenness = clamp( greenness, 0., 1. );
+	return greenness;
+}
+
+void main()
+{
+	vec4 texbg = texture( textures[0], texcoords.xy ); 
+	vec4 texfg = texture( textures[1], texcoords.xy ); 
+	vec3 video = getyuyvpixel( textures[2], texcoords.xy );
+
+	//Yucky - TODO: Perform a single pyramid decimation on the video stream.
+	vec3 ivsize = vec3( vec2(1.)/textureSize( textures[2], 0 ), 0. );
+	float greenness = max(
+		max(
+			max( greennessfn( texcoords.xy + ivsize.xz ), greennessfn( texcoords.xy + ivsize.zy ) ),
+			max( greennessfn( texcoords.xy - ivsize.xz ), greennessfn( texcoords.xy - ivsize.zy ) )
+		),
+			greennessfn( texcoords.xy )
+		);
 	vec3 backandvideo = mix( video.rgb, texbg.rgb, greenness );
 	colorOut = vec4( mix( backandvideo, texfg.rgb, clamp( texfg.a*2.0, 0., 1. )), 1.0);
 }
