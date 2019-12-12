@@ -37,7 +37,7 @@ void InternalCNOVRFocusShutdown();
 void InternalCNOVRFocusUpdate();
 void InternalSetupNamedPtrs();
 
-#define MULTISAMPLE 4
+#define DEFAULT_MULTISAMPLE 4
 
 void HandleKey( int keycode, int bDown )
 {
@@ -138,7 +138,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->sterotargets[0] = 0;
 		cnovrstate->sterotargets[1] = 0;
 		cnovrstate->fPreviewFOV = 100;
-		cnovrstate->multisample = MULTISAMPLE;
+		cnovrstate->multisample = DEFAULT_MULTISAMPLE;
 
 		//Initial camrea
 		pose_make_identity( &cnovrstate->pPreviewPose );
@@ -306,8 +306,8 @@ void CNOVRUpdate()
 			CNOVRDelete( cnovrstate->sterotargets[1] );
 	 
 			//Resize the render targets.
-			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, MULTISAMPLE );
-			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, MULTISAMPLE );
+			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->multisample );
+			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->multisample );
 			cnovrstate->iEyeRenderWidth = iEyeRenderWidth;
 			cnovrstate->iEyeRenderHeight = iEyeRenderHeight;
 		}

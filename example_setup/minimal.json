@@ -1,0 +1,13 @@
+{
+	"searchfolders" : [
+		"example_setup"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "minimal.c",
+			"identifier" : "",
+			"disabled" : false,
+		},
+	]
+}
+

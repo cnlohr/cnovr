@@ -1,4 +1,4 @@
-all : main offlinetests headless
+all : main offlinetests headless minimal
 
 #slowest, get in queue first for performance in parallel compiles.
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
@@ -38,6 +38,9 @@ main : $(OBJS) src/main.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 headless : $(OBJS) src/headless.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+minimal : $(OBJS) src/minimal.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 offlinetests : $(OBJS) src/offlinetests.o 
