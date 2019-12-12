@@ -1,15 +1,21 @@
 # cnovr
-CNLohr's OpenVR Foray
 
-Prerequisites:
+This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it.
+
+Also, I'm probably never going to write much of a how-to or document anything on this project, either.  I'm mostly hoping google indexes the source code so I can google for when I want to do things I'm doing here.
+
+
+
+## Operating
+
+### On Linux:
+#### Prerequisites:
 
 ```
 sudo apt-get install build-essential libgl1-mesa-dev
 ```
 
-## Operating
-
-On Linux:
+#### Operating:
 ```
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
@@ -18,7 +24,13 @@ make -j4
 ./main ovrball/ovrball.json
 ```
 
-On Windows, download and install tinycc 0.9.27 to C:\tcc.  Then,
+### On Windows
+
+#### Prerequisites
+
+* Download and install tinycc 0.9.27 to C:\tcc.  Then,
+
+#### Operating:
 ```
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
