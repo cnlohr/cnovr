@@ -58,6 +58,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	ret->base.tccctx = TCCGetTag();
 
 	ret->multisample = multisample;
+	printf( "CNOVRRFBufferCreate %d (%d,%d)\n", multisample, nWidth, nHeight );
 
 	//XXX TODO: Figure out why we can't use depth buffers with multisamples.
 	int texmul = multisample?GL_TEXTURE_2D_MULTISAMPLE:GL_TEXTURE_2D;
