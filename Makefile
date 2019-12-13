@@ -17,6 +17,11 @@ CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
 
+#Note: If you are operating on older OpenGL Implementations, uncomment
+# the following line, this will prevent the #line directive from being
+# used.  #line makes it easier to do GLSL debugging.
+#CFLAGS += -DSTB_INCLUDE_LINE_NONE
+
 #Linux
 CC=gcc
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
@@ -43,8 +48,8 @@ headless : $(OBJS) src/headless.o
 minimal : $(OBJS) src/minimal.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
-offlinetests : $(OBJS) src/offlinetests.o 
-	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)	
+offlinetests : $(OBJS) src/offlinetests.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 clean :
 	rm -rf *.o *~ $(OBJS) src/*.o
