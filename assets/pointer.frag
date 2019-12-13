@@ -1,4 +1,4 @@
-#version 430
+#version 330
 #include "cnovr.glsl"
 
 out vec4 colorOut;

@@ -1,4 +1,4 @@
-#version 430
+#version 330
 #include "cnovr.glsl"
 
 layout(location = 0) in vec4 position;
