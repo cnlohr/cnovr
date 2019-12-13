@@ -465,7 +465,7 @@ void CNOVRUpdate()
 	CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
-	glFinish();
+	glFlush();
 	cnovrstate->fFrameTimems = (OGGetAbsoluteTime()-FrameStart)*1000;
 
 }
