@@ -77,6 +77,7 @@ Maybe:
  * Give TCC scripts up to one frame to properly shutdown.  If they're still running, terminate them.  Callback?
 
 Distant-future todo:
+ * Improve YUYV / etc. decoding.  Also support other color formats.  Although most cameras support YUYV natively, the new Windows camera SDKs don't look like they do.  See this: https://docs.microsoft.com/en-us/previous-versions/ms867704(v=msdn.10)?redirectedfrom=MSDN
  * Input animations: { "name": "/actions/m/anim", "type": "skeleton", "skeleton": "/skeleton/hand/right" }
  * Check this out: https://github.com/NVIDIA/NvPipe/blob/master/src/Video_Codec_SDK_9.0.20/Samples/NvCodec/NvEncoder/NvEncoder.cpp  CNOVRStreaming?
 
