@@ -6,6 +6,7 @@ My goal is to make a system which allows for extremely rapid VR game development
  * JSON "game" description files. (`.json`)
  * C scripts to be compiled by TinyCC (`.c`)
  * Shaders (`.vert`, `.frag`, `.geo`)
+ * Models (currently only `.obj` supported)
  * Images/textures via stb_image (`.jpg`, `.png`, `.bmp`, `.pnm` etc..)
 
 The overall methodology behind cnovr is to use a minimum of "libraries."  In general it should only be linking to OpenGL and OpenVR, where possible.  Things like video camera video will need to link to v4l2, etc...  From there it will directly open X windows, or Microsoft Windows windows.  All GL Extension rangling is handled by `chew.h`/`chew.c` internally.  By design, there are no eexternal dependencies that are not compiled directly into the executable.  Large compiled-in dependencies, apart from `TinyCC` and `stb_image` (and I'll think about maybe allowing gltf) will not be accepted.
