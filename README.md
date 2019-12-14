@@ -1,6 +1,6 @@
 # cnovr
 
-This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it.
+**This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it!**
 
 My goal is to make a system which allows for extremely rapid VR game development, geared for livestreams.  In order to accomplish this, the primry mode for gameplay programming is to use C.  The whole of the engine is written in C to facilitate very fast recompiles.  All of the following assets may be modified at runtime and cnovr will constantly be scanning for file changes:
  * JSON "game" description files. (`.json`)
@@ -10,6 +10,8 @@ My goal is to make a system which allows for extremely rapid VR game development
  * Images/textures via stb_image (`.jpg`, `.png`, `.bmp`, `.pnm` etc..)
 
 The overall methodology behind cnovr is to use a minimum of "libraries."  In general it should only be linking to OpenGL and OpenVR, where possible.  Things like video camera video will need to link to v4l2, etc...  From there it will directly open X windows, or Microsoft Windows windows.  All GL Extension rangling is handled by `chew.h`/`chew.c` internally.  By design, there are no eexternal dependencies that are not compiled directly into the executable.  Large compiled-in dependencies, apart from `TinyCC` and `stb_image` (and I'll think about maybe allowing gltf) will not be accepted.
+
+All code is licensed under the MIT/X11 and/or newBSD licenses allowing for closed-source commercial use.
 
 I'm probably never going to write much of a how-to or document anything on this project, either.  I'm mostly hoping google indexes the source code so I can google for when I want to do things I'm doing here.
 
