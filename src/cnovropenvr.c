@@ -26,6 +26,7 @@ static og_tls_t tracked_device_buffer;
 typedef struct tdbuffer_t { int len; char data[1]; } tdbuffer;
 char * CNOVRGetTrackedDeviceString( TrackedDeviceIndex_t unDevice, TrackedDeviceProperty prop )
 {
+	if( !cnovrstate->oSystem ) return "";
 	if( !tracked_device_buffer ) tracked_device_buffer = OGCreateTLS();
 	tdbuffer * t = OGGetTLS( tracked_device_buffer );
 	if( !t ) {

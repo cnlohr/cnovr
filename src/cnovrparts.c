@@ -1926,10 +1926,17 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 		if( strstr( modifiers, "noflipv" ) ) flipv = 0;
 	}
 
+	if( !cnovrstate->oRenderModels )
+	{
+		CNOVRAlert( m->base.tccctx, 1, "Attempted to run a rendermodel when openvr was not running\n" );
+		return;
+	}
+
 	int rnnamelen = pchRenderModelNameIn?strlen( pchRenderModelNameIn ):0;
 	if( !rnnamelen )
 	{
 		CNOVRAlert( m->base.tccctx, 1, "Unable to load render model %s (zero-length)\n", pchRenderModelNameIn );
+		return;
 	}
 	if( strcasecmp( pchRenderModelNameIn + rnnamelen - (sizeof( ".rendermodel" )-1), ".rendermodel" ) == 0 )
 	{

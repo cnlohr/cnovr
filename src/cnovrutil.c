@@ -212,6 +212,25 @@ void CNOVRNamedPtrSave( const char * namedptr )
 	}
 }
 
+void CNOVRNamedPtrRevert( const char * namedptr )
+{
+	struct NamedPtrType * ret;
+	OGTSLockMutex( namedptrmutex );
+	ret = (struct NamedPtrType *)CNHashGetValue( namedptrtable, namedptr );
+	OGTSUnlockMutex( namedptrmutex );
+	if( ret )
+	{
+		char stpath[CNOVR_MAX_PATH];
+		snprintf( stpath, CNOVR_MAX_PATH-1, "savenameptr/%s.%s.dat", namedptr, ret->typename?ret->typename:"" );
+		FILE * f = fopen(  stpath, "rb" );
+		if( f ) 
+		{
+			fread( ret->data, ret->length, 1, f );
+			fclose( f );
+		}
+	}
+}
+
 void InternalSetupNamedPtrs()
 {
 	namedptrmutex = OGCreateMutex();

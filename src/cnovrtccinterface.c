@@ -342,6 +342,16 @@ static void TCCOGDeleteTLS( og_tls_t key )
 	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
+static cnovr_rf_buffer * TCCCNOVRRFBufferCreate( int w, int h, int multisample )
+{
+	cnovr_rf_buffer * ret = CNOVRRFBufferCreate( w, h, multisample );
+	MARKOGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	MARKOGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
 static cnovr_shader * TCCCNOVRShaderCreate( const char * shaderfilebase )
 {
 	cnovr_shader * ret = CNOVRShaderCreate( shaderfilebase );
@@ -566,6 +576,9 @@ extern void * CNFGVisual;
 void XShmCreateImage(); 
 void XShmAttach();
 void XShmGetImage();
+void CNFGSwapBuffers(void);
+void   CNFGSetVSync( int vson );
+
 #endif
 
 //#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
@@ -658,6 +671,7 @@ struct ImportList
 	TCCExportS( CNOVRNodeRemoveObject )
 	TCCExportS( CNOVRNamedPtrData )
 	TCCExportS( CNOVRNamedPtrSave )
+	TCCExportS( CNOVRNamedPtrRevert )
 	TCCExportS( CNOVRNamedPtrGet )
 	TCCExport( CNOVRFolderListing )
 	TCCExport( CNOVRSplitStrings )
@@ -670,7 +684,7 @@ struct ImportList
 	TCCExport( CNOVRFocusAcquire )
 	TCCExport( CNOVRFocusRemoveTag )
 	TCCExportS( CNOVRFocusGetTipPose )
-	TCCExportS( CNOVRRFBufferCreate )
+	TCCExport( CNOVRRFBufferCreate )
 	TCCExportS( CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA )
 	TCCExportS( CNOVRGetTrackedDeviceString )
 	TCCExportS( CNOVRListCall )
@@ -790,6 +804,8 @@ struct ImportList
 	
 	TCCExportS( glDisable )
 
+	TCCExportS( CNFGSwapBuffers )
+	TCCExportS( CNFGSetVSync )
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
 	TCCExportS( _vsnprintf )
 	TCCExportS( _vsnwprintf )

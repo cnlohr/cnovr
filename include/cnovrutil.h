@@ -23,6 +23,7 @@ int    jsmnintparse( const char * data, int start, int end );
 //Not sure if we need this feature.
 void * CNOVRNamedPtrGet( const char * namedptr, const char * type );
 void CNOVRNamedPtrSave( const char * namedptr );
+void CNOVRNamedPtrRevert( const char * namedptr );
 void * CNOVRNamedPtrData( const char * namedptr, const char * type, int size );
 #define NAMEDPTRTYPED( name, type ) ((type*)CNOVRNamedPtrData( name, #type, sizeof( type )))
 

@@ -498,14 +498,14 @@ void RenderFunction( void * tag, void * opaquev )
 	{
 		if( i == TIMESLOTS-1 )	glDepthMask(GL_TRUE);
 		float slotalpha =  (1.0-(float)((racketslot-i+TIMESLOTS*2-1)%TIMESLOTS)/(float)TIMESLOTS) * .3;
-		glUniform4f( 9, slotalpha, 0.0f, 0.0f, 0.0f );
+		glUniform4f( 19, slotalpha, 0.0f, 0.0f, 0.0f );
 		CNOVRModelRenderWithPose( paddle, &paddlepose1[i] );
 		CNOVRModelRenderWithPose( paddle, &paddlepose2[i] );
 		CNOVRModelRenderWithPose( isosphere, &isosphereposehist[i] );
 		//printf( "%f ", isosphereposehist[i].Pos[1] );
 	}
 
-	glUniform4f( 9, 1.0f, 0.0f, 0.0f, 0.0f );
+	glUniform4f( 19, 1.0f, 0.0f, 0.0f, 0.0f );
 
 #define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
@@ -530,7 +530,9 @@ void example_scene_setup( void * tag, void * opaquev )
 	int i;
 	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
 	shaderBlack = CNOVRShaderCreate( "assets/blackmask" );
-	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
+
+//	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
+	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
 	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64 );
 

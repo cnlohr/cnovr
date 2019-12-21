@@ -18,7 +18,7 @@
 //#define SECTIONDEBUG
 
 const char *  identifier;
-cnovr_shader * shaderrendermodel;
+cnovr_shader * shaderrendermodelnearestaa;
 cnovr_shader * shaderlines;
 cnovr_shader * shaderblack;
 cnovr_shader * previewcomposite;
@@ -31,7 +31,7 @@ cnovrfocus_capture capture;
 cnovr_canvas * canvascontrol;
 cnovr_canvas * canvaspreview;
 cnovr_canvas * canvasvideo;
-#define PREVIEWFRAMEHIST 13
+#define PREVIEWFRAMEHIST 20
 int previewframehisthead;
 cnovr_rf_buffer * previewtarget[PREVIEWFRAMEHIST][3]; //Background, foreground, and final
 
@@ -45,10 +45,14 @@ struct camerastore_t
 	char paired_object_serial_number[64];
 	float set_fov;
 	cnovr_pose  paired_relative_offset_pose;
+	float colorcalprops[8]; //Actually only first 6 are used.
+	int frame_latency;	//Cannot exceed PREVIEWFRAMEHIST!
 } * store;
 
 int paired_object_id;
 
+int frames_since_camera_frame = 0;
+int uploadednewframe = 0;
 int cal_cam_controller;
 int cal_cam_stage = 0;
 cnovr_point3d cal_cam_points[3];
@@ -79,6 +83,10 @@ const const struct cnovr_canvas_canned_gui_element_t cvp_main_menu[];
 
 char camstatustext[63];
 char fovsettext[63];
+char angleXsettext[63];
+char angleYsettext[63];
+char angleZsettext[63];
+char colorpropstext[8][63];
 char notetext[63];
 char devlist[MAX_POSES_TO_PULL_FROM_OPENVR][32];
 
@@ -161,9 +169,25 @@ void UpdateMenuStatuses()
 {
 	sprintf( camstatustext, "CAM TRK: %s\n", store->paired_object_serial_number );
 	sprintf( fovsettext, "FOV: %3.1f", cnovrstate->fPreviewFOV );
+
+	int i;
+	for( i = 0; i < 6; i++ )
+	{
+		const char * strdefs[] = { "saturation", "r", "g", "b", "soft", "edge" };
+		sprintf( colorpropstext[i], "%s: %3.2f", strdefs[i], store->colorcalprops[i] );
+	}
+	sprintf( colorpropstext[6], "Frame lag: %d", store->frame_latency );
+
+
+
+	cnovr_euler_angle euler;
+	quattoeuler(euler, store->paired_relative_offset_pose.Rot );
+	sprintf( angleXsettext, "X: %3.1f", euler[0]*180./3.14159 );
+	sprintf( angleYsettext, "Y: %3.1f", euler[1]*180./3.14159 );
+	sprintf( angleZsettext, "Z: %3.1f", euler[2]*180./3.14159 );
 	if( canvascontrol && canvascontrol->pCannedGUI )
 		CNOVRCanvasApplyCannedGUI( canvascontrol, canvascontrol->pCannedGUI );
-	int i;
+
 	for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
 	{
 		char * stk = cnovrstate->asTrackedDeviceSerialStrings[i];
@@ -172,13 +196,116 @@ void UpdateMenuStatuses()
 		devlist[i][r] = 0;
 	}
 }
-void coarse_fov( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
-	store->set_fov = cnovrstate->fPreviewFOV = rx + 10;
+
+void adjust_fov( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) {
+	if( elem->iopaque == 0 )
+	{
+		store->set_fov = cnovrstate->fPreviewFOV = rx + 10;
+	}
+	else
+	{
+		store->set_fov = cnovrstate->fPreviewFOV += elem->iopaque/10.0;
+	}
 	UpdateMenuStatuses();
 }
-void fine_fov( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
-	store->set_fov = cnovrstate->fPreviewFOV += elem->iopaque/10.0;
+
+
+
+void adjust_latency( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	int newprop = store->frame_latency;
+	if( elem->iopaque )
+	{
+		newprop += elem->iopaque;
+	}
+	else
+	{
+		newprop = rx*PREVIEWFRAMEHIST/(160.-26.);
+	}
+	printf( "NEWPROP: %d\n", newprop );
+	if( newprop >= PREVIEWFRAMEHIST ) newprop = PREVIEWFRAMEHIST-1;
+	if( newprop < 0 ) newprop = 0;
+	store->frame_latency = newprop;
 	UpdateMenuStatuses();
+
+}
+
+
+void adjust_target_color_props( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	int axis = elem->iopaque%10;
+	int qty = elem->iopaque/10;
+	int direction = (qty > 0)?1:-1;
+	if( axis < 0 ) axis = -axis;
+	if( qty < 0 ) qty = -qty;
+	float qtym = 0.0;
+	if( qty == 1 ) qtym = .002;
+	if( qty == 2 ) qtym = .02;
+	if( qty == 3 ) qtym = .2;
+	qtym *= direction;
+	if( qty == 0 )
+	{
+		float dq = rx/(160.-26.);
+		store->colorcalprops[axis] = dq;
+	}
+	else
+	{
+		store->colorcalprops[axis] += qtym;
+	}
+	UpdateMenuStatuses();
+}
+
+void resetcolorprops( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	store->colorcalprops[0] = .4;
+	store->colorcalprops[1] = .1;
+	store->colorcalprops[2] = .9;
+	store->colorcalprops[3] = .1;
+	store->colorcalprops[4] = .6;
+	store->colorcalprops[5] = .6;
+	UpdateMenuStatuses();
+}
+
+void adjust_rotation( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) {
+	int axis = elem->iopaque%10;
+	int qty = elem->iopaque/10;
+	int direction = (qty > 0)?1:-1;
+	if( axis < 0 ) axis = -axis;
+	if( qty < 0 ) qty = -qty;
+	float qtym = 0.0;
+	if( qty == 1 ) qtym = .1;
+	if( qty == 2 ) qtym = 1;
+	if( qty == 3 ) qtym = 10;
+	qtym *= direction;
+	cnovr_euler_angle euler;
+	printf( "Rot: Axis: %d by %f(%d)\n", axis, qtym,qty );
+	quattoeuler(euler, store->paired_relative_offset_pose.Rot );
+	if( qty == 0 )
+	{
+		float dq = rx/(160.-26.);
+		euler[axis] = (dq*180-90) * 2 * 3.14159/180. ;
+	}
+	else
+	{
+		euler[axis] += qtym*3.14159/180.;
+	}
+	quatfromeuler( store->paired_relative_offset_pose.Rot, euler );
+	UpdateMenuStatuses();
+
+}
+
+void adjust_position( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) {
+	int axis = elem->iopaque%10;
+	int qty = elem->iopaque/10;
+	int direction = (qty > 0)?1:-1;
+	if( axis < 0 ) axis = -axis;
+	if( qty < 0 ) qty = -qty;
+	float qtym = 0.0;
+	if( qty == 1 ) qtym = .001;
+	if( qty == 2 ) qtym = .01;
+	if( qty == 3 ) qtym = .1;
+	printf( "Adjust %d %d %d\n", axis, qty, direction );
+	store->paired_relative_offset_pose.Pos[axis] += qtym*direction;
 }
 
 void changemenu( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
@@ -233,22 +360,94 @@ void camsavebuttonhit( struct cnovr_canvas_t * canvas, const struct cnovr_canvas
 	sprintf( notetext, "Saved.\n" );
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
 }
+void camrevertbuttonhit( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
+	CNOVRNamedPtrRevert( "camerastore" );
+	sprintf( notetext, "Reverted.\n" );
+	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+}
 
 #define MENUH 16
 #define MENUY(y) ((MENUH*(y))+2)
+#define MENUHEXX(x) (26*x+2)
 #define DEF_WIDTH (160-26)
 #define EXTRA_WIDTH (160-4)
 
 const const struct cnovr_canvas_canned_gui_element_t cvp_tweak[] = {
 	{ .x = 2, .y = MENUY(0), .w = 90, .h = 14, .cb = 0, .text = camstatustext },
 	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Main Menu", .cb = changemenu, .vopaque = cvp_main_menu },
-	{ .x = 12, .y = MENUY(2), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = fovsettext, .cb = coarse_fov, .allowdrag = 1 },
-	{ .x = 2, .y = MENUY(2), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = fine_fov, .iopaque = -1 },
-	{ .x = 160-12, .y = MENUY(2), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = fine_fov, .iopaque = 1  },
-	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Reset Cam", .cb = resetcam },
+
+	{ .x = 2, .y = MENUY(2), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_fov, .iopaque = -1 },
+	{ .x = 12, .y = MENUY(2), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = fovsettext, .cb = adjust_fov, .allowdrag = 1 },
+	{ .x = 160-12, .y = MENUY(2), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_fov, .iopaque = 1  },
+
+	{ .x = MENUHEXX(0), .y = MENUY(3), .w = 24, .h = 14, .cb = 0, .text = "X---", .cb = adjust_position, .iopaque = -30  },
+	{ .x = MENUHEXX(1), .y = MENUY(3), .w = 24, .h = 14, .cb = 0, .text = "X--", .cb = adjust_position, .iopaque = -20 },
+	{ .x = MENUHEXX(2), .y = MENUY(3), .w = 24, .h = 14, .cb = 0, .text = "X-", .cb = adjust_position, .iopaque = -10  },
+	{ .x = MENUHEXX(3), .y = MENUY(3), .w = 24, .h = 14, .cb = 0, .text = "X+", .cb = adjust_position, .iopaque = 10 },
+	{ .x = MENUHEXX(4), .y = MENUY(3), .w = 24, .h = 14, .cb = 0, .text = "X++", .cb = adjust_position, .iopaque = 20  },
+	{ .x = MENUHEXX(5), .y = MENUY(3), .w = 26, .h = 14, .cb = 0, .text = "X+++", .cb = adjust_position, .iopaque = 30 },
+	{ .x = MENUHEXX(0), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "Y---", .cb = adjust_position, .iopaque = -30  },
+	{ .x = MENUHEXX(1), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "Y--", .cb = adjust_position, .iopaque = -21 },
+	{ .x = MENUHEXX(2), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "Y-", .cb = adjust_position, .iopaque = -11  },
+	{ .x = MENUHEXX(3), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "Y+", .cb = adjust_position, .iopaque = 11 },
+	{ .x = MENUHEXX(4), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "Y++", .cb = adjust_position, .iopaque = 21  },
+	{ .x = MENUHEXX(5), .y = MENUY(4), .w = 26, .h = 14, .cb = 0, .text = "Y+++", .cb = adjust_position, .iopaque = 31 },
+	{ .x = MENUHEXX(0), .y = MENUY(5), .w = 24, .h = 14, .cb = 0, .text = "Z---", .cb = adjust_position, .iopaque = -32  },
+	{ .x = MENUHEXX(1), .y = MENUY(5), .w = 24, .h = 14, .cb = 0, .text = "Z--", .cb = adjust_position, .iopaque = -22 },
+	{ .x = MENUHEXX(2), .y = MENUY(5), .w = 24, .h = 14, .cb = 0, .text = "Z-", .cb = adjust_position, .iopaque = -12 },
+	{ .x = MENUHEXX(3), .y = MENUY(5), .w = 24, .h = 14, .cb = 0, .text = "Z+", .cb = adjust_position, .iopaque = 12 },
+	{ .x = MENUHEXX(4), .y = MENUY(5), .w = 24, .h = 14, .cb = 0, .text = "Z++", .cb = adjust_position, .iopaque = 22  },
+	{ .x = MENUHEXX(5), .y = MENUY(5), .w = 26, .h = 14, .cb = 0, .text = "Z+++", .cb = adjust_position, .iopaque = 32 },
+
+	{ .x = 2, .y = MENUY(6), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_rotation, .iopaque = -10 },
+	{ .x = 12, .y = MENUY(6), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = angleXsettext, .cb = adjust_rotation, .iopaque = 0, .allowdrag = 1 },
+	{ .x = 160-12, .y = MENUY(6), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_rotation, .iopaque = 10  },
+	{ .x = 2, .y = MENUY(7), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_rotation, .iopaque = -11 },
+	{ .x = 12, .y = MENUY(7), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = angleYsettext, .cb = adjust_rotation, .iopaque = 1, .allowdrag = 1 },
+	{ .x = 160-12, .y = MENUY(7), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_rotation, .iopaque = 11  },
+	{ .x = 2, .y = MENUY(8), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_rotation, .iopaque = -12 },
+	{ .x = 12, .y = MENUY(8), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = angleZsettext, .cb = adjust_rotation, .iopaque = 2, .allowdrag = 1 },
+	{ .x = 160-12, .y = MENUY(8), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_rotation, .iopaque = 12  },
+
+	{ .x = 2, .y = MENUY(9), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Reset Cam", .cb = resetcam },
 	{ .cb = 0, .w = 0, .h = 0 }
 };
 
+const const struct cnovr_canvas_canned_gui_element_t bs_tweak[] = {
+	{ .x = 2, .y = MENUY(0), .w = 90, .h = 14, .cb = 0, .text = camstatustext },
+	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Main Menu", .cb = changemenu, .vopaque = cvp_main_menu },
+
+	{ .x = 2, .y = MENUY(3), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_target_color_props, .iopaque = -10 },
+	{ .x = 12, .y = MENUY(3), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[0], .cb = adjust_target_color_props, .allowdrag = 1, .iopaque = 0 },
+	{ .x = 160-12, .y = MENUY(3), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_target_color_props, .iopaque = 10  },
+
+	{ .x = 2, .y = MENUY(4), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_target_color_props, .iopaque = -11 },
+	{ .x = 12, .y = MENUY(4), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[1], .cb = adjust_target_color_props, .allowdrag = 1, .iopaque = 1 },
+	{ .x = 160-12, .y = MENUY(4), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_target_color_props, .iopaque = 11  },
+
+	{ .x = 2, .y = MENUY(5), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_target_color_props, .iopaque = -12 },
+	{ .x = 12, .y = MENUY(5), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[2], .cb = adjust_target_color_props, .allowdrag = 1, .iopaque = 2 },
+	{ .x = 160-12, .y = MENUY(5), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_target_color_props, .iopaque = 12 },
+
+	{ .x = 2, .y = MENUY(6), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_target_color_props, .iopaque = -13 },
+	{ .x = 12, .y = MENUY(6), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[3], .cb = adjust_target_color_props, .allowdrag = 1, .iopaque = 3 },
+	{ .x = 160-12, .y = MENUY(6), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_target_color_props, .iopaque = 13 },
+
+	{ .x = 2, .y = MENUY(7), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_target_color_props, .iopaque = -14 },
+	{ .x = 12, .y = MENUY(7), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[4], .cb = adjust_target_color_props, .allowdrag = 1, .iopaque = 4 },
+	{ .x = 160-12, .y = MENUY(7), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_target_color_props, .iopaque = 14  },
+
+	{ .x = 2, .y = MENUY(8), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_target_color_props, .iopaque = -15 },
+	{ .x = 12, .y = MENUY(8), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[5], .cb = adjust_target_color_props, .allowdrag = 1, .iopaque = 5 },
+	{ .x = 160-12, .y = MENUY(8), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_target_color_props, .iopaque = 15  },
+
+	{ .x = 2, .y = MENUY(9), .w = 8, .h = 14, .cb = 0, .text = "-", .cb = adjust_latency, .iopaque = -1 },
+	{ .x = 12, .y = MENUY(9), .w = DEF_WIDTH, .h = 14, .cb = 0, .text = colorpropstext[6], .cb = adjust_latency, .allowdrag = 1, .iopaque = 0 },
+	{ .x = 160-12, .y = MENUY(9), .w = 10, .h = 14, .cb = 0, .text = "+", .cb = adjust_latency, .iopaque = 1  },
+
+	{ .x = 2, .y = MENUY(10), .w = EXTRA_WIDTH, .h = 14, .cb = 0, .text = "Reset Colors", .cb = resetcolorprops },
+	{ .cb = 0, .w = 0, .h = 0 }
+};
 
 const const struct cnovr_canvas_canned_gui_element_t cvp_dev_menu[] = {
 	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
@@ -289,9 +488,11 @@ void startcamcal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_cann
 const const struct cnovr_canvas_canned_gui_element_t cvp_main_menu[] = {
 	{ .x = 2, .y = 2, .w = 90, .h = 14, .cb = 0, .text = camstatustext },
 	{ .x = 2, .y = MENUY(1), .w = EXTRA_WIDTH, .h = 14, .text = "Tweak Cam", .cb = changemenu, .vopaque = cvp_tweak },
-	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .text = "Attach To Dev", .cb = changemenu, .vopaque = cvp_dev_menu },
-	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .text = "Cal Cam", .cb = startcamcal, .vopaque = cvp_cal1 },
-	{ .x = 2, .y = MENUY(4), .w = EXTRA_WIDTH, .h = 14, .text = "Save Cam", .cb = camsavebuttonhit },
+	{ .x = 2, .y = MENUY(2), .w = EXTRA_WIDTH, .h = 14, .text = "Tweak Video", .cb = changemenu, .vopaque = bs_tweak },
+	{ .x = 2, .y = MENUY(3), .w = EXTRA_WIDTH, .h = 14, .text = "Attach To Dev", .cb = changemenu, .vopaque = cvp_dev_menu },
+	{ .x = 2, .y = MENUY(4), .w = EXTRA_WIDTH, .h = 14, .text = "Cal Cam", .cb = startcamcal, .vopaque = cvp_cal1 },
+	{ .x = 2, .y = MENUY(5), .w = EXTRA_WIDTH, .h = 14, .text = "Save Cam", .cb = camsavebuttonhit },
+	{ .x = 2, .y = MENUY(6), .w = EXTRA_WIDTH, .h = 14, .text = "Revert Cam", .cb = camrevertbuttonhit },
 	{ .x = 2, .y = MENUY(11), .w = 90, .h = 14, .cb = 0, .text = notetext },
 	{ .cb = 0, .w = 0, .h = 0 }
 };
@@ -419,7 +620,7 @@ void PrerenderFunction( void * tag, void * opaquev )
 				}
 			}
 		}
-		printf( "PAIR ATTEMPT: %d\n", paired_object_id );
+		//printf( "PAIR ATTEMPT: %d\n", paired_object_id );
 	}
 
 	if( paired_object_id >= 0 && !dragging_camera )
@@ -462,12 +663,12 @@ void PrerenderFunction( void * tag, void * opaquev )
 			mapptr = glMapBufferRange( GL_PIXEL_UNPACK_BUFFER, 0, videoW*videoH*4/2, GL_MAP_WRITE_BIT|GL_MAP_INVALIDATE_BUFFER_BIT);
 			glBindBuffer( GL_PIXEL_UNPACK_BUFFER, 0 ); 
 			framegrabbed = 0;
+			uploadednewframe = 1;
 		}
 	}
 	#ifdef SECTIONDEBUG
 		printf( "PrerenderFunction end\n" );
 	#endif
-
 }
 
 void AdvancedPreviewRender( void * tag, void * opaquev )
@@ -479,6 +680,9 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	if( cnovrstate->iPreviewHeight == 0 || cnovrstate->iPreviewWidth == 0 ) return;
 	if( advanced_view )
 	{
+		if( frames_since_camera_frame < 3 && uploadednewframe == 0 ) { frames_since_camera_frame++; return; }
+		if( uploadednewframe ) { frames_since_camera_frame = 0; uploadednewframe = 0; }
+	
 		if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
 		{
 			int ih;
@@ -512,7 +716,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		float distancecut = fPreviewForegroundSplitDistance;
 		for( i = 0; i < 2; i++ ) //Foreground then background
 		{
-			int ihprev = (previewframehisthead - 1 + PREVIEWFRAMEHIST)%PREVIEWFRAMEHIST;
+			int ihprev = (previewframehisthead - store->frame_latency - 1 + PREVIEWFRAMEHIST)%PREVIEWFRAMEHIST;
 			CNOVRFBufferActivate( previewtarget[ihprev][i] );
 			matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, i?cnovrstate->fNear:distancecut, i?distancecut:cnovrstate->fFar );
 			glViewport(0, 0, width, height );
@@ -563,6 +767,8 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		glActiveTextureCHEW( GL_TEXTURE0 + 2 );
 		glBindTexture( GL_TEXTURE_2D, canvasvideo->model->pTextures[0]->nTextureId );
 		CNOVRRender( previewcomposite );
+		glUniform4fv( 22, 1, store->colorcalprops + 0 );
+		glUniform4fv( 23, 1, store->colorcalprops + 4 );
 		CNOVRRender( cnovrstate->fullscreengeo );
 		CNOVRFBufferBlitResolve( previewtarget[previewframehisthead][2] );
 
@@ -595,6 +801,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	#ifdef SECTIONDEBUG
 		printf( "AdvancedPreviewRender end\n" );
 	#endif
+	CNFGSwapBuffers();
 }
 
 void RenderFunction( void * tag, void * opaquev )
@@ -606,7 +813,6 @@ void RenderFunction( void * tag, void * opaquev )
 	int i;
 	CNOVRRender( shaderlines );
 	CNOVRModelRenderWithPose( modelcameralines, &store->posecamera );
-	CNOVRRender( shaderrendermodel );
 
 	if( canvascontrol ) CNOVRRender( canvascontrol );
 	if( previewframehisthead != -1 )
@@ -622,7 +828,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( canvasvideo )
 	{
 		CNOVRRender( canvasvideo->overrideshd );
-		glUniform4fv( 9, 1, videoosdvals );
+		glUniform4fv( 19, 1, videoosdvals );
 		CNOVRRender( canvasvideo );
 	}
 
@@ -730,7 +936,7 @@ const char * usecamtex = 0;
 
 void example_scene_setup( void * tag, void * opaquev )
 {
-	shaderrendermodel = CNOVRShaderCreate( "rendermodel" );
+	shaderrendermodelnearestaa = CNOVRShaderCreate( "rendermodelnearestaa" );
 	shaderlines = CNOVRShaderCreate( "assets/basic" );
 	shaderblack = CNOVRShaderCreate( "assets/black" );
 	previewcomposite = CNOVRShaderCreate( "modules/camera/previewwindow" );
@@ -775,6 +981,10 @@ void example_scene_setup( void * tag, void * opaquev )
 	{
 		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0 );
 	}
+
+	canvascontrol->overrideshd = shaderrendermodelnearestaa;
+	canvaspreview->overrideshd = shaderrendermodelnearestaa;
+
 
 	//if( advanced_view )
 	//{

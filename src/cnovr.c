@@ -386,6 +386,7 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Render Check\n" );
 
+	int did_advanced_preview = 1;
 	if( cnovrstate->has_preview )
 	{
 		int r = CNOVRListCall( cnovrLPreviewRender, 0, 0 );
@@ -393,6 +394,7 @@ void CNOVRUpdate()
 		{
 			int width = cnovrstate->iPreviewWidth;
 			int height = cnovrstate->iPreviewHeight;
+			did_advanced_preview = 0;
 			cnovrstate->eyeTarget = 2;
 			matrix44identity( cnovrstate->mModel );
 //			printf( "%f %f %f   %f %f %f %f   %f\n", PFTHREE( cnovrstate->pPreviewPose.Pos ), PFFOUR( cnovrstate->pPreviewPose.Rot ), cnovrstate->pPreviewPose.Scale );
@@ -461,8 +463,7 @@ void CNOVRUpdate()
 
 //	double diff = OGGetAbsoluteTime() - FrameStart;
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
-
-	CNFGSwapBuffers(1);
+	if( !did_advanced_preview ) CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
 	glFlush();

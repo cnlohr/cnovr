@@ -3,8 +3,7 @@
 
 out vec4 colorOut;
 
-layout(location = 8) uniform sampler2D textures[];
-layout(location = 9) uniform vec4 osdtarget;
+layout(location = 19) uniform vec4 osdtarget;
 
 in vec2 texcoords;
 

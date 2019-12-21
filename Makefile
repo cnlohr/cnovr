@@ -1,4 +1,4 @@
-all : main offlinetests headless minimal
+all : main offlinetests headless minimal openvrless
 
 #slowest, get in queue first for performance in parallel compiles.
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
@@ -40,6 +40,9 @@ LDFLAGS+=./libopenvr_api.so
 	$(CC) -c -o $@ $^ $(CFLAGS)
 
 main : $(OBJS) src/main.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+openvrless : $(OBJS) src/openvrless.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 headless : $(OBJS) src/headless.o

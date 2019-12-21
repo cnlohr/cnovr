@@ -3,11 +3,13 @@
 
 out vec4 colorOut;
 
-layout(location = 8) uniform sampler2D textures[];
 
 in vec2 texcoords;
 in vec3 position;
 in vec3 normal;
+
+layout(location = 22) uniform vec4 colorprops1;
+layout(location = 23) uniform vec4 colorprops2;
 
 const vec3 cvr = { 1.402, -.714, 0.0 };
 const vec3 cvb = { 0.0, -.344, 1.772 };
@@ -32,11 +34,10 @@ vec3 getyuyvpixel( sampler2D texi, vec2 uv )
 float greennessfn( vec2 uv )
 {
 	vec3 video = getyuyvpixel( textures[2], uv );
-	//colorOut = vec4( video, 1.0 );
-	vec3 normvideo = normalize(video)*.6 + video;
-	vec3 target = vec3( 0.2, 1.4, 0.2 );
-	float dist = length( target - normvideo )*1.2;
-	float greenness = (1.0-dist)*3.0;
+	vec3 normvideo = mix( normalize(video), video, colorprops1.x );
+	vec3 target = colorprops1.yzw;
+	float dist = length( target - normvideo )*colorprops2.x*4.0;
+	float greenness = (1.0-dist)*colorprops2.y*4.0;
 	greenness = clamp( greenness, 0., 1. );
 	return greenness;
 }

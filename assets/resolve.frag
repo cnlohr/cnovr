@@ -9,8 +9,6 @@ in vec3 localpos;
 
 #inject
 
-
-layout(location = 8) uniform sampler2D textures[];
 layout(location = 18) uniform sampler2DMS tex;
 
 #ifdef MULTISAMPLES

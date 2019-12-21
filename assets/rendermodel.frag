@@ -3,8 +3,6 @@
 
 out vec4 colorOut;
 
-layout(location = 8) uniform sampler2D textures[];
-
 in vec2 texcoords;
 in vec3 position;
 in vec3 normal;
