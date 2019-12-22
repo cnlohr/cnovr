@@ -71,6 +71,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 #endif
 	tcc_define_symbol( tce->state, "WINDOWS", "1" );
 	tcc_define_symbol( tce->state, "chew_FUN_EXPORT", "extern __declspec(dllimport)" );
+#else
+	tcc_define_symbol( tce->state, "LINUX", "1" );	
 #endif
 	tcc_define_symbol( tce->state, "OSG_NOSTATIC", "1" );
 	tcc_define_symbol( tce->state, "TCC", "1" );

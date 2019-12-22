@@ -15,7 +15,39 @@
 #define CNV4L2_NOSTAT
 #include "cntools/cnv4l2/cnv4l2.c"
 
+#define PREVIEWFRAMEHIST 20
+
 //#define SECTIONDEBUG
+
+#ifdef LINUX
+//If in Linux we can do the .obsglshm thing.
+
+#include <GL/glx.h>
+#include <GL/glxext.h>
+#include <sys/mman.h>
+#include <pwd.h>
+
+typedef struct
+{
+	uint32_t magic; //0xAABB0100 + version number (Currently 0)
+	uint32_t source_pid;
+	uint32_t handlecount;
+	uint32_t handlehead;
+	uint32_t graphicstype; //0 for opengl.
+	uint32_t enumtype;     //RENDERBUFFER or TEXTURE
+	uint32_t width;
+	uint32_t height;
+	uint64_t context;      //A GLX texture.
+	uint8_t reserved[24];
+	//64 bytes in.
+	uint64_t handles[PREVIEWFRAMEHIST];
+} obs_gl_shm;
+GLXContext indirect_context;
+obs_gl_shm * obs_shared_data;
+int obs_shared_file;
+extern Display *CNFGDisplay;
+extern Visual * CNFGVisual;
+#endif
 
 const char *  identifier;
 cnovr_shader * shaderrendermodelnearestaa;
@@ -31,7 +63,6 @@ cnovrfocus_capture capture;
 cnovr_canvas * canvascontrol;
 cnovr_canvas * canvaspreview;
 cnovr_canvas * canvasvideo;
-#define PREVIEWFRAMEHIST 20
 int previewframehisthead;
 cnovr_rf_buffer * previewtarget[PREVIEWFRAMEHIST][3]; //Background, foreground, and final
 
@@ -678,29 +709,42 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	#endif
 
 	if( cnovrstate->iPreviewHeight == 0 || cnovrstate->iPreviewWidth == 0 ) return;
+
+
+	if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
+	{
+		int ih;
+		for( ih = 0; ih < PREVIEWFRAMEHIST; ih++ )
+		{
+			previewW = cnovrstate->iPreviewWidth;
+			previewH = cnovrstate->iPreviewHeight;
+			if( advanced_view )
+			{
+				if( previewtarget[ih][0] ) CNOVRDelete( previewtarget[ih][0] );
+				if( previewtarget[ih][1] ) CNOVRDelete( previewtarget[ih][1] );
+			}
+			if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
+			if( advanced_view )
+			{
+				previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+				previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+				previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
+			}
+			else
+			{
+				previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+			}
+			CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
+			CNOVRCanvasYFlip( canvaspreview, 1 );
+			previewframehisthead = 0;
+		}
+	}
+
+
 	if( advanced_view )
 	{
 		if( frames_since_camera_frame < 3 && uploadednewframe == 0 ) { frames_since_camera_frame++; return; }
 		if( uploadednewframe ) { frames_since_camera_frame = 0; uploadednewframe = 0; }
-	
-		if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
-		{
-			int ih;
-			for( ih = 0; ih < PREVIEWFRAMEHIST; ih++ )
-			{
-				previewW = cnovrstate->iPreviewWidth;
-				previewH = cnovrstate->iPreviewHeight;
-				if( previewtarget[ih][0] ) CNOVRDelete( previewtarget[ih][0] );
-				if( previewtarget[ih][1] ) CNOVRDelete( previewtarget[ih][1] );
-				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
-				previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-				previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-				previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
-				CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
-				CNOVRCanvasYFlip( canvaspreview, 1 );
-				previewframehisthead = 0;
-			}
-		}
 
 		//Find cutting distance.
 		cnovr_point3d fvcamdist;
@@ -771,14 +815,6 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		glUniform4fv( 23, 1, store->colorcalprops + 4 );
 		CNOVRRender( cnovrstate->fullscreengeo );
 		CNOVRFBufferBlitResolve( previewtarget[previewframehisthead][2] );
-
-		CNOVRRender( previewbasic );
-		glEnable( GL_TEXTURE_2D );
-		glActiveTextureCHEW( GL_TEXTURE0 + 0 );
-		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][2]->nResolveTextureId );
-		CNOVRRender( cnovrstate->fullscreengeo );
-
-		previewframehisthead = (previewframehisthead+1)%PREVIEWFRAMEHIST;
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 	else
@@ -786,6 +822,8 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		int width = cnovrstate->iPreviewWidth;
 		int height = cnovrstate->iPreviewHeight;
 		cnovrstate->eyeTarget = 2;
+		int ihprev = (previewframehisthead - store->frame_latency - 1 + PREVIEWFRAMEHIST)%PREVIEWFRAMEHIST;
+		CNOVRFBufferActivate( previewtarget[ihprev][2] );	//If not advanced, ignore 0 and 1.
 		matrix44identity( cnovrstate->mModel );
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 		matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, cnovrstate->fNear, cnovrstate->fFar );
@@ -796,7 +834,69 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		CNOVRListCall( cnovrLRender2, 0, 0); 
 		CNOVRListCall( cnovrLRender3, 0, 0); 
 		CNOVRListCall( cnovrLRender4, 0, 0); 
+		CNOVRFBufferBlitResolve( previewtarget[ihprev][2] );
 	}
+
+	CNOVRRender( previewbasic );
+	glEnable( GL_TEXTURE_2D );
+	glActiveTextureCHEW( GL_TEXTURE0 + 0 );
+	glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][2]->nResolveTextureId );
+	CNOVRRender( cnovrstate->fullscreengeo );
+
+#ifdef LINUX
+	//Handle OBS SHM
+	if( obs_shared_file <= 0 )
+	{
+		struct passwd *pw = getpwuid(getuid());
+		const char *homedir = pw?pw->pw_dir:"~";
+		mkdir( trprintf( "%s/.obsglshm", homedir ), 0777 );
+		obs_shared_file = open( trprintf( "%s/.obsglshm/cnovr.obsglshm", homedir ), O_RDWR | O_CREAT | O_TRUNC, 0666);
+		if( obs_shared_file >= 0 )
+		{
+			ftruncate(obs_shared_file, 8192 );
+		}
+		printf( "SHARED: %d\n", obs_shared_file );
+	}
+
+	if( !(obs_shared_data && obs_shared_data !=  (void*) -1) && obs_shared_file > 0 && previewtarget[0][2] )
+	{
+		printf( "Initing\n" );
+		obs_shared_data = mmap( NULL, sizeof( obs_gl_shm ), PROT_READ | PROT_WRITE, MAP_SHARED, obs_shared_file, 0);
+		printf( "Initializing PTR: %p\n", obs_shared_data );
+		if( obs_shared_data && obs_shared_data !=  (void*) -1 )
+		{
+			obs_shared_data->magic = 0xAABB0100;
+			obs_shared_data->source_pid = getpid();
+			obs_shared_data->handlecount = PREVIEWFRAMEHIST;
+			obs_shared_data->handlehead = PREVIEWFRAMEHIST-1;
+			obs_shared_data->graphicstype = 0;
+			obs_shared_data->enumtype = GL_TEXTURE_2D;
+			obs_shared_data->width = videoW;
+			obs_shared_data->height = videoH;
+			//int attribs[] = { GLX_RGBA, None };
+			//XVisualInfo * vi =  glXChooseVisual(CNFGDisplay, DefaultScreen(CNFGDisplay), attribs);
+			//printf( "Got VI: %p\n", vi );
+			//indirect_context = glXCreateContext( CNFGDisplay, vi, glXGetCurrentContext(), False );
+			//printf( "Generated indirect context: %p from %p %p %p %d\n", indirect_context, CNFGDisplay, CNFGXVI, glXGetCurrentContext(), False );
+			obs_shared_data->context = glXGetContextIDEXT( glXGetCurrentContext() );
+			memcpy( ((uint8_t*)obs_shared_data) + 4096, glXGetCurrentContext(), 1024 );
+			printf( "Sharing context %p as %lx\n", 0, obs_shared_data->context );
+			int i;
+			for( i = 0; i < PREVIEWFRAMEHIST; i++ )
+			{
+				obs_shared_data->handles[i] = previewtarget[i][2]->nResolveTextureId;
+			}
+		}
+	}
+	if( obs_shared_data && obs_shared_data !=  (void*) -1 )
+	{
+		obs_shared_data->handlehead = previewframehisthead;
+		usleep( 14000 + (rand()%2000) );
+	}
+#endif
+
+	previewframehisthead = (previewframehisthead+1)%PREVIEWFRAMEHIST;
+
 
 	#ifdef SECTIONDEBUG
 		printf( "AdvancedPreviewRender end\n" );
@@ -976,14 +1076,13 @@ void example_scene_setup( void * tag, void * opaquev )
 		CNOVRCanvasSwapBuffers( canvasvideo );
 		canvasvideo->overrideshd = CNOVRShaderCreate( "modules/camera/previewyuyv" );
 	}
-
 	if( preview_view )
 	{
 		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0 );
 	}
 
-	canvascontrol->overrideshd = shaderrendermodelnearestaa;
-	canvaspreview->overrideshd = shaderrendermodelnearestaa;
+	if( canvascontrol ) canvascontrol->overrideshd = shaderrendermodelnearestaa;
+	if( canvaspreview ) canvaspreview->overrideshd = shaderrendermodelnearestaa;
 
 
 	//if( advanced_view )
@@ -1048,6 +1147,16 @@ void stop( const char * identifier )
 	{
 		cnv4l2_close( v4l2interface );
 	}
+#ifdef LINUX
+	if( obs_shared_data && obs_shared_data !=  (void*) -1 )
+	{
+		munmap( obs_shared_data, sizeof( *obs_shared_data)  );
+	}
+	if( obs_shared_file && obs_shared_file != -1 )
+	{
+		close( obs_shared_file );
+	}
+#endif
 	OGJoinThread( videodatathread );
 	//OGJoinThread( camerabusinessthread );
 
