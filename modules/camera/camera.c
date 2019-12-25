@@ -1069,13 +1069,13 @@ void example_scene_setup( void * tag, void * opaquev )
 	{
 		canvascontrol = CNOVRCanvasCreate( "VideoSetupControl", 160, 192, 0 );
 		CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
-		canvasvideo = CNOVRCanvasCreate( "VideoSetupVideoView", videoW/2, videoH );
+		canvasvideo = CNOVRCanvasCreate( "VideoSetupVideoView", videoW/2, videoH, 0 );
 		CNOVRCanvasSwapBuffers( canvasvideo );
 		canvasvideo->overrideshd = CNOVRShaderCreate( "modules/camera/previewyuyv" );
 	}
 	if( preview_view )
 	{
-		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0 );
+		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0, 0 );
 	}
 	if( canvascontrol ) canvascontrol->overrideshd = shaderrendermodelnearestaa;
 
