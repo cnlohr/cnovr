@@ -1,9 +1,8 @@
-#version 430
+#version 330
 #include "cnovr.glsl"
 
 layout(location = 0) in vec3 positionin;
 layout(location = 1) in vec2 texcoordsin;
-layout(location = 2) in vec3 normalin;
 
 out vec2 texcoords;
 

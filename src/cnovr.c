@@ -214,14 +214,16 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	ovrprintf( "Setting up focus\n" );
 	InternalCNOVRFocusSetup();
 
+
 	{
 		cnovrstate->fullscreengeo = CNOVRModelCreate( 0, GL_TRIANGLES );
-		cnovr_point3d size = { 1., 1., 1. };
+		cnovr_point3d size = { 1., 1., 0. };
 		CNOVRModelAppendMesh( cnovrstate->fullscreengeo, 1, 1, 0, size, 0, 0 );
 	}
-
+	
 	//???! How do we make sure OpenVR initialization is complete?
-	OGUSleep( 100000 );
+	OGUSleep( 30000 );
+	
 
 	ovrprintf( "Init complete.\n" );
 

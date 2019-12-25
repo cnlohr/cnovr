@@ -67,7 +67,6 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	glGenFramebuffers(1, &ret->nRenderFramebufferId );
 	glBindFramebuffer(GL_FRAMEBUFFER, ret->nRenderFramebufferId);
 
-
 	glGenRenderbuffers(1, &ret->nDepthBufferId);
 	glBindRenderbuffer(GL_RENDERBUFFER, ret->nDepthBufferId);
 	if( multisample )
@@ -79,17 +78,15 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight );
 	}
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	ret->nDepthBufferId );
-
-
-
 	glGenTextures(1, &ret->nRenderTextureId );
 	glBindTexture(texmul, ret->nRenderTextureId );
-
-
-	glTexParameterf(texmul, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameterf(texmul, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameterf(texmul, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameterf(texmul, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	if( !multisample )
+	{
+		glTexParameterf(texmul, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(texmul, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(texmul, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameterf(texmul, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	}
 	//glTexParameteri(texmul, GL_GENERATE_MIPMAP, GL_TRUE);
 
 	if( multisample )
@@ -103,7 +100,6 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	}
-
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texmul, ret->nRenderTextureId, 0);
 
@@ -149,7 +145,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	}
 
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-
+	
 	if( !multisample )
 	{
 		ret->resolveshader = 0;
@@ -858,7 +854,6 @@ static void CNOVRModelDelete( cnovr_model * m )
 		CNOVRDelete( m->pTextures[i] );
 	}
 
-
 	CNOVRFreeLater( m->pIndices );
 	if( m->geofile ) CNOVRFreeLater( m->geofile );
 	if( m->nIBO >= 0 ) glDeleteBuffers( 1, (GLuint*)&m->nIBO );
@@ -870,7 +865,6 @@ static void CNOVRModelDelete( cnovr_model * m )
 static void CNOVRModelRender( cnovr_model * m )
 {
 	static cnovr_model * last_rendered_model = 0;
-
 	cnovr_pose * pose;
 
 	if( m->pose )

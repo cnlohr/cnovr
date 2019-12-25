@@ -534,7 +534,7 @@ void example_scene_setup( void * tag, void * opaquev )
 //	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
-	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64 );
+	canvas = CNOVRCanvasCreate( "ExampleCanvas", 96, 64, 0 );
 
 	playarea = CNOVRModelCreate( 0, GL_LINES );
 	playarea->pose = &playareapose;

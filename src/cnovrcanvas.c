@@ -89,7 +89,7 @@ static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 }
 
 
-cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
+cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int properties )
 {
 	cnovr_canvas * ret = malloc( sizeof( cnovr_canvas ) );
 	
@@ -108,6 +108,7 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
 	ret->linewidth = 1;
 	ret->set_filter_type = 0;
 	ret->canvasname = strdup( trprintf( "%s_pose", name ) );
+	ovrprintf( "Creating canvas\"%s\"\n", name );
 	ret->pose = CNOVRNamedPtrData( ret->canvasname, "cnovr_pose", sizeof( cnovr_pose ) );
 
 	ret->model = CNOVRModelCreate( 0, GL_TRIANGLES );
@@ -119,13 +120,14 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h )
 	ret->model->pose = ret->pose;
 	CNOVRModelSetNumTextures( ret->model, 1 );
 
-	ret->capture.tcctag = TCCGetTag();
-	ret->capture.tag = 0;
-	ret->capture.opaque = ret;
-	ret->capture.cb = CanvasFocusEvent;
-	CNOVRModelSetInteractable( ret->model, &ret->capture );
-
-	
+	if( ! (properties&CANVAS_PROP_NO_INTERACT) )
+	{
+		ret->capture.tcctag = TCCGetTag();
+		ret->capture.tag = 0;
+		ret->capture.opaque = ret;
+		ret->capture.cb = CanvasFocusEvent;
+		CNOVRModelSetInteractable( ret->model, &ret->capture );
+	}
 
 //	glBind
 //	for( i = m->iTextures; i < textures; i++ )

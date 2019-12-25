@@ -1,12 +1,14 @@
 #include <cnovrtcc.h>
 #include <cnovrparts.h>
 #include <cnovrfocus.h>
+#include <cnovrcanvas.h>
 #include <cnovropenvr.h>
 #include <cnovr.h>
 #include <string.h>
 #include <cnovrutil.h>
 #include <openvr_capi.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <chew.h>
 
 const char *  identifier;
@@ -21,7 +23,12 @@ struct renderpair
 	int loaded;
 	cnovr_model * modellines;
 	cnovr_model * modelsolid;
+	cnovr_model * modelsimple;
+	cnovr_canvas * status;
+	int show_status;
+	int hold_status;
 };
+
 
 struct renderpair rps[MAXRNS];
 
@@ -43,7 +50,7 @@ void RenderObjects( int lines )
 		{
 			struct renderpair * rp = &rps[i];
 			if( rp->loaded && cnovrstate->bRenderPosesValid[i] )
-				CNOVRModelRenderWithPose( rp->modellines, &cnovrstate->pRenderPoses[i] );
+				CNOVRRender( rp->modellines );
 		}
 	}
 	else
@@ -52,10 +59,43 @@ void RenderObjects( int lines )
 		{
 			struct renderpair * rp = &rps[i];
 			if( rp->loaded && cnovrstate->bRenderPosesValid[i] )
-				CNOVRModelRenderWithPose( rp->modelsolid, &cnovrstate->pRenderPoses[i] );
+				CNOVRRender( rp->modelsolid );
+		}
+	}
+	for( i = start; i < MAXRNS; i++ )
+	{
+		struct renderpair * rp = &rps[i];
+		if( rp->show_status || rp->hold_status )
+		{
+			CNOVRRender( rp->status );
 		}
 	}
 }
+
+
+int ObjFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	#ifdef SECTIONDEBUG
+		printf( "CameraFocusEvent start\n" );
+	#endif
+	
+	struct renderpair * rp = ((struct renderpair*)cap->tag);
+	
+	if( event == CNOVRF_IN )
+	{
+		rp->show_status = 1;
+	}
+	if( event == CNOVRF_OUT )
+	{
+		rp->show_status = 0;
+	}
+	if( event == CNOVRF_DOWNNOFOCUS && buttoninfo == 0 )
+	{
+		rp->hold_status = !rp->hold_status;
+	}
+	return -1;
+}
+
 
 void UpdateFunction( void * tag, void * opaquev )
 {
@@ -82,9 +122,45 @@ void UpdateFunction( void * tag, void * opaquev )
 			sprintf( tempname, "%s%s", rmname, dotrendermodel );
 			CNOVRModelLoadFromFileAsync( rp->modelsolid, tempname );
 			rps[i].loaded = 1;
+			rp->modellines->pose = &cnovrstate->pRenderPoses[i];
+			rp->modelsolid->pose = &cnovrstate->pRenderPoses[i];
+			rp->modelsimple = CNOVRModelCreate( 0, GL_TRIANGLES );
+			cnovr_point3d size = { .05, .05, .05 };
+			CNOVRModelAppendCube( rp->modelsimple, size, 0, 0  );
+			rp->modelsimple->pose = &cnovrstate->pRenderPoses[i];
+			
+			sprintf( tempname, "%s-%s-status", cnovrstate->asTrackedDeviceSerialStrings[i], rmname);
+			rp->status = CNOVRCanvasCreate( tempname, 96, 64, CANVAS_PROP_NO_INTERACT );
+			//Allow mouse-over objects.
+			cnovrfocus_capture * capture = malloc( sizeof( cnovrfocus_capture ) ); //Will be auto deleted.
+			capture->tag = rp;
+			capture->tcctag = GetTCCTag();
+			capture->opaque = 0;
+			capture->cb = ObjFocusEvent;
+			CNOVRModelSetInteractable( rp->modelsimple, capture );
+			if( strstr( rmname, "controller" ) )
+				rp->modelsimple->focuscontrol->collide_mask = (strstr( rmname, "left" )?2:0) | (strstr( rmname, "right" )?4:0);
 		}
 	}
+	
+	for( i = 0; i < MAXRNS; i++ )
+	{
+		
+		struct renderpair * rp = &rps[i];
+		if( rp->show_status || rp->hold_status )
+		{
+			memcpy( rp->status->pose, &cnovrstate->pRenderPoses[i], sizeof( cnovr_pose ) );
+			char statustext[1024];
+			sprintf( statustext, "%s %d\nx %3.3f\n%y %3.3f\nz %3.3f\n", cnovrstate->asTrackedDeviceSerialStrings[i], i, PFTHREE( cnovrstate->pRenderPoses[i].Pos ) );
+			CNOVRCanvasClearFrame( rp->status );
+			CNOVRCanvasDrawText( rp->status, 2, 2, statustext, 2 );
+			CNOVRCanvasSwapBuffers( rp->status );
+		}
+	}
+
 }
+
+
 
 void RenderFunction( void * tag, void * opaquev )
 {
@@ -114,12 +190,11 @@ void scene_setup( void * tag, void * opaquev )
 
 	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
-
 }
 
 
 void start( const char * identifier )
-{
+{	
 	if( strstr( identifier, "wireframe" ) != 0 )
 	{
 		printf( "Wireframe objects\n" );

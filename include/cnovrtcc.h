@@ -17,6 +17,15 @@ double floor( double f );
 double sin( double f );
 double cos( double f );
 float floorf(float x);
+double acos( double f );
+double atan( double f );
+double tan( double f );
+
+void CNFGSwapBuffers();
+
+#ifdef WINDOWS
+#include <stdio.h>
+#endif
 
 //from os_generic
 typedef void* og_thread_t;

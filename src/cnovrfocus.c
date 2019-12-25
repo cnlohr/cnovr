@@ -412,6 +412,8 @@ static void ModelFocusCollideFunction(void * tag, void * opaquev )
 	cnovr_model_focus_controller * fc = m->focuscontrol;
 	if( !fc ) return;
 	if( !fc->focusevent ) return;
+	if( fc->collide_mask & (1<<p->devid) ) return;
+	if( !m->pose ) return; //XXX TODO: Should this warn?
 	cnovr_point3d start = { 0, 0, 0 };
 	cnovr_vec3d direction = { 0, 0, 1 };
 	cnovr_pose invertedxform;
@@ -438,6 +440,11 @@ void CNOVRModelSetInteractable( cnovr_model * m, cnovrfocus_capture * focusevent
 		memset( fc, 0, sizeof(*fc) );
 	}
 
+	if( !m->pose )
+	{
+		ovrprintf( "Warning, CNOVRModelSetInteractable called on model without a pose.  This will fail in runtime.\n" );		
+	}
+	
 	if( fc->focusevent )
 	{
 		CNOVRListDeleteTag( m ); 

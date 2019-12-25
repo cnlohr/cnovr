@@ -111,6 +111,7 @@ typedef struct cnovr_model_focus_controller_t
 	cnovr_point3d gplast[CNOVRINPUTDEVS];
 	//struct cnovr_model_t * mparent;
 	cnovr_pose pose_internal;
+	int collide_mask;	//0 is default, unmask all devs.
 } cnovr_model_focus_controller;
 
 // Focus Stuff

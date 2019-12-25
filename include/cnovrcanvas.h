@@ -45,9 +45,10 @@ typedef struct cnovr_canvas_t
 	int iOpaque;
 } cnovr_canvas;
 
-//Tricky:  If you want to use this in some advanced way, abusing the model/texture, you can create a model that is w=1, h=1
+#define CANVAS_PROP_NO_INTERACT 1
 
-cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h );
+//Tricky:  If you want to use this in some advanced way, abusing the model/texture, you can create a model that is w=1, h=1
+cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int properties );
 void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_element * canned ); //Applies, or re-renders canned GUI.
 void CNOVRCanvasResize( cnovr_canvas * c, int w, int h );
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy );

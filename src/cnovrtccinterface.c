@@ -392,9 +392,9 @@ static cnovr_model * TCCCNOVRModelCreate( int initial_indices, int rendertype )
 	return ret;
 }
 
-static cnovr_canvas * TCCCNOVRCanvasCreate( const char * name, int w, int h )
+static cnovr_canvas * TCCCNOVRCanvasCreate( const char * name, int w, int h, int props )
 {
-	cnovr_canvas * ret = CNOVRCanvasCreate( name, w, h );
+	cnovr_canvas * ret = CNOVRCanvasCreate( name, w, h, props );
 	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
@@ -576,10 +576,10 @@ extern void * CNFGVisual;
 void XShmCreateImage(); 
 void XShmAttach();
 void XShmGetImage();
-void CNFGSwapBuffers(void);
 void   CNFGSetVSync( int vson );
-
 #endif
+
+void CNFGSwapBuffers(void);
 
 //#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
 //#define TCCExportS( x ) tcc_add_symbol( tce->state, #x, &x );
@@ -693,6 +693,7 @@ struct ImportList
 	TCCExportS( CNOVRCanvasSetPhysicalSize )
 	TCCExportS( CNOVRCanvasYFlip )
 	TCCExportS( CNOVRCanvasApplyCannedGUI )
+	TCCExportS( CNOVRCheck )
 	TCCExportS( glActiveTextureCHEW )
 	TCCExportS( cnovr_interpolate )
 	TCCExportS( cross3d )
@@ -801,12 +802,16 @@ struct ImportList
 	TCCExportS( glTexSubImage2D )
 	TCCExportS( glDepthMask )
 	TCCExportS( glHint )
+	TCCExportS( glViewport )
+	TCCExportS( glClearColor )
+	TCCExportS( glClear )
 	
 	TCCExportS( glDisable )
 
 	TCCExportS( CNFGSwapBuffers )
-	TCCExportS( CNFGSetVSync )
+
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
+	
 	TCCExportS( _vsnprintf )
 	TCCExportS( _vsnwprintf )
 
@@ -872,6 +877,8 @@ struct ImportList
 
 	TCCExportS( sin )
 	TCCExportS( cos )
+	TCCExportS( acos )
+	TCCExportS( atan )
 	TCCExport( ffloor )
 	TCCExportS( floor )
 	TCCExportS( floorf )
@@ -880,6 +887,8 @@ struct ImportList
 	{ "_findfirst64", FindFirstFileA },
 	{ "_findnext64", FindNextFile },
 #else
+	TCCExportS( CNFGSetVSync )
+
 	TCCExportS( stat )
 	TCCExportS( XShmCreateImage )
 	TCCExportS( XShmAttach )
