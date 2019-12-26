@@ -172,11 +172,10 @@ void InternalBreakdownRestOfTCCInterface()
 
 void InternalShutdownTCC( TCCInstance * tce )
 {
-	printf( "Shutting down TCC Instance %p\n", tce );
 	tce->bClosing = 1;
 	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * o = CNHashGetValue( objects_to_delete, tce );
-	printf( "Got O %p\n", o );
+	printf( "Shutting down TCC Instance %p (o=%p)\n", tce, o );
 	if( o )
 	{
 		void * i;
