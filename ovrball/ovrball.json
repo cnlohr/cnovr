@@ -6,7 +6,7 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable",
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "starfield/starfield.c",

@@ -842,6 +842,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	
 #ifdef LINUX
 	//Handle OBS SHM
+#if 0
 	if( obs_shared_file <= 0 )
 	{
 		struct passwd *pw = getpwuid(getuid());
@@ -890,7 +891,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		obs_shared_data->handlehead = previewframehisthead;
 	}
 #endif
-
+#endif
 	previewframehisthead = (previewframehisthead+1)%PREVIEWFRAMEHIST;
 	
 	

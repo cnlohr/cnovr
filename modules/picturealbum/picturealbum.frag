@@ -3,7 +3,7 @@
 
 out vec4 colorOut;
 
-layout(location = 8) uniform sampler2D textures[];
+//layout(location = 8) uniform sampler2D textures[8];
 
 in vec2 texcoords;
 in vec3 position;

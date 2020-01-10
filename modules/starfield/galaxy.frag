@@ -3,7 +3,6 @@
 
 out vec4 colorOut;
 
-layout(location = 8) uniform sampler2D textures[];
 layout(location = 19) uniform vec4 tparam;
 
 in vec2 texcoords;

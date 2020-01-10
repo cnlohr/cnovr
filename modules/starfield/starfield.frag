@@ -13,7 +13,7 @@ in vec3 comprgb;
 //int16_t bvcolor_mag1000;
 //int16_t vicolor_mag1000;
 
-layout(location = 8) uniform sampler2D textures[];
+//layout(location = 8) uniform sampler2D textures[];
 
 void main()
 {
