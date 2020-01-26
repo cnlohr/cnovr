@@ -1,5 +1,7 @@
 /*
-	A basic draggable camera as well as an advanced camera for live compositing
+	A basic draggable camera as well as an advanced camera for live compositing.
+
+	Ok, I wrote that comment a long time ago.  Now, abandon all hope ye who entere here.
 */
 
 #include <cnovrtcc.h>
@@ -22,7 +24,7 @@
 
 //#define SECTIONDEBUG
 
-#ifdef LINUX
+#if defined( LINUX ) && defined( OBS )
 //If in Linux we can do the .obsglshm thing.
 
 #include <GL/glx.h>
@@ -105,6 +107,11 @@ int videoW = 1920;
 int videoH = 1080;
 
 int pboid;
+int pboid_download;
+void * mapptr_download = 0;
+int previewframehisthead_download = -1;
+og_thread_t obs_thread;
+
 int dragging_camera = 0;
 void * mapptr;
 uint8_t * lastdat;
@@ -718,37 +725,79 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 
 	if( cnovrstate->iPreviewHeight == 0 || cnovrstate->iPreviewWidth == 0 ) return;
 
-
-	if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
+	if( advanced_view && 1 )	//This IF loop determines if you FORCE the output to video width.
 	{
-		int ih;
-		for( ih = 0; ih < PREVIEWFRAMEHIST; ih++ )
+		if( previewframehisthead == -1 && videoW > 0 && videoH > 0 )
 		{
-			previewW = cnovrstate->iPreviewWidth;
-			previewH = cnovrstate->iPreviewHeight;
-			if( advanced_view )
+			int ih;
+			for( ih = 0; ih < PREVIEWFRAMEHIST; ih++ )
 			{
-				if( previewtarget[ih][0] ) CNOVRDelete( previewtarget[ih][0] );
-				if( previewtarget[ih][1] ) CNOVRDelete( previewtarget[ih][1] );
+				if( advanced_view )
+				{
+					if( previewtarget[ih][0] ) CNOVRDelete( previewtarget[ih][0] );
+					if( previewtarget[ih][1] ) CNOVRDelete( previewtarget[ih][1] );
+				}
+				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
+				if( advanced_view )
+				{
+					previewtarget[ih][0] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->multisample );
+					previewtarget[ih][1] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->multisample );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, 0 );
+				}
+				else
+				{
+					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->multisample );
+					CNOVRCheck(); //Check for errors.
+				}
+				previewframehisthead = 0;
 			}
-			if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
-			if( advanced_view )
-			{
-				previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-				previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-				previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
-			}
-			else
-			{
-				previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-				CNOVRCheck(); //Check for errors.
-			}
-			previewframehisthead = 0;
 		}
-		if( preview_view )
+
+		if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
 		{
-			CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
-			CNOVRCanvasYFlip( canvaspreview, 1 );
+			if( preview_view )
+			{
+				previewW = videoW;//cnovrstate->iPreviewWidth;
+				previewH = videoH;//cnovrstate->iPreviewHeight;
+				CNOVRCanvasSetPhysicalSize( canvaspreview, videoW/(float)videoH, -1.0 );
+				CNOVRCanvasYFlip( canvaspreview, 1 );
+			}
+		}
+
+	}
+	else
+	{
+		if( cnovrstate->iPreviewHeight != previewH || cnovrstate->iPreviewWidth != previewW || previewframehisthead == -1 )
+		{
+			int ih;
+			for( ih = 0; ih < PREVIEWFRAMEHIST; ih++ )
+			{
+				previewW = cnovrstate->iPreviewWidth;
+				previewH = cnovrstate->iPreviewHeight;
+				if( advanced_view )
+				{
+					if( previewtarget[ih][0] ) CNOVRDelete( previewtarget[ih][0] );
+					if( previewtarget[ih][1] ) CNOVRDelete( previewtarget[ih][1] );
+				}
+				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
+				if( advanced_view )
+				{
+					previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+					previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
+				}
+				else
+				{
+					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+					CNOVRCheck(); //Check for errors.
+				}
+				previewframehisthead = 0;
+			}
+			if( preview_view )
+			{
+				CNOVRCanvasSetPhysicalSize( canvaspreview, previewW/(float)previewH, -1.0 );
+				CNOVRCanvasYFlip( canvaspreview, 1 );
+			}
 		}
 	}
 
@@ -800,7 +849,37 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		glUniform4fv( 22, 1, store->colorcalprops + 0 );
 		glUniform4fv( 23, 1, store->colorcalprops + 4 );
 		CNOVRRender( cnovrstate->fullscreengeo );
+#if defined( OBS ) && defined( LINUX )
+		//Pull the OBS texture off.
+		if( obs_shared_data && obs_shared_data !=  (void*) -1 && previewframehisthead_download < 0  )
+		{
+			if( !pboid_download )
+			{
+				glGenBuffers( 1, &pboid_download );
+				glBindBuffer( GL_PIXEL_PACK_BUFFER, pboid_download );
+				glBufferData(GL_PIXEL_PACK_BUFFER, videoW*videoH*4, NULL, GL_STREAM_DRAW);
+				glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, videoW*videoH*4, GL_MAP_READ_BIT);
+				glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+			}
+			//uint8_t * data = ((uint8_t*)obs_shared_data)+obs_shared_data->handles[previewframehisthead_download];
+			//printf( "%p %p %d\n",  data, mapptr_download, videoW * videoH * 4 );
+			//if( mapptr_download ) memcpy( data, mapptr_download, videoW * videoH * 4 );
+			//obs_shared_data->handlehead = previewframehisthead_download;
+
+			glBindBuffer( GL_PIXEL_PACK_BUFFER, pboid_download ); 
+			glUnmapBuffer(GL_PIXEL_PACK_BUFFER );
+			glReadPixels(0, 0, videoW, videoH, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			//mapptr_download = glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, videoW*videoH*4, GL_MAP_READ_BIT);
+			glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 ); 
+			previewframehisthead_download = previewframehisthead;
+
+			glBindBuffer( GL_PIXEL_PACK_BUFFER, pboid_download ); 
+			mapptr_download = glMapBufferRange( GL_PIXEL_PACK_BUFFER, 0, videoW*videoH*4, GL_MAP_READ_BIT);
+			glBindBuffer( GL_PIXEL_PACK_BUFFER, 0 );
+		}
+#endif
 		CNOVRFBufferBlitResolve( previewtarget[previewframehisthead][2] );
+
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 	else
@@ -839,10 +918,9 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	glActiveTextureCHEW( GL_TEXTURE0 + 0 );
 	glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][2]->nResolveTextureId );
 	CNOVRRender( cnovrstate->fullscreengeo );
-	
-#ifdef LINUX
+
+#if defined( LINUX ) && defined( OBS )
 	//Handle OBS SHM
-#if 0
 	if( obs_shared_file <= 0 )
 	{
 		struct passwd *pw = getpwuid(getuid());
@@ -851,7 +929,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		obs_shared_file = open( trprintf( "%s/.obsglshm/cnovr.obsglshm", homedir ), O_RDWR | O_CREAT | O_TRUNC, 0666);
 		if( obs_shared_file >= 0 )
 		{
-			ftruncate(obs_shared_file, 8192 );
+			ftruncate(obs_shared_file, 8192 + PREVIEWFRAMEHIST * videoW * videoH * 4 );
 		}
 		printf( "SHARED: %d\n", obs_shared_file );
 	}
@@ -859,7 +937,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	if( !(obs_shared_data && obs_shared_data !=  (void*) -1) && obs_shared_file > 0 && previewtarget[0][2] )
 	{
 		printf( "Initing\n" );
-		obs_shared_data = mmap( NULL, sizeof( obs_gl_shm ), PROT_READ | PROT_WRITE, MAP_SHARED, obs_shared_file, 0);
+		obs_shared_data = mmap( NULL,  8192 + PREVIEWFRAMEHIST * videoW * videoH * 4, PROT_READ | PROT_WRITE, MAP_SHARED, obs_shared_file, 0);
 		printf( "Initializing PTR: %p\n", obs_shared_data );
 		if( obs_shared_data && obs_shared_data !=  (void*) -1 )
 		{
@@ -868,7 +946,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 			obs_shared_data->handlecount = PREVIEWFRAMEHIST;
 			obs_shared_data->handlehead = PREVIEWFRAMEHIST-1;
 			obs_shared_data->graphicstype = 0;
-			obs_shared_data->enumtype = GL_TEXTURE_2D;
+			obs_shared_data->enumtype = 0;
 			obs_shared_data->width = videoW;
 			obs_shared_data->height = videoH;
 			//int attribs[] = { GLX_RGBA, None };
@@ -876,22 +954,18 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 			//printf( "Got VI: %p\n", vi );
 			//indirect_context = glXCreateContext( CNFGDisplay, vi, glXGetCurrentContext(), False );
 			//printf( "Generated indirect context: %p from %p %p %p %d\n", indirect_context, CNFGDisplay, CNFGXVI, glXGetCurrentContext(), False );
-			obs_shared_data->context = glXGetContextIDEXT( glXGetCurrentContext() );
-			memcpy( ((uint8_t*)obs_shared_data) + 4096, glXGetCurrentContext(), 1024 );
-			printf( "Sharing context %p as %lx\n", 0, obs_shared_data->context );
+			//obs_shared_data->context = glXGetContextIDEXT( glXGetCurrentContext() );
+			//memcpy( ((uint8_t*)obs_shared_data) + 4096, glXGetCurrentContext(), 1024 );
+			//printf( "Sharing context %p as %lx\n", 0, obs_shared_data->context );
 			int i;
 			for( i = 0; i < PREVIEWFRAMEHIST; i++ )
 			{
-				obs_shared_data->handles[i] = previewtarget[i][2]->nResolveTextureId;
+				obs_shared_data->handles[i] = 64 + PREVIEWFRAMEHIST*8 + i * videoW * videoH * 4;//previewtarget[i][2]->nResolveTextureId;
 			}
 		}
 	}
-	if( obs_shared_data && obs_shared_data !=  (void*) -1 )
-	{
-		obs_shared_data->handlehead = previewframehisthead;
-	}
 #endif
-#endif
+
 	previewframehisthead = (previewframehisthead+1)%PREVIEWFRAMEHIST;
 	
 	
@@ -899,6 +973,25 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		printf( "AdvancedPreviewRender end\n" );
 	#endif
 	CNFGSwapBuffers(1);
+}
+
+void * OBSThread( void * v )
+{
+#if defined(OBS) && defined( LINUX )
+	while(!quit)
+	{
+		if( mapptr_download )
+		{
+			uint8_t * data = ((uint8_t*)obs_shared_data)+obs_shared_data->handles[previewframehisthead_download];
+			memcpy( data, mapptr_download, videoW * videoH * 4 );
+			obs_shared_data->handlehead = previewframehisthead_download;
+			printf( "DL: %d\n", previewframehisthead_download );
+			previewframehisthead_download = -1;
+			mapptr_download = 0;
+		}
+		OGUSleep( 1000 );
+	}
+#endif
 }
 
 void RenderFunction( void * tag, void * opaquev )
@@ -1088,6 +1181,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	//}
 
 #ifndef WINDOWS
+	printf( "USECAMTEX: %s\n", usecamtex );
 	if( usecamtex )
 	{
 		v4l2interface = cnv4l2_open( usecamtex, videoW, videoH, CNV4L2_YUYV, CNV4L2_MMAP, v4l2framecb );
@@ -1106,7 +1200,8 @@ void example_scene_setup( void * tag, void * opaquev )
 
 void camcnv4l2enumcb( void * opaque, const char * dev, const char * name, const char * bus )
 {
-	if( strstr( name, "MiraBox" ) != 0 ) usecamtex = strdup( dev );
+	printf( "Found camera: %s (%s)\n", name, dev );
+	if( strstr( name, "MiraBox" ) != 0 && !usecamtex ) usecamtex = strdup( dev );
 }
 
 
@@ -1128,10 +1223,15 @@ void start( const char * identifier )
 #ifndef WINDOWS
 	if( advanced_view )
 	{
+		usecamtex = 0;
+		printf( "Enumerating Cameras\n" );
 		cnv4l2_enumerate( 0, camcnv4l2enumcb );
 	}
 #endif
 
+#if defined( LINUX ) && defined( OBS )
+	obs_thread = OGCreateThread( OBSThread, 0 );
+#endif
 	//cnovrstate->fPreviewFOV = 45;
 
 	if( store->set_fov > 1 )
@@ -1153,7 +1253,7 @@ void stop( const char * identifier )
 		cnv4l2_close( v4l2interface );
 	}
 #endif
-#ifdef LINUX
+#if defined( OBS ) && defined( LINUX )
 	if( obs_shared_data && obs_shared_data !=  (void*) -1 )
 	{
 		munmap( obs_shared_data, sizeof( *obs_shared_data)  );
@@ -1163,7 +1263,9 @@ void stop( const char * identifier )
 		close( obs_shared_file );
 	}
 #endif
-	OGJoinThread( videodatathread );
+	if( obs_thread ) OGJoinThread( obs_thread );
+
+	if( videodatathread ) OGJoinThread( videodatathread );
 	//OGJoinThread( camerabusinessthread );
 
 	printf( "=== End Example stop\n" );

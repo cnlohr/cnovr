@@ -24,7 +24,7 @@ typedef struct
 	uint32_t source_pid;
 	uint32_t handlecount;
 	uint32_t handlehead;
-	uint32_t graphicstype; //0 for opengl.
+	uint32_t graphicstype; //1 for opengl.
 	uint32_t enumtype;     //RENDERBUFFER or TEXTURE
 	uint32_t width;
 	uint32_t height;
