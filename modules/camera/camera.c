@@ -669,7 +669,7 @@ void PrerenderFunction( void * tag, void * opaquev )
 
 	if( paired_object_id >= 0 && !dragging_camera )
 	{
-		apply_pose_to_pose( &store->posecamera, &cnovrstate->pTrackedPoses[paired_object_id], &store->paired_relative_offset_pose );
+		apply_pose_to_pose( &store->posecamera, &cnovrstate->pRenderPoses[paired_object_id], &store->paired_relative_offset_pose );
 		pose_invert( &cnovrstate->pPreviewPose, &store->posecamera );
 	}
 
