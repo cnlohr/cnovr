@@ -15,7 +15,7 @@
 		},
 		{
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
-			"identifier" : "wireframe",
+			"identifier" : "wireframe,nodetail",
 			"comment":"lineify",
 			"disabled" : false,
 		},
