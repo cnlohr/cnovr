@@ -2,7 +2,7 @@
 
 **This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it!**
 
-If you want to chat about it, discord is the best way: https://discord.gg/BfYj5N
+If you want to chat about it, discord's 'cnovr' channel on the cnlohr-projects server is the best way: https://discord.gg/wN2tgW
 
 My goal is to make a system which allows for extremely rapid VR game development, geared for livestreams.  In order to accomplish this, the primry mode for gameplay programming is to use C.  The whole of the engine is written in C to facilitate very fast recompiles.  All of the following assets may be modified at runtime and cnovr will constantly be scanning for file changes:
  * JSON "game" description files. (`.json`)
