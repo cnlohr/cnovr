@@ -6,12 +6,12 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable",
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "starfield/starfield.c",
 			"identifier" : "starfield",
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
@@ -36,7 +36,7 @@
 		{
 			"cfile" : "picturealbum/picturealbum.c",
 			"identifier" : "assets",
-			"disabled" : true,
+			"disabled" : false,
 		},
 	]
 }

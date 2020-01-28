@@ -157,7 +157,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 */
-	canvas = CNOVRCanvasCreate( "ExampleCanvas", 128, 96 );
+	canvas = CNOVRCanvasCreate( "ExampleCanvas", 128, 96, 0 );
 
 	srand( 0 );
 	for( i = 0; i < MAX_SPINNERS; i++ )
