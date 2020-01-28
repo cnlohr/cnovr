@@ -201,7 +201,11 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	//printf( "Collided depth: %f   %f %f %f  TIME: %f\n", res.t, PFTHREE( res.collidens ), dtimeframe );
 	//First, "fix up" location to make sure we don't overpenetrate.
 	cnovr_point3d fixup;
-	scale3d( fixup, worldspace_normal, -res.sndist*1.1 ); //1.0 would be JUST enough to grace the surface.  This buys us some margin.
+	if(res.sndist > -.0001){
+		res.sndist = -.0001;
+	}
+	printf("%f\n", res.sndist);
+	scale3d( fixup, worldspace_normal, -res.sndist*1.0 ); //1.0 would be JUST enough to grace the surface.  This buys us some margin.
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
 
 	//Next we need to "bounce" off. 
@@ -231,14 +235,22 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	//This is effectively a torque vector at this point.
 	cnovr_point3d imparted_force;
 	cross3d( imparted_force, rotation_in_model_space, res.collidens );
-	scale3d( imparted_force, -imparted_force, -.01 );
+	scale3d( imparted_force, imparted_force, -.1 );
 	printf( "Imparted force: %f %f %f\n", PFTHREE( imparted_force ) );
 	//For now, discard, just apply other motion.
 //	rotation_in_model_space[3] = magnitude3d( tangent_motion );
-	scale3d( rotation_in_model_space, rotation_in_model_space, 0.75 );
-	add3d( rotation_in_model_space, rotation_in_model_space, torque_motion );
-	normalize3d( rotation_in_model_space, rotation_in_model_space );
-	scale3d(  rotation_in_model_space, rotation_in_model_space, motionforce );
+
+	//scale3d( rotation_in_model_space, rotation_in_model_space, 0.75 );
+
+	cnovr_aamag  torquey;
+	cnovr_point3d normal_in_object_space;
+	cross3d( torquey, res.collidens, isospheremotionlinear );
+	printf( "TORQUEY: %f %f %f\n", PFTHREE( torquey ) );
+	copy3d(  rotation_in_model_space, torquey );
+
+//	normalize3d( rotation_in_model_space, rotation_in_model_space );
+//	scale3d(  rotation_in_model_space, rotation_in_model_space, motionforce );
+
 	quatrotatevector(isospheremotionrotation, modelpose->Rot, rotation_in_model_space);
 
 //	isospheremotionrotation[3] = rotation_in_model_space[3];
@@ -311,9 +323,10 @@ void * PhysicsThread( void * v )
 		//Add magnus effect.
 		cnovr_point3d magnus;
 		cnovr_point3d sqrrot;
-		mult3d( sqrrot, isospheremotionrotation, isospheremotionrotation );
+//		mult3d( sqrrot, isospheremotionrotation, isospheremotionrotation );
+		copy3d( sqrrot, isospheremotionrotation );
 		cross3d( magnus, isospheremotionlinear, sqrrot );
-		scale3d( magnus, magnus, -.0000001 );
+		scale3d( magnus, magnus, -.00001 );
 		add3d( isospheremotionlinear, isospheremotionlinear, magnus );
 
 
