@@ -32,6 +32,7 @@ struct renderpair
 
 struct renderpair rps[MAXRNS];
 
+int nodetail;
 int do_wireframe;
 int do_lineify;
 
@@ -147,7 +148,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	{
 		
 		struct renderpair * rp = &rps[i];
-		if( rp->show_status || rp->hold_status )
+		if( ( rp->show_status || rp->hold_status ) && !nodetail )
 		{
 			memcpy( rp->status->pose, &cnovrstate->pRenderPoses[i], sizeof( cnovr_pose ) );
 			char statustext[1024];
@@ -204,6 +205,11 @@ void start( const char * identifier )
 	{
 		printf( "Lineify objects\n" );
 		do_lineify = 1;
+	}
+	if( strstr( identifier, "nodetail" ) != 0 )
+	{
+		printf( "no detail on OpenVR Objects\n" );
+		nodetail = 1;
 	}
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, scene_setup, 0, 0, 0 );

@@ -59,6 +59,8 @@ float * explosion_data;
 float * explosion_color;
 float * explosion_extradata;
 
+int hitslot = 0;
+
 void EmitParticle( float * pos, float size, float * dir, float * color, float lifetime )
 {
 	static int exphead;
@@ -280,8 +282,6 @@ void * PhysicsThread( void * v )
 	cnovr_pose poselast1;
 	cnovr_pose poselast2;
 
-	int hitslot = 0;
-
 	while( !shutting_down )
 	{
 		static double start;
@@ -458,10 +458,18 @@ void UpdateFunction( void * tag, void * opaquev )
 		if( bm & (1<<CTRLA_TRIGGER) )
 		{
 			cnovr_point3d target;
-			sub3d( target, roomoffset, isospherepose.Pos );
+			if(ctrl == 1)
+			{
+				sub3d( target, paddlepose1[(hitslot - 1 + TIMESLOTS) % TIMESLOTS].Pos, isospherepose.Pos );
+			}
+			else
+			{
+				sub3d( target, paddlepose2[(hitslot -1 + TIMESLOTS) % TIMESLOTS].Pos, isospherepose.Pos );
+			}
+			//sub3d( target, roomoffset, isospherepose.Pos );
 			target[1] += 1;
 			scale3d( isospheremotionlinear, isospheremotionlinear, 0.9 );
-			scale3d( target, target, .1 );
+			scale3d( target, target, .2 );
 			add3d( isospheremotionlinear, isospheremotionlinear, target );
 		}
 	}
