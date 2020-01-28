@@ -106,4 +106,8 @@ Past Considerations:
    * We could make the overarching system aware of it.
    * We could just wrap the TCC functions for these things to safe-ify them.
 
+Livestream TODO:
+ * switch environment to a single-pass of geometry.
+ * Make ball go to center of two controllers when pulling trigger.
+
 

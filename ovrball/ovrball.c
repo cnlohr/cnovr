@@ -42,6 +42,8 @@ int sentinal1;
 double isospherelife;
 int sentinal2;
 
+int player_has_interacted_with_ball;
+
 cnovr_model * playarea;
 cnovr_model * playareacollide;
 cnovr_pose    playareapose;
@@ -153,6 +155,8 @@ void ResetIsosphere()
 	isospheremotionrotation[0] = 0;
 	isospheremotionrotation[1] = 0;
 	isospheremotionrotation[2] = 0;
+
+	player_has_interacted_with_ball = 0;
 }
 
 int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
@@ -312,6 +316,14 @@ void * PhysicsThread( void * v )
 		scale3d( magnus, magnus, -.0000001 );
 		add3d( isospheremotionlinear, isospheremotionlinear, magnus );
 
+
+		if( player_has_interacted_with_ball )
+		{
+			cnovr_point3d linearmodfromacceleration = { 0, 0, 0 };
+			linearmodfromacceleration[1] = -deltatime * 7;
+			add3d( isospheremotionlinear, isospheremotionlinear, linearmodfromacceleration ); 
+		}
+
 		int did_hit_this_frame = 0;
 
 		if( !cnovrstate->oInput ) continue;
@@ -343,6 +355,8 @@ void * PhysicsThread( void * v )
 			if( r1 == 0 || r2 == 0 || r3 == 0 ) {
 				if( r1 == 0 || r2 == 0 )
 				{
+					player_has_interacted_with_ball = 1;
+
 					memcpy( &paddlepose1[hitslot+TIMESLOTS],  &paddlepose1[racketslot], sizeof( cnovr_pose ) );
 					memcpy( &paddlepose2[hitslot+TIMESLOTS],  &paddlepose2[racketslot], sizeof( cnovr_pose ) );
 					isospherehitcooldown = 0;
