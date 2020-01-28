@@ -71,6 +71,7 @@ XShmSegmentInfo shminfo;
 Display * localdisplay;
 #endif
 int quitting;
+int nocursor;
 
 #define MAX_DRAGGABLE_WINDOWS 16
 
@@ -514,7 +515,7 @@ void * GetTextureThread( void * v )
 		}
 
 		//Send a mouse click, if we need to.
-		if( dw->setptr )
+		if( dw->setptr && !nocursor )
 		{
 		    XWarpPointer(localdisplay, None, dw->windowtrack, 0, 0, 0, 0, dw->mptrx, dw->mptry);
 			if( dw->setptr > 1 )
@@ -729,6 +730,8 @@ void start( const char * identifier )
 	printf( "=== Store: %p\n", store );
 	printf( "=== Dockables start %s(%p)\n", identifier, identifier );
 	CNOVRJobTack( cnovrQPrerender, prerender_startup, 0, 0, 0 );
+
+	if( strstr( identifier, "nocursor" ) ) nocursor = 1;
 	printf( "=== Dockables start OK %s\n", identifier );
 
 }

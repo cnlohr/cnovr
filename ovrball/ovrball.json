@@ -5,7 +5,12 @@
 	"cfiles" : [
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
-			"identifier" : "dockable",
+			"identifier" : "dockable;nocursor",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/picturealbum/picturealbum.c",
+			"identifier" : "pics;",
 			"disabled" : false,
 		},
 		{
