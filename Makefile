@@ -25,7 +25,9 @@ CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
 #Linux
 CC=gcc
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
-LDFLAGS+=./libopenvr_api.so
+LDFLAGS+=
+OBJS+= ./libopenvr_api.so
+
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
 
 #if you need it extra small...
@@ -38,6 +40,10 @@ LDFLAGS+=./libopenvr_api.so
 
 %.o : %.c
 	$(CC) -c -o $@ $^ $(CFLAGS)
+
+libopenvr_api.so : openvr/lib/linux64/libopenvr_api.so
+	cp openvr/lib/linux64/libopenvr_api.so .
+
 
 main : $(OBJS) src/main.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
