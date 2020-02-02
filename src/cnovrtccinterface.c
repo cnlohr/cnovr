@@ -820,6 +820,7 @@ struct ImportList
 	TCCExportS( memmove )
 	TCCExportS( strstr )	
 	TCCExportS( strcmp )
+	TCCExportS( strncmp )
 	TCCExportS( strlen )
 	TCCExportS( strcpy )
 	TCCExportS( snprintf )
