@@ -3,6 +3,12 @@
     { "controller_type": "vive_controller", "binding_url": "default_vive.json" },
     { "controller_type": "knuckles", "binding_url": "default_knuckles.json" }
   ],
+  "action_sets": [
+    {
+      "name": "/actions/m",
+      "usage": "single"
+    }
+  ],
   "actions": [
     { "name": "/actions/m/in/trigclickhead", "requirement": "optional", "type": "boolean" },
     { "name": "/actions/m/in/modelhead", "type": "pose" },

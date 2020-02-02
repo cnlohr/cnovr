@@ -6,7 +6,7 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable;nocursor",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "modules/picturealbum/picturealbum.c",
