@@ -25,8 +25,7 @@ CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
 #Linux
 CC=gcc
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext
-LDFLAGS+=
-OBJS+= ./libopenvr_api.so
+LDFLAGS+=./libopenvr_api.so
 
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
 
