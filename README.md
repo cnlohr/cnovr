@@ -39,7 +39,7 @@ make -j4
 
 #### Prerequisites
 
-* Download and install tinycc 0.9.27 to `C:\tcc`.  Then,
+* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc` - you cannot cross compile with this project.  It must be the 64-bit version. Then,
 
 #### Operating:
 ```
