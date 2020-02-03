@@ -992,6 +992,7 @@ void * OBSThread( void * v )
 		OGUSleep( 1000 );
 	}
 #endif
+	return 0;
 }
 
 void RenderFunction( void * tag, void * opaquev )
