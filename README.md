@@ -39,7 +39,8 @@ make -j4
 
 #### Prerequisites
 
-* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc` - you cannot cross compile with this project.  It must be the 64-bit version. Then,
+* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc` from here https://download-mirror.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip
+* It **must** be the 64-bit version.  You cannot cross-compile cnovr on Windows.
 
 #### Operating:
 ```
