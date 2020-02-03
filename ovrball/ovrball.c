@@ -333,7 +333,7 @@ void * PhysicsThread( void * v )
 		if( player_has_interacted_with_ball )
 		{
 			cnovr_point3d linearmodfromacceleration = { 0, 0, 0 };
-			linearmodfromacceleration[1] = -deltatime * 7;
+			linearmodfromacceleration[1] = -deltatime * 7.0; //Add gavity.
 			add3d( isospheremotionlinear, isospheremotionlinear, linearmodfromacceleration ); 
 		}
 
