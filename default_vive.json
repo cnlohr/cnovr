@@ -1,0 +1,106 @@
+{
+   "bindings" : {
+      "/actions/m" : {
+         "poses" : [
+            {
+               "output" : "/actions/m/in/modelleft",
+               "path" : "/user/hand/left/pose/raw"
+            },
+            {
+               "output" : "/actions/m/in/modelright",
+               "path" : "/user/hand/right/pose/raw"
+            },
+            {
+               "output" : "/actions/m/in/modelhead",
+               "path" : "/user/head/pose/raw"
+            },
+            {
+               "output" : "/actions/m/in/tipleft",
+               "path" : "/user/hand/left/pose/tip"
+            },
+            {
+               "output" : "/actions/m/in/tipright",
+               "path" : "/user/hand/right/pose/tip"
+            },
+            {
+               "output" : "/actions/m/in/tiphead",
+               "path" : "/user/head/pose/tip"
+            }
+         ],
+         "sources" : [
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/clickhead"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/head/input/system"
+            },
+            {
+               "inputs" : {
+                  "pull" : {
+                     "output" : "/actions/m/in/trigleft"
+                  },
+                  "click" : {
+                     "output" : "/actions/m/in/trigclickleft"
+                  }
+               },
+               "mode" : "trigger",
+               "path" : "/user/hand/left/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "pull" : {
+                     "output" : "/actions/m/in/trigright"
+                  },
+                  "click" : {
+                     "output" : "/actions/m/in/trigclickright"
+                  }
+               },
+               "mode" : "trigger",
+               "path" : "/user/hand/right/input/trigger"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/pinchclickleft"
+                  }
+               },
+               "mode": "button",
+               "path": "/user/hand/left/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/graspclickleft"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/left/input/grip"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/pinchclickright"
+                  }
+               },
+               "mode": "button",
+               "path": "/user/hand/right/input/trackpad"
+            },
+            {
+               "inputs" : {
+                  "click" : {
+                     "output" : "/actions/m/in/graspclickright"
+                  }
+               },
+               "mode" : "button",
+               "path" : "/user/hand/right/input/grip"
+            }
+         ]
+      }
+   },
+   "controller_type" : "vive_controller",
+   "description" : "cnovr vive controller bindings",
+   "name" : "cnovr vive controller bindings"
+}
