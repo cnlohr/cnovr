@@ -27,7 +27,8 @@ cnovr_model * paddle;
 cnovr_model * paddlesolid;
 cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddlepose2[TIMESLOTS+EXTRASLOTS];
-cnovr_pose    paddetransform;
+cnovr_pose    paddetransform1;
+cnovr_pose    paddetransform2;
 int racketslot = 0;
 
 cnovr_model * isosphere;
@@ -172,7 +173,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	cnovr_pose invertedxform, invertedxformlast;
 	pose_invert( &invertedxform, modelpose );
 	pose_invert( &invertedxformlast, modelposelast );
-	apply_pose_to_point( startlast, &invertedxformlast, isosphereposeLast.Pos ); 
+	apply_pose_to_point( startlast, &invertedxformlast, isosphereposeLast.Pos );
 	apply_pose_to_point( start, &invertedxform, isospherepose.Pos); //Get "start" in modelspace.
 	apply_pose_to_point( direction, &invertedxform, isospheremotionlinear); //Get "direction" in model space.
 	sub3d( deltastart, start, startlast );
@@ -209,7 +210,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	scale3d( fixup, worldspace_normal, -res.sndist*1.0 ); //1.0 would be JUST enough to grace the surface.  This buys us some margin.
 	add3d( isospherepose.Pos, isospherepose.Pos, fixup );
 
-	//Next we need to "bounce" off. 
+	//Next we need to "bounce" off.
 
 	//Figure out collisionpos in 3dspace
 	cnovr_point3d collide_pos;
@@ -218,12 +219,12 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	scale3d( localcollidepos, res.collidens, -(res.sndist+radius) );
 	add3d( localcollidepos, localcollidepos, res.collidepos );
 	printf( "CPT %f %f %f   %f\n", PFTHREE( res.collidens ), res.sndist );
-	apply_pose_to_point( collide_pos, modelpose, localcollidepos ); 
+	apply_pose_to_point( collide_pos, modelpose, localcollidepos );
 	printf( "CP: %f %f %f\n", PFTHREE( collide_pos  ) );
 	Boom( collide_pos, 10, .1, .5, 0 );
 
 	//We have a rotating sphere.  If it is colliding with a surface moving tangent to it,
-	//then we should modify the torque on the ball and torque should affect motion vector 
+	//then we should modify the torque on the ball and torque should affect motion vector
 	// isospheremotionrotation is an aamag of the rotation.
 	cnovr_point3d tangent_motion;
 	cnovr_point3d torque_motion;
@@ -270,7 +271,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	add3d( isospheremotionlinear, isospheremotionlinear, reflection_world );
 
 	//Need to limit overall speed.
-//	if( magnitude3d( isospheremotionlinear ) > 20.0 ) 
+//	if( magnitude3d( isospheremotionlinear ) > 20.0 )
 //		scale3d( isospheremotionlinear, isospheremotionlinear, 20./magnitude3d( isospheremotionlinear ) );
 
 
@@ -289,7 +290,7 @@ void * PhysicsThread( void * v )
 	int after_first;
 //	cnovr_pose playareapose;
 //	pose_make_identity( &playareapose );
-	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
+	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );  //TODO: Fix typo: "Conroller"
 	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, CTRLA_TIP );
 
 	cnovr_pose poselast1;
@@ -335,7 +336,7 @@ void * PhysicsThread( void * v )
 		{
 			cnovr_point3d linearmodfromacceleration = { 0, 0, 0 };
 			linearmodfromacceleration[1] = -deltatime * 7.0; //Add gavity.
-			add3d( isospheremotionlinear, isospheremotionlinear, linearmodfromacceleration ); 
+			add3d( isospheremotionlinear, isospheremotionlinear, linearmodfromacceleration );
 		}
 
 		int did_hit_this_frame = 0;
@@ -351,18 +352,18 @@ void * PhysicsThread( void * v )
 		CNOVRPoseFromHMDMatrix( &pose2, &pad2.pose.mDeviceToAbsoluteTracking );
 		//printf( "%f %f %f\n", PFTHREE( pose2.Pos ) );
 
-		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform );
-		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform );
+		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform1 );
+		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform2 );
 
 		//if( isospherehitcooldown > .05f )
 		if( after_first )
 		{
 			cnovr_point3d target = { 0, -.4f, 0 };  //Kludge -> Target center of mesh.
 			int r1 = //-1;
-				CheckCollideBallWithMesh( paddlesolid, 1, &paddlepose1[racketslot], &poselast1, 
-				deltatime, tnow, target, 1.5f, 0 ); 
+				CheckCollideBallWithMesh( paddlesolid, 1, &paddlepose1[racketslot], &poselast1,
+				deltatime, tnow, target, 1.5f, 0 );
 			int r2 = //-1;
-				CheckCollideBallWithMesh( paddlesolid, 1, &paddlepose2[racketslot], &poselast2, 
+				CheckCollideBallWithMesh( paddlesolid, 1, &paddlepose2[racketslot], &poselast2,
 				deltatime, tnow, target, 1.5f, 0 );
 			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
 				deltatime, tnow, 0, 0.9f, 1 );
@@ -431,7 +432,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n%4d%4d\n%.2fms", 10./fpstime, cpupoints, playerpoints, cnovrstate->fFrameTimems ), 3 );
 	for( i = 0; i < 96; i++ )
 	{
-		int px = ovrhist[(i+histhead)%96]*2.0; 
+		int px = ovrhist[(i+histhead)%96]*2.0;
 		canvas->color = 0xff00ff00;
 		if( px > 18 ) canvas->color = 0xff0000ff;
 		CNOVRCanvasTackSegment( canvas, i, 64, i, 64-px );
@@ -445,7 +446,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		float * dat = explosion_data + i*4;
 		float * col = explosion_color + i*4;
 		float * ext = explosion_extradata + i*4;
- 
+
 		float life = ext[0];
 		if( life > 0 )
 		{
@@ -523,7 +524,7 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( shaderLines );
 	playarea->iRenderMesh = 2;
 	CNOVRRender( playarea );
-	
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 	glDepthMask(GL_FALSE );
@@ -594,10 +595,51 @@ void example_scene_setup( void * tag, void * opaquev )
 	paddlesolid = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelLoadFromFileAsync( paddlesolid, "paddle.obj" );
 
-	pose_make_identity( &paddetransform );
+	pose_make_identity( &paddetransform1 );
+    pose_make_identity( &paddetransform2 );
+	
+	// Vive controllers check segment
 
-	cnovr_euler_angle eu = { 3.14159-.5, 0, 0 };
-	quatfromeuler( paddetransform.Rot, eu );
+	char * name[] = { "Vive. MV", "Vive. Controller MV", "HTC V2-XD/XE" };
+	char * rv;
+	int vive_check = 0;
+	float paddle1_angle_adjust = .5;
+	float paddle2_angle_adjust = .5;
+
+	for( int i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; ++i )
+	{
+		//printf(cnovrstate->asTrackedDeviceModelStrings[i]);	//Alternative
+		rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_ModelNumber_String );
+		if( strlen(rv) < 3 ) break;	//We reached the end of valid devices, rv <= 0
+
+		//Identify HTC Headset
+		if( strncmp(rv, name[0], sizeof( name[0] ) ) == 0 )
+		{
+			printf("Device %d is HTC Headset\n", i);
+		}
+		//Identify HTC Controller
+		if( strncmp(rv, name[1], sizeof( name[1] ) ) == 0 )
+		{
+			printf("Device %d controller is HTC\n", i); 
+			++vive_check;
+		}
+		//1st controller
+		if( vive_check == 1)
+		{
+			paddle1_angle_adjust += 1;
+		}
+		//2nd controller
+		if( vive_check == 2)
+		{
+			paddle2_angle_adjust += .5;
+		}
+	}
+
+	//Each paddle has its own angle adjusted seperately
+	cnovr_euler_angle eu1 = { 3.14159-paddle1_angle_adjust, 0, 0 };
+	cnovr_euler_angle eu2 = { 3.14159-paddle2_angle_adjust, 0, 0 };
+	quatfromeuler( paddetransform1.Rot, eu1 );
+    quatfromeuler( paddetransform2.Rot, eu2 );
 
 	explosion_shader = CNOVRShaderCreate( "ovrball/explosion" );
 	explosion_model = CNOVRModelCreate( 0, GL_LINES );
@@ -666,5 +708,3 @@ void stop( const char * identifier )
 	OGJoinThread( thdmax );
 	printf( "=== End Example stop\n" );
 }
-
-
