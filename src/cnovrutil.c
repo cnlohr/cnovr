@@ -632,6 +632,7 @@ typedef struct filetimedata_t
 	double time;
 	filetimetagged * front;
 	int list_changed;
+	double time_noticed;
 } filetimedata;
 
 static filetimedata * ftopscurrent; //Mechanism to make new adds from in-process adds not get run.
@@ -652,11 +653,16 @@ void * thdfiletimechecker( void * v )
 			cnhashelement * e = htFileTimeCacher->elements + i;
 			if( e->data )
 			{
+				double Now = OGGetAbsoluteTime();
 				double ft = OGGetFileTime( e->key );
 				filetimedata * front = ((filetimedata*)e->data);
 				filetimedata * k = front;
-				if( k->time != ft )
+				//Ugh.  Yucky logic.
+				#define TIME_TO_WAIT_AFTER_FILE_CHANGE_BEFORE_DOING_SOMETHING .2
+				if( k->time != ft && k->time_noticed == 0 ) k->time_noticed = Now;
+				if( k->time != ft && ( Now - k->time_noticed > TIME_TO_WAIT_AFTER_FILE_CHANGE_BEFORE_DOING_SOMETHING || k->time < 1 ) )
 				{
+					k->time_noticed = 0;
 					double origtime = k->time;
 					k->time = ft;
 					ftopscurrent = k;

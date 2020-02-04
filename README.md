@@ -109,9 +109,7 @@ Past Considerations:
    * We could just wrap the TCC functions for these things to safe-ify them.
 
 Livestream TODO:
- * switch environment to a single-pass of geometry.
- * Make ball go to center of two controllers when pulling trigger.
  * People in chat can interface with the program.
  * Move ColorChord's audio system into cnovr.
- * Add a frame delay for recompiling .c files otherwise .c will fail to compile on Samba shares.
  * Fix ball physics.
+

@@ -1634,11 +1634,13 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 	char ** splits = CNOVRSplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );
 
-	int lineify = 0;
+	int lineify = 0; //Finds all unique edges and generates them
 	int flipv = 1;
+	int barytc = 0; //Replaces the texture coord section with the barycentric coordinates 
 	if( modifiers )
 	{
 		if( strstr( modifiers, "lineify" ) ) lineify = 1;
+		if( strstr( modifiers, "barytc" ) ) barytc = 1;
 		if( strstr( modifiers, "noflipv" ) ) flipv = 0;
 	}
 
@@ -1684,22 +1686,25 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 			}
 			else if( tolower( line[1] ) == 't' )
 			{
-				t.CTexs = realloc( t.CTexs, ( t.CTexCount + 1 ) * 4 * sizeof( float ) );
-				t.CTexs[1 + t.CTexCount * 4] = 0;
-				t.CTexs[2 + t.CTexCount * 4] = 0;
-				t.CTexs[3 + t.CTexCount * 4] = nObjNo;
-				int r = sscanf( line + 3, "%f %f %f", 
-					&t.CTexs[0 + t.CTexCount * 4], 
-					&t.CTexs[1 + t.CTexCount * 4], 
-					&t.CTexs[2 + t.CTexCount * 4] );
-
-				if( flipv )
-					t.CTexs[1 + t.CTexCount * 4] = 1. - t.CTexs[1 + t.CTexCount * 4];
-				if( r == 3 || r == 2 )
-					t.CTexCount++;
-				else
+				if( !barytc )
 				{
-					CNOVRAlert( m->base.tccctx, 1, "Error: Invalid Tex Coords (%d) (%s)\n", r, line + 3 );
+					t.CTexs = realloc( t.CTexs, ( t.CTexCount + 1 ) * 4 * sizeof( float ) );
+					t.CTexs[1 + t.CTexCount * 4] = 0;
+					t.CTexs[2 + t.CTexCount * 4] = 0;
+					t.CTexs[3 + t.CTexCount * 4] = nObjNo;
+					int r = sscanf( line + 3, "%f %f %f", 
+						&t.CTexs[0 + t.CTexCount * 4], 
+						&t.CTexs[1 + t.CTexCount * 4], 
+						&t.CTexs[2 + t.CTexCount * 4] );
+
+					if( flipv )
+						t.CTexs[1 + t.CTexCount * 4] = 1. - t.CTexs[1 + t.CTexCount * 4];
+					if( r == 3 || r == 2 )
+						t.CTexCount++;
+					else
+					{
+						CNOVRAlert( m->base.tccctx, 1, "Error: Invalid Tex Coords (%d) (%s)\n", r, line + 3 );
+					}
 				}
 			}
 			else
@@ -1791,6 +1796,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 							CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber1*4] );
 						else
 							CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+
 						if( NNumber1 < t.CNormalCount && NNumber1 >= 0 )
 							CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber1*3] );
 						else
@@ -1842,6 +1848,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 			}
 			else
 			{
+				//Triangles out.
 				for( p = 0; p < r; p++ )
 				{
 					int VNumber = atoi( buffer2[p][0] ) - 1;
@@ -1854,10 +1861,18 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 					else
 						CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
 
-					if( TNumber < t.CTexCount && TNumber >= 0 )
-						CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber*4] );
+					if( barytc )
+					{
+						CNOVRVBOTack( m->pGeos[1], 4, (p==0)?1.f:0.f,
+							(p==1)?1.f:0.f, (p==2)?1.f:0.f, nObjNo );
+					}
 					else
-						CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+					{
+						if( TNumber < t.CTexCount && TNumber >= 0 )
+							CNOVRVBOTackv( m->pGeos[1], 4, &t.CTexs[TNumber*4] );
+						else
+							CNOVRVBOTack( m->pGeos[1], 4, 0, 0, 0, nObjNo );
+					}
 
 					if( NNumber < t.CNormalCount && NNumber >= 0 )
 						CNOVRVBOTackv( m->pGeos[2], 3, &t.CNormals[NNumber*3] );

@@ -12,6 +12,7 @@
 const char * identifier;
 cnovr_shader * shaderLines;
 cnovr_shader * shaderBlack;
+cnovr_shader * shaderFakeLines;
 cnovr_shader * rendermodelshader;
 og_thread_t thdmax;
 
@@ -511,7 +512,7 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( rendermodelshader );
 	CNOVRRender( eightiessun );
 
-	CNOVRRender( shaderBlack );
+	CNOVRRender( shaderFakeLines );
 	playareacollide->iRenderMesh = 0;
 
 	//Wash over the scene to prevent lines from overdrawing.
@@ -520,8 +521,6 @@ void RenderFunction( void * tag, void * opaquev )
 	//glDepthFunc( GL_LEQUAL );
 
 	CNOVRRender( shaderLines );
-	playarea->iRenderMesh = 0;
-	CNOVRRender( playarea );
 	playarea->iRenderMesh = 2;
 	CNOVRRender( playarea );
 	
@@ -565,7 +564,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	int i;
 	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
 	shaderBlack = CNOVRShaderCreate( "assets/blackmask" );
-
+	shaderFakeLines = CNOVRShaderCreate( "assets/fakelines" );
 //	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
@@ -582,7 +581,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	//playareaposeepisilondown.Pos[2] = playareapose.Pos[2];
 	playareacollide = CNOVRModelCreate( 0, GL_TRIANGLES );
 	playareacollide->pose = &playareapose;
-	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj" );
+	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj:barytc" );
 
 	isosphere = CNOVRModelCreate( 0, GL_LINES );
 //	isosphere->pose = &isospherepose;
