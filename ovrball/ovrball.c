@@ -11,7 +11,8 @@
 
 const char * identifier;
 cnovr_shader * shaderLines;
-cnovr_shader * shaderBlack;
+cnovr_shader * shaderEpicenter;
+cnovr_shader * shaderRing;
 cnovr_shader * shaderFakeLines;
 cnovr_shader * rendermodelshader;
 og_thread_t thdmax;
@@ -23,7 +24,6 @@ og_thread_t thdmax;
 cnovr_pose    eightiessunpose;
 cnovr_model * eightiessun;
 
-cnovr_model * paddle;
 cnovr_model * paddlesolid;
 cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddlepose2[TIMESLOTS+EXTRASLOTS];
@@ -46,6 +46,13 @@ int sentinal2;
 int player_has_interacted_with_ball;
 
 cnovr_model * playarea;
+cnovr_model * ringmodel;
+cnovr_pose    ringpose;
+cnovr_point3d HitEpicenter;
+double ring_time_of_last_hit;
+cnovr_point3d ring_velocity_of_last_hit;
+int ring_hit_last;
+float         ringz = -18;
 cnovr_model * playareacollide;
 cnovr_pose    playareapose;
 //cnovr_pose   playareaposeepisilondown; //For pushing the triangles down a bit to unmask the lines.
@@ -160,6 +167,50 @@ void ResetIsosphere()
 	isospheremotionrotation[2] = 0;
 
 	player_has_interacted_with_ball = 0;
+}
+
+int CheckCollideBallWithMeshSimpleRing( cnovr_model * m, int mesh, cnovr_pose * modelpose )
+{
+	cnovr_collide_results res;
+	cnovr_pose invertedxform;
+	cnovr_point3d start, direction;
+	pose_invert( &invertedxform, modelpose );
+	apply_pose_to_point( start, &invertedxform, isospherepose.Pos); //Get "start" in modelspace.
+	apply_pose_to_point( direction, &invertedxform, isospheremotionlinear); //Get "direction" in 
+	float radius = 0.1;
+	int r = CNOVRModelCollide( m, start, direction, &res, radius, -0.19 );
+	if( r < 0 || res.sndist > 0.0 || res.t > 0.0 ) return -1; //No actual collision.
+
+	///XXX TODO BTW This is weird, this is inthe other collide function, but for some reason, here, it really messes things up and we miss collisions.
+//	if( res.sndist < -radius || res.t < -radius ) return -1; //We're already on the wrong side of the geometry.
+
+	//Computing half-angle in object-local settings.
+	float dotmatch = dot3d( res.collidens, direction );
+	if( dotmatch > 0 || dotmatch != dotmatch /*check for nan*/ ) return -1; //don't allow in-line collisions.
+
+	double Now = OGGetAbsoluteTime();
+	//Bounce off.
+	if( Now - ring_time_of_last_hit > 1 )
+	{
+		if( isospheremotionlinear[2] < 0 )
+		{
+			copy3d( HitEpicenter, isospherepose.Pos );
+			ring_time_of_last_hit = OGGetAbsoluteTime();
+			copy3d( ring_velocity_of_last_hit, isospheremotionlinear );
+			ring_hit_last = 1;
+			isospheremotionlinear[2] *= -1; 
+		}
+		else
+		{
+			//You come through the back of the ring.
+			playerpoints += 10;
+			copy3d( HitEpicenter, isospherepose.Pos );
+			ring_time_of_last_hit = OGGetAbsoluteTime();
+			copy3d( ring_velocity_of_last_hit, isospheremotionlinear );
+			ring_hit_last = 0;
+			ringz =  ( rand() % 20 )/-2.-10.;
+		}
+	}
 }
 
 int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
@@ -279,6 +330,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 
 
 
+
 void init( const char * identifier )
 {
 	ovrprintf( "Example init %s\n", identifier );
@@ -366,6 +418,11 @@ void * PhysicsThread( void * v )
 				deltatime, tnow, target, 1.5f, 0 );
 			int r3 = CheckCollideBallWithMesh( playareacollide, 1, &playareapose, &playareapose,
 				deltatime, tnow, 0, 0.9f, 1 );
+
+			CheckCollideBallWithMeshSimpleRing( ringmodel, 0, &ringpose );
+			CheckCollideBallWithMeshSimpleRing( ringmodel, 1, &ringpose );
+			CheckCollideBallWithMeshSimpleRing( ringmodel, 2, &ringpose );
+
 			if( r1 == 0 || r2 == 0 || r3 == 0 ) {
 				if( r1 == 0 || r2 == 0 )
 				{
@@ -481,7 +538,7 @@ void UpdateFunction( void * tag, void * opaquev )
 				sub3d( target, paddlepose2[(hitslot -1 + TIMESLOTS) % TIMESLOTS].Pos, isospherepose.Pos );
 			}
 			//sub3d( target, roomoffset, isospherepose.Pos );
-			target[1] += 1;
+			target[1] += .5;
 			scale3d( isospheremotionlinear, isospheremotionlinear, 0.9 );
 			scale3d( target, target, .2 );
 			add3d( isospheremotionlinear, isospheremotionlinear, target );
@@ -502,42 +559,54 @@ void PrerenderFunction( void * tag, void * opaquev )
 //If you want to lock to "Display" paddle, do this.
 //	apply_pose_to_pose( &paddlepose1, CNOVRFocusGetTipPose(1), &paddetransform );
 //	apply_pose_to_pose( &paddlepose2, CNOVRFocusGetTipPose(2), &paddetransform );
+	int draw_matrix_slot = ((racketslot+TIMESLOTS*2-1)%TIMESLOTS);
+	cnovr_pose * isopos = &isosphereposehist[draw_matrix_slot];
+	float weight = .01;
+	ringpose.Pos[0] = isopos->Pos[0] * weight + ringpose.Pos[0] * (1.-weight);
+	ringpose.Pos[1] = isopos->Pos[1] * weight + ringpose.Pos[1] * (1.-weight);
+//	copy3d( ringpose.Pos, isopos->Pos );
+	ringpose.Pos[2] = ringz;
 }
 
 void RenderFunction( void * tag, void * opaquev )
 {
 	int i;
-//	CNOVRRender( shaderLines );
-//	CNOVRRender( isosphere );
 	CNOVRRender( rendermodelshader );
 	CNOVRRender( eightiessun );
 
 	CNOVRRender( shaderFakeLines );
 	playareacollide->iRenderMesh = 0;
 
+//player stuff was here
+	paddlesolid->iRenderMesh = 1;
+	int draw_matrix_slot = ((racketslot+TIMESLOTS*2-1)%TIMESLOTS);
+	cnovr_pose * isopos = &isosphereposehist[draw_matrix_slot];
+	CNOVRModelRenderWithPose( paddlesolid, &paddlepose1[draw_matrix_slot] );
+	CNOVRModelRenderWithPose( paddlesolid, &paddlepose2[draw_matrix_slot] );
+	CNOVRModelRenderWithPose( isosphere, isopos );
+	ringmodel->iRenderMesh = 2;
+
+	CNOVRRender( shaderEpicenter );
+	glUniform4f( 21, OGGetAbsoluteTime()-ring_time_of_last_hit, HitEpicenter[0], HitEpicenter[1], HitEpicenter[2] );
+	glUniform4f (22, ring_velocity_of_last_hit[0], ring_velocity_of_last_hit[1], ring_velocity_of_last_hit[2], 0 );
+//Boat mode.. :-)
 	//Wash over the scene to prevent lines from overdrawing.
 	CNOVRModelRenderWithPose( playareacollide, &playareapose );
 
-	//glDepthFunc( GL_LEQUAL );
+
+	CNOVRRender( shaderRing );
+	double nestate  = OGGetAbsoluteTime()-ring_time_of_last_hit;
+	glUniform4f( 21, (float)ring_hit_last, OGGetAbsoluteTime()-ring_time_of_last_hit, 0.0f, 0.0f );
+//	copy3d( ringpose.Pos, isosphereposehist[draw_matrix_slot].Pos );
+	CNOVRModelRenderWithPose( ringmodel, &ringpose );
+
+
 
 	CNOVRRender( shaderLines );
 	playarea->iRenderMesh = 2;
-	CNOVRRender( playarea );
-	
+	CNOVRRender( playarea );	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	glDepthMask(GL_FALSE );
-	paddle->iRenderMesh = 1;
-	for( i = 0 ; i < TIMESLOTS /*+ EXTRASLOTS Not displaying these*/; i++ )
-	{
-		if( i == TIMESLOTS-1 )	glDepthMask(GL_TRUE);
-		float slotalpha =  (1.0-(float)((racketslot-i+TIMESLOTS*2-1)%TIMESLOTS)/(float)TIMESLOTS) * .3;
-		glUniform4f( 19, slotalpha, 0.0f, 0.0f, 0.0f );
-		CNOVRModelRenderWithPose( paddle, &paddlepose1[i] );
-		CNOVRModelRenderWithPose( paddle, &paddlepose2[i] );
-		CNOVRModelRenderWithPose( isosphere, &isosphereposehist[i] );
-		//printf( "%f ", isosphereposehist[i].Pos[1] );
-	}
 
 	glUniform4f( 19, 1.0f, 0.0f, 0.0f, 0.0f );
 
@@ -562,8 +631,9 @@ void example_scene_setup( void * tag, void * opaquev )
 {
 	printf( "+++ Example scene setup\n" );
 	int i;
+	shaderEpicenter = CNOVRShaderCreate( "ovrball/epicenter" );
 	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
-	shaderBlack = CNOVRShaderCreate( "assets/blackmask" );
+	shaderRing = CNOVRShaderCreate( "ovrball/ringshader" );
 	shaderFakeLines = CNOVRShaderCreate( "assets/fakelines" );
 //	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
@@ -583,21 +653,29 @@ void example_scene_setup( void * tag, void * opaquev )
 	playareacollide->pose = &playareapose;
 	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj:barytc" );
 
-	isosphere = CNOVRModelCreate( 0, GL_LINES );
+	isosphere = CNOVRModelCreate( 0, GL_TRIANGLES );
 //	isosphere->pose = &isospherepose;
-	CNOVRModelLoadFromFileAsync( isosphere, "isosphere.obj:lineify" );
+	CNOVRModelLoadFromFileAsync( isosphere, "isosphere.obj:barytc" );
 	ResetIsosphere();
 
-	paddle = CNOVRModelCreate( 0, GL_LINES );
-	CNOVRModelLoadFromFileAsync( paddle, "paddle.obj:lineify" );
+	ringmodel = CNOVRModelCreate( 0, GL_TRIANGLES );
+	CNOVRModelLoadFromFileAsync( ringmodel, "ring.obj:barytc" );
+	pose_make_identity( &ringpose );
+	ringpose.Pos[2] = -20;
 
 	paddlesolid = CNOVRModelCreate( 0, GL_TRIANGLES );
-	CNOVRModelLoadFromFileAsync( paddlesolid, "paddle.obj" );
+	CNOVRModelLoadFromFileAsync( paddlesolid, "paddle.obj:barytc" );
 
 	pose_make_identity( &paddetransform );
 
-	cnovr_euler_angle eu = { 3.14159-.5, 0, 0 };
-	quatfromeuler( paddetransform.Rot, eu );
+//	cnovr_euler_angle eu = { 3.14159, 1.57, -.2 };
+//	quatfromeuler( paddetransform.Rot, eu );
+	//Paddle transformation.  We are terrible people.
+	paddetransform.Rot[0] = 0.4;
+	paddetransform.Rot[1] = 0.6;
+	paddetransform.Rot[2] = 0.4;
+	paddetransform.Rot[3] = 0.5;
+	quatnormalize(paddetransform.Rot,paddetransform.Rot);
 
 	explosion_shader = CNOVRShaderCreate( "ovrball/explosion" );
 	explosion_model = CNOVRModelCreate( 0, GL_LINES );
