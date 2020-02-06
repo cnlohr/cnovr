@@ -39,9 +39,10 @@ make -j4
 
 #### Prerequisites
 
-* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc` from here https://download-mirror.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip
+* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc`<sup>1</sup> from here https://download-mirror.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip
 * It **must** be the 64-bit version.  You cannot cross-compile cnovr on Windows.
 * It **must** be the public binary version found in the link above (at least right now) as newer versions tweak the way some libraries work.
+* Install SteamVR https://store.steampowered.com/app/250820/SteamVR/
 
 #### Operating:
 ```
@@ -51,8 +52,24 @@ winbuild
 main ovrball\ovrball.json
 ```
 
+#### <sup>1</sup> Alternative TCC directory
+If you don't want to install programs into your `C:\` root, you can install TCC elsewhere, and update the following locations:
+* `winbuild.bat`: Change the first part of line 2 to point to the TCC executable properly.
+* `src/cnovrtcc.c`: Update lines 62 and 63 (`tcc_add_include_path`)
 
-No OSX Support planned because there are no VR platforms for OSX. 
+#### Shader errors
+If you get errors like this:
+```
+ERROR: 0:2: '' : illegal character (") (0x22)
+ERROR: 0:2: '' : illegal character (") (0x22)
+ERROR: 0:3: '' : syntax error: #line
+ERROR: 0:17: '' : illegal character (") (0x22)
+ERROR: 0:17: '' : illegal character (") (0x22)
+ERROR: 0:18: '' : syntax error: #line
+```
+Add `-DSTB_INCLUDE_LINE_NONE` to the end of line 2 in `winbuild.bat`.
+
+#### No OSX Support planned because there are no VR platforms for OSX. 
 
 
 ## TODO

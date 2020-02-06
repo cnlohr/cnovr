@@ -39,10 +39,39 @@ void InternalSetupNamedPtrs();
 
 #define DEFAULT_MULTISAMPLE 4
 
+// Bit-mapping:
+// ---- ---- -Z[Shift][Space] DSAW
+uint16_t KeyboardState = 0x0000;
+
 void HandleKey( int keycode, int bDown )
 {
 	if( (keycode == 27 || keycode == 65307) && bDown ) CNOVRShutdown( );
 	printf( "!.. %d\n", keycode );
+
+	switch(keycode)
+	{
+		case 0x77: bDown ? (KeyboardState |= 0x0001) : (KeyboardState &= 0xFFFE); break; // W
+		case 0x61: bDown ? (KeyboardState |= 0x0002) : (KeyboardState &= 0xFFFD); break; // A
+		case 0x73: bDown ? (KeyboardState |= 0x0004) : (KeyboardState &= 0xFFFB); break; // S
+		case 0x64: bDown ? (KeyboardState |= 0x0008) : (KeyboardState &= 0xFFF7); break; // D
+		case 0x20: bDown ? (KeyboardState |= 0x0010) : (KeyboardState &= 0xFFEF); break; // Space
+		case 0x10: bDown ? (KeyboardState |= 0x0020) : (KeyboardState &= 0xFFDF); break; // Shift
+		case 0x7A: bDown ? (KeyboardState |= 0x0040) : (KeyboardState &= 0xFFBF); break; // Z
+	}
+}
+
+// Called from CNOVRUpdate to move the preview camera according to the current mouse and keyboard input.
+void HandleHIDInput()
+{
+	float MovementQty = 0.005;
+	if((KeyboardState & 0x0040) == 0x0040) { MovementQty = 0.03; } // Hold Z for speed
+
+	if((KeyboardState & 0x0001) == 0x0001) { cnovrstate->pPreviewPose.Pos[2] += MovementQty; }
+	if((KeyboardState & 0x0004) == 0x0004) { cnovrstate->pPreviewPose.Pos[2] -= MovementQty; }
+	if((KeyboardState & 0x0002) == 0x0002) { cnovrstate->pPreviewPose.Pos[0] += MovementQty; }
+	if((KeyboardState & 0x0008) == 0x0008) { cnovrstate->pPreviewPose.Pos[0] -= MovementQty; }
+	if((KeyboardState & 0x0010) == 0x0010) { cnovrstate->pPreviewPose.Pos[1] -= MovementQty; }
+	if((KeyboardState & 0x0020) == 0x0020) { cnovrstate->pPreviewPose.Pos[1] += MovementQty; }
 }
 
 void HandleButton( int x, int y, int button, int bDown )
@@ -317,6 +346,7 @@ void CNOVRUpdate()
 
 	if( cnovrstate->has_preview )
 	{
+		HandleHIDInput();
 		short iPreviewWidth, iPreviewHeight;
 		CNFGGetDimensions( &iPreviewWidth, &iPreviewHeight );
 		if( iPreviewWidth != cnovrstate->iPreviewWidth || iPreviewHeight != cnovrstate->iPreviewHeight )
