@@ -8,6 +8,8 @@ out vec4 colorOut;
 const float extrathickness = 0.5;
 const float sharpness = 1.0;
 
+layout( location = 21 ) uniform vec4 ringanimation;
+
 void main()
 {
 	vec3 barytcdiff = abs( dFdx(barytc.xyz) ) + abs( dFdy(barytc.xyz) );
@@ -16,5 +18,5 @@ void main()
 	baryo = 1. - baryo;
 	baryo = ( baryo + extrathickness ) * sharpness;
 	baryo = clamp( baryo, 0.0, 1.0 );
-	colorOut = vec4( mix( vec3( 0. ), abs(normo), baryo ), 1.0);
+	colorOut = vec4( mix( vec3( 0. ), abs(normo) + ((1.-ringanimation.x)*vec3(1.))/ringanimation.y, baryo ), 1.0);
 }
