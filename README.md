@@ -39,7 +39,7 @@ make -j4
 
 #### Prerequisites
 
-* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc` from here https://download-mirror.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip
+* Download and install **64-bit** tinycc 0.9.27 to `C:\tcc`^1 from here https://download-mirror.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip
 * It **must** be the 64-bit version.  You cannot cross-compile cnovr on Windows.
 * It **must** be the public binary version found in the link above (at least right now) as newer versions tweak the way some libraries work.
 
@@ -51,6 +51,10 @@ winbuild
 main ovrball\ovrball.json
 ```
 
+#### ^1 Alternative TCC directory
+If you don't want to install programs into your `C:\` root, you can install TCC elsewhere, and update the following locations:
+* `winbuild.bat`: Change the first part of line 2 to point to the TCC executable properly.
+* `src/cnovrtcc.c`: Lines 62 and 63 (`tcc_add_include_path`)
 
 No OSX Support planned because there are no VR platforms for OSX. 
 
