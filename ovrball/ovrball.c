@@ -27,7 +27,8 @@ cnovr_model * eightiessun;
 cnovr_model * paddlesolid;
 cnovr_pose    paddlepose1[TIMESLOTS+EXTRASLOTS];
 cnovr_pose    paddlepose2[TIMESLOTS+EXTRASLOTS];
-cnovr_pose    paddetransform;
+cnovr_pose    paddetransform1;
+cnovr_pose    paddetransform2;
 int racketslot = 0;
 
 cnovr_model * isosphere;
@@ -403,8 +404,8 @@ void * PhysicsThread( void * v )
 		CNOVRPoseFromHMDMatrix( &pose2, &pad2.pose.mDeviceToAbsoluteTracking );
 		//printf( "%f %f %f\n", PFTHREE( pose2.Pos ) );
 
-		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform );
-		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform );
+		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform1 );
+		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform2 );
 
 		//if( isospherehitcooldown > .05f )
 		if( after_first )
@@ -557,8 +558,8 @@ void UpdateFunction( void * tag, void * opaquev )
 void PrerenderFunction( void * tag, void * opaquev )
 {
 //If you want to lock to "Display" paddle, do this.
-//	apply_pose_to_pose( &paddlepose1, CNOVRFocusGetTipPose(1), &paddetransform );
-//	apply_pose_to_pose( &paddlepose2, CNOVRFocusGetTipPose(2), &paddetransform );
+//	apply_pose_to_pose( &paddlepose1, CNOVRFocusGetTipPose(1), &paddetransform1 );
+//	apply_pose_to_pose( &paddlepose2, CNOVRFocusGetTipPose(2), &paddetransform2 );
 	int draw_matrix_slot = ((racketslot+TIMESLOTS*2-1)%TIMESLOTS);
 	cnovr_pose * isopos = &isosphereposehist[draw_matrix_slot];
 	float weight = .01;
@@ -631,6 +632,14 @@ void example_scene_setup( void * tag, void * opaquev )
 {
 	printf( "+++ Example scene setup\n" );
 	int i;
+	int j;
+	char * name[] = { "Vive. MV", "Vive. Controller MV", "HTC V2-XD/XE" };
+	char * rv;
+	int controllers = 0;
+	int controllers_id[MAX_POSES_TO_PULL_FROM_OPENVR] = { 0 };
+	float paddle_angles[] = //In case we create support for other controllers, store angles here
+	{.4, .6, .4, .5, 		//Knuckles angles
+	0, 0, .7, .7};			//Vive angles
 	shaderEpicenter = CNOVRShaderCreate( "ovrball/epicenter" );
 	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
 	shaderRing = CNOVRShaderCreate( "ovrball/ringshader" );
@@ -666,16 +675,54 @@ void example_scene_setup( void * tag, void * opaquev )
 	paddlesolid = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelLoadFromFileAsync( paddlesolid, "paddle.obj:barytc" );
 
-	pose_make_identity( &paddetransform );
+	pose_make_identity( &paddetransform1 );
+	pose_make_identity( &paddetransform2 );
+	
+	//Default back to knuckles if nothing is found
+	for( i = 0; i < 4; i++)
+	{
+		paddetransform1.Rot[i] = paddle_angles[i];
+		paddetransform2.Rot[i] = paddle_angles[i];
+	}
+
+	//Check every devices tracked
+	for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; ++i )
+	{
+		rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_ModelNumber_String );
+		if( strlen(rv) < 3 ) break;	//We reached the end of valid devices, rv <= 0
+
+		//Identify HTC Headset
+		if( strncmp(rv, name[0], sizeof( name[0] ) ) == 0 )
+		{
+			printf("Device %d is HTC Headset\n", i);
+		}
+		//Identify HTC Controller
+		if( strncmp(rv, name[1], sizeof( name[1] ) ) == 0 )
+		{
+			printf("Device %d controller is HTC\n", i); 
+			controllers_id[controllers] = i;
+			controllers++;
+		}
+		//1st controller
+		if( controllers_id[controllers - 1] == i && controllers == 1)
+		{
+			for( j = 0; i < 4; i++)
+				paddetransform1.Rot[i] = paddle_angles[i + 4]; 
+		}
+		//2nd controller
+		if( controllers_id[controllers - 1] == i && controllers == 2)
+		{
+			for( j = 0; i < 4; i++)
+				paddetransform2.Rot[i] = paddle_angles[i + 4];
+		}
+	}
 
 //	cnovr_euler_angle eu = { 3.14159, 1.57, -.2 };
 //	quatfromeuler( paddetransform.Rot, eu );
 	//Paddle transformation.  We are terrible people.
-	paddetransform.Rot[0] = 0.4;
-	paddetransform.Rot[1] = 0.6;
-	paddetransform.Rot[2] = 0.4;
-	paddetransform.Rot[3] = 0.5;
-	quatnormalize(paddetransform.Rot,paddetransform.Rot);
+	
+	quatnormalize(paddetransform1.Rot,paddetransform1.Rot);
+	quatnormalize(paddetransform2.Rot,paddetransform2.Rot);
 
 	explosion_shader = CNOVRShaderCreate( "ovrball/explosion" );
 	explosion_model = CNOVRModelCreate( 0, GL_LINES );

@@ -39,11 +39,8 @@
             },
             {
                "inputs" : {
-                  "pull" : {
-                     "output" : "/actions/m/in/trigleft"
-                  },
                   "click" : {
-                     "output" : "/actions/m/in/trigclickleft"
+                     "output" : "/actions/m/in/pinchclickleft"
                   }
                },
                "mode" : "trigger",
@@ -51,11 +48,8 @@
             },
             {
                "inputs" : {
-                  "pull" : {
-                     "output" : "/actions/m/in/trigright"
-                  },
                   "click" : {
-                     "output" : "/actions/m/in/trigclickright"
+                     "output" : "/actions/m/in/pinchclickright"
                   }
                },
                "mode" : "trigger",
@@ -63,8 +57,11 @@
             },
             {
                "inputs" : {
-                  "click" : {
-                     "output" : "/actions/m/in/pinchclickleft"
+                  "pull" : {
+                     "output" : "/actions/m/in/trigleft"
+                  },
+				  "click" : {
+                     "output" : "/actions/m/in/trigclickleft"
                   }
                },
                "mode": "button",
@@ -81,8 +78,11 @@
             },
             {
                "inputs" : {
+                  "pull" : {
+                     "output" : "/actions/m/in/trigright"
+                  },
                   "click" : {
-                     "output" : "/actions/m/in/pinchclickright"
+                     "output" : "/actions/m/in/trigclickright"
                   }
                },
                "mode": "button",
