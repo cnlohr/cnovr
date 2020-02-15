@@ -23,7 +23,7 @@ I'm probably never going to write much of a how-to or document anything on this 
 #### Prerequisites:
 
 ```
-sudo apt-get install build-essential libgl1-mesa-dev
+sudo apt-get install build-essential libgl1-mesa-dev gcc-multilib
 ```
 
 #### Operating:
