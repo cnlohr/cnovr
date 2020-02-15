@@ -26,7 +26,7 @@ void UpdateCanvas( )
 	static int histhead;
 	ovrhist[histhead] = cnovrstate->fFrameTimems;
 	histhead = (histhead+1)%96;
-	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n%4d\n%.2fms", 10./fpstime, points, cnovrstate->fFrameTimems ), 3 );
+	CNOVRCanvasDrawText( canvas, 2, 2, trprintf( "%3.fFPS\n%4d\n%.2fms", 10./fpstime, store->points, cnovrstate->fFrameTimems ), 3 );
 	for( i = 0; i < 96; i++ )
 	{
 		int px = ovrhist[(i+histhead)%96]*2.0; 

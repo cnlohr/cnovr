@@ -11,16 +11,48 @@
 #include <string.h>
 
 
-int points;
+#include "boom.h"
+
+struct ovrballstore_t
+{
+	int i;
+	cnovr_pose    roombatestpose;
+	int points;
+} * store;
+
+struct collidable_object;
+struct collidable_shot;
+
+typedef void (*CollisionCallback)( struct collidable_object * o, struct collidable_shot * s, float depth );
+
+struct collidable_object
+{
+	cnovr_pose pose;
+	struct cnovr_model * object;
+	CollisionCallback collisioncallback;
+};
+
+enum collidable_type {
+	SHOT_GOODGUY,
+	SHOT_BADGUY,
+};
+
+struct collidable_shot
+{
+	cnovr_point3d start;
+	cnovr_point3d direction;
+	float length;
+	enum collidable_type type;
+};
+
 
 
 #include "cmccanvas.h"
-#include "boom.h"
-
 #include "player.h"
 #include "projectiles.h"
 #include "robots.h"
 #include "ui.h"
+
 
 //Player/Guns
 //Projectiles
@@ -29,11 +61,14 @@ int points;
 //Play area lives here.
 
 
+cnovrfocus_capture roombatestcapture;
 
 const char * identifier;
 cnovr_shader * shaderLines;
 cnovr_shader * shaderFakeLines;
 cnovr_shader * rendermodelshader;
+
+cnovr_model * roombatest;
 
 og_thread_t thdmax;
 
@@ -43,7 +78,7 @@ og_thread_t thdmax;
 cnovr_pose    eightiessunpose;
 cnovr_model * eightiessun;
 cnovr_model * playarea;
-cnovr_model * playareacollide;
+//cnovr_model * playareacollide;
 cnovr_pose    playareapose;
 
 cnovr_point3d roomoffset = { 0, 0, 0 };
@@ -51,10 +86,6 @@ cnovr_point3d roomoffset = { 0, 0, 0 };
 
 int hitslot = 0;
 
-struct ovrballstore_t
-{
-	int i;
-} * store;
 
 int shutting_down;
 
@@ -166,8 +197,26 @@ void UpdateFunction( void * tag, void * opaquev )
 
 	glLineWidth( 2.0 );
 
-    UpdateCanvas( deltatime );
-    UpdateExplosionData( deltatime );
+
+#if 0
+	static float time_since_boom_test;
+	time_since_boom_test += deltatime;
+	if( time_since_boom_test > .5 )
+	{
+		time_since_boom_test = 0.0;
+		cnovr_point3d p3d;
+		p3d[0] = (rand()%20)-10;
+		p3d[1] = rand()%10;
+		p3d[2] = -(rand()%20);
+		Boom( p3d, 100, .2, 2, 0);
+		printf( "BOOM AT %f %f %f %f\n", PFTHREE( p3d ), deltatime );
+	}
+#endif
+
+//void UpdateExplosionData( float deltatime );
+	UpdateUI( deltatime );
+	UpdateCanvas( deltatime );
+	UpdateExplosionData( deltatime );
 
 #if 0
 	int ctrl;
@@ -202,6 +251,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	//cnovrstate->fPreviewForegroundSplitDistance = fcamdist;
 #endif
 
+	last = now;
 	return;
 }
 
@@ -226,62 +276,30 @@ void RenderFunction( void * tag, void * opaquev )
 	int i;
 	CNOVRRender( rendermodelshader );
 	CNOVRRender( eightiessun );
-
 	CNOVRRender( shaderFakeLines );
-	playareacollide->iRenderMesh = 0;
-	CNOVRModelRenderWithPose( playareacollide, &playareapose );
 
-	CNOVRRender( shaderLines );
-	playarea->iRenderMesh = 2;
+	glDisable(GL_CULL_FACE);
+	CNOVRRender( roombatest );
 	CNOVRRender( playarea );	
-#if 0
-
-//player stuff was here
-	paddlesolid->iRenderMesh = 1;
-	int draw_matrix_slot = ((racketslot+TIMESLOTS*2-1)%TIMESLOTS);
-	cnovr_pose * isopos = &isosphereposehist[draw_matrix_slot];
-    glDisable(GL_CULL_FACE);
-	CNOVRModelRenderWithPose( paddlesolid, &paddlepose1[draw_matrix_slot] );
-	CNOVRModelRenderWithPose( paddlesolid, &paddlepose2[draw_matrix_slot] );
-	CNOVRModelRenderWithPose( isosphere, isopos );
     glEnable(GL_CULL_FACE);
-	ringmodel->iRenderMesh = 2;
 
-	CNOVRRender( shaderEpicenter );
-	glUniform4f( 21, OGGetAbsoluteTime()-ring_time_of_last_hit, HitEpicenter[0], HitEpicenter[1], HitEpicenter[2] );
-	glUniform4f (22, ring_velocity_of_last_hit[0], ring_velocity_of_last_hit[1], ring_velocity_of_last_hit[2], 0 );
-//Boat mode.. :-)
-	//Wash over the scene to prevent lines from overdrawing.
-	CNOVRModelRenderWithPose( playareacollide, &playareapose );
-
-
-	CNOVRRender( shaderRing );
-	double nestate  = OGGetAbsoluteTime()-ring_time_of_last_hit;
-	glUniform4f( 21, (float)ring_hit_last, OGGetAbsoluteTime()-ring_time_of_last_hit, 0.0f, 0.0f );
-//	copy3d( ringpose.Pos, isosphereposehist[draw_matrix_slot].Pos );
-	CNOVRModelRenderWithPose( ringmodel, &ringpose );
-
-
-
-#endif
-	CNOVRRender( shaderLines );
-	playarea->iRenderMesh = 2;
-	CNOVRRender( playarea );	
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-
-	glUniform4f( 19, 1.0f, 0.0f, 0.0f, 0.0f );
 
 #define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
 	glEnable( GL_VERTEX_PROGRAM_POINT_SIZE );
-//	glDisable(GL_POINT_SMOOTH);
+	glEnable(GL_POINT_SPRITE);
+	glDisable(GL_POINT_SMOOTH);
+	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST );
 
     RenderExplosions();
+	RenderProjectiles();
 
-    RenderCanvas();
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    RenderCanvas();
+	RenderUI();
 }
 
 
@@ -296,20 +314,22 @@ void example_scene_setup( void * tag, void * opaquev )
 //	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
+	InitUI();
     InitCanvas();
+	InitProjectiles();
 
-	playarea = CNOVRModelCreate( 0, GL_LINES );
+	playarea = CNOVRModelCreate( 0, GL_TRIANGLES );
 	playarea->pose = &playareapose;
 	pose_make_identity( &playareapose );
 	add3d( playareapose.Pos, playareapose.Pos, roomoffset );
-	CNOVRModelLoadFromFileAsync( playarea, "playarea.obj:lineify" );
+	CNOVRModelLoadFromFileAsync( playarea, "platform.obj:barytc" );
 
 	//pose_make_identity( &playareaposeepisilondown );
 	//playareaposeepisilondown.Pos[1] -= .02;
 	//playareaposeepisilondown.Pos[2] = playareapose.Pos[2];
-	playareacollide = CNOVRModelCreate( 0, GL_TRIANGLES );
-	playareacollide->pose = &playareapose;
-	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj:barytc" );
+//	playareacollide = CNOVRModelCreate( 0, GL_TRIANGLES );
+//	playareacollide->pose = &playareapose;
+//	CNOVRModelLoadFromFileAsync( playareacollide, "platform.obj:barytc" );
 
 	//isosphere = CNOVRModelCreate( 0, GL_TRIANGLES );
 //	isosphere->pose = &isospherepose;
@@ -347,6 +367,20 @@ void example_scene_setup( void * tag, void * opaquev )
 	eightiessun->pose = &eightiessunpose;
 	CNOVRModelApplyTextureFromFileAsync( eightiessun, "ovrball/80sSun.png" );
 
+
+	roombatest = CNOVRModelCreate( 0, GL_TRIANGLES );
+	roombatest->pose = &store->roombatestpose;
+	if( store->roombatestpose.Rot[0] == 0 )
+		pose_make_identity( & store->roombatestpose );
+	CNOVRModelLoadFromFileAsync( roombatest, "room.bas.obj:barytc" );
+	roombatestcapture.tag = 0;
+	roombatestcapture.opaque = roombatest;
+	roombatestcapture.cb = CNOVRFocusDefaultFocusEvent;
+	CNOVRModelSetInteractable( roombatest, &roombatestcapture );
+
+//	pose_make_identity( &ringpose );
+//	ringpose.Pos[2] = -20;
+
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLPrerender, 0, PrerenderFunction );
@@ -356,13 +390,14 @@ void example_scene_setup( void * tag, void * opaquev )
 
 	shutting_down = 0;
 	thdmax = OGCreateThread( PhysicsThread, 0 );
-
 }
 
 
 void start( const char * identifier )
 {
-	store = CNOVRNamedPtrData( "ovrballstore", 0, sizeof( *store ) + 1024 );
+	store = CNOVRNamedPtrData( "cmcstore", 0, sizeof( *store ) + 1024 );
+	CNOVRNamedPtrSave( "cmcstore" );
+
 	printf( "=== Initializing %p\n", store );
 
 //	sentinal1 = 0xaaaaaaaa;

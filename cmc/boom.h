@@ -1,7 +1,7 @@
 
 cnovr_pose    boomroot; //Must be origin
 
-#define PARTICLEVERTS 256
+#define PARTICLEVERTS 1024
 
 cnovr_model * explosion_model;
 cnovr_shader * explosion_shader;
@@ -102,12 +102,8 @@ void UpdateExplosionData( float deltatime )
 
 void RenderExplosions()
 {
-	glEnable(GL_POINT_SPRITE);
-	glDisable(GL_POINT_SMOOTH);
-	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST );
 	CNOVRRender( explosion_shader );
 	CNOVRRender( explosion_model );
-
 }
 
 void ExplosionInit()
