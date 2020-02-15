@@ -204,6 +204,21 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 
 	//COMPLEX!!! We don't use the tag here, otherwise, the TCC system will try to close this event if it's trying to close out causing a deadlock.
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, 0, ret );
+	int count = sb_count( additionalfiles);
+	if( additionalfiles )
+	{
+		int i;
+		ovrprintf( "OK OK %d\n", count );
+		ovrprintf( "XXXX %p\n", additionalfiles );
+		for (i = 0 ; i < count; i++ )
+		{
+		    ovrprintf( "XXXX %s\n", additionalfiles[i] );
+			CNOVRFileTimeAddWatch( additionalfiles[i], ReloadTCCInstance, 0, ret );
+			ovrprintf( "OK OK\n" );
+		}
+		ovrprintf( "OK\n" );
+	}
+
 	CNOVRJobTack( cnovrQAsync, ReloadTCCInstance, 0, ret, 0 );
 	return ret;
 }
@@ -305,6 +320,10 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 					while( i < l )
 					{
 						t = tokens + i++;
+                        char checktag[32];
+                        memcpy( checktag, filestr + t->start, 31 );
+                        checktag[31] = 0;
+                        printf( "CHECKTAG: %s\n", checktag );
 						if( t->type == JSMN_STRING && strncmp( filestr + t->start, "cfile", t->end - t->start ) == 0 )
 						{
 							t = tokens + i++;
@@ -340,6 +359,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 						}
 						else if( t->type == JSMN_STRING && strncmp( filestr + t->start, "additionalfiles", t->end - t->start ) == 0 )
 						{
+                            ovrprintf( "NOTE: FOUND ADDITIONAL FILES\n" );
 							t = tokens + i++;
 							if( t->type != JSMN_ARRAY ) goto failout;
 							int nra = t->size;
@@ -351,6 +371,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 								char * tmp = jsmnstrdup( filestr, t->start, t->end );
 								tmp = CNOVRFileSearch( tmp );
 								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
+                                ovrprintf( "ADDITIONAL FILE: %s\n", tmp );
 								sb_push( additionalfiles, strdup( tmp ) );
 							}
 						}

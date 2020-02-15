@@ -1,0 +1,42 @@
+{
+	"searchfolders" : [
+		"example_setup", "cmc"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable;nocursor",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/picturealbum/picturealbum.c",
+			"identifier" : "pics;",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "starfield/starfield.c",
+			"identifier" : "starfield;nointeract",
+			"disabled" : true,
+		},
+		{
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe,nodetail",
+			"comment":"lineify",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/camera/camera.c",
+			"identifier" : "advanced,preview",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "cmc.c",
+			"identifier" : "cmc",
+			"additionalfiles" : [
+				"boom.h",
+				"cmccanvas.h"
+			],
+		},
+	]
+}
+

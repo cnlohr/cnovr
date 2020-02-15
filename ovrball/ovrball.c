@@ -581,9 +581,11 @@ void RenderFunction( void * tag, void * opaquev )
 	paddlesolid->iRenderMesh = 1;
 	int draw_matrix_slot = ((racketslot+TIMESLOTS*2-1)%TIMESLOTS);
 	cnovr_pose * isopos = &isosphereposehist[draw_matrix_slot];
+    glDisable(GL_CULL_FACE);
 	CNOVRModelRenderWithPose( paddlesolid, &paddlepose1[draw_matrix_slot] );
 	CNOVRModelRenderWithPose( paddlesolid, &paddlepose2[draw_matrix_slot] );
 	CNOVRModelRenderWithPose( isosphere, isopos );
+    glEnable(GL_CULL_FACE);
 	ringmodel->iRenderMesh = 2;
 
 	CNOVRRender( shaderEpicenter );

@@ -16,5 +16,8 @@ void main()
 	baryo = 1. - baryo;
 	baryo = ( baryo + extrathickness ) * sharpness;
 	baryo = clamp( baryo, 0.0, 1.0 );
-	colorOut = vec4( mix( vec3( 0. ), abs(normo), baryo ), 1.0);
+	colorOut = vec4( mix( vec3( 0. ), abs(normo), baryo ), 1.0 );
+	colorOut = vec4( barytc.xyz, 1. );
+//  if( baryo < .5 ) discard;
+//	colorOut = vec4( abs(normo), baryo );
 }

@@ -391,6 +391,7 @@ void * GetTextureThread( void * v )
 
 //	ListWindows();
 //	AllocateNewWindow( 0, "firefox", -1 );
+	AllocateNewWindow( 0, "chrom", -1 );
 //	AllocateNewWindow( 0, "notepad++", -1 );
 //	AllocateNewWindow( "Frame Timing", 0, -1 );
 //	AllocateNewWindow( ": ~/Fonts", 0, -1 );

@@ -130,3 +130,5 @@ Livestream TODO:
  * Move ColorChord's audio system into cnovr.
  * Fix ball physics.
 
+NOTES: 
+ * Fix "AdditionalFiles" cause that's busted right now.
