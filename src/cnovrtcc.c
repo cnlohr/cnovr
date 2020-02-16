@@ -315,10 +315,10 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 					while( i < l )
 					{
 						t = tokens + i++;
-                        char checktag[32];
-                        memcpy( checktag, filestr + t->start, 31 );
-                        checktag[31] = 0;
-                        printf( "CHECKTAG: %s\n", checktag );
+                        //char checktag[32];
+                        //memcpy( checktag, filestr + t->start, 31 );
+                        //checktag[31] = 0;
+                        //printf( "CHECKTAG: %s\n", checktag );
 						if( t->type == JSMN_STRING && strncmp( filestr + t->start, "cfile", t->end - t->start ) == 0 )
 						{
 							t = tokens + i++;
