@@ -13,10 +13,13 @@
 
 #include "boom.h"
 
+cnovr_pose controllerpose1, controllerpose2;
+
 struct ovrballstore_t
 {
 	int i;
 	cnovr_pose    roombatestpose;
+	cnovr_pose    ourboipose;
 	int points;
 } * store;
 
@@ -49,9 +52,9 @@ struct collidable_shot
 
 #include "cmccanvas.h"
 #include "player.h"
-#include "projectiles.h"
 #include "robots.h"
 #include "ui.h"
+#include "projectiles.h"
 
 
 //Player/Guns
@@ -62,6 +65,7 @@ struct collidable_shot
 
 
 cnovrfocus_capture roombatestcapture;
+cnovrfocus_capture ourboicapture;
 
 const char * identifier;
 cnovr_shader * shaderLines;
@@ -69,6 +73,7 @@ cnovr_shader * shaderFakeLines;
 cnovr_shader * rendermodelshader;
 
 cnovr_model * roombatest;
+cnovr_model * ourboi;
 
 og_thread_t thdmax;
 
@@ -136,9 +141,8 @@ void * PhysicsThread( void * v )
 		EVRInputError e1 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip1, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow, &pad1, sizeof( pad1 ), 0 );
 		EVRInputError e2 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip2, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow, &pad2, sizeof( pad2 ), 0 );
 
-		cnovr_pose pose1, pose2;
-		CNOVRPoseFromHMDMatrix( &pose1, &pad1.pose.mDeviceToAbsoluteTracking );
-		CNOVRPoseFromHMDMatrix( &pose2, &pad2.pose.mDeviceToAbsoluteTracking );
+		CNOVRPoseFromHMDMatrix( &controllerpose1, &pad1.pose.mDeviceToAbsoluteTracking );
+		CNOVRPoseFromHMDMatrix( &controllerpose2, &pad2.pose.mDeviceToAbsoluteTracking );
 		//printf( "%f %f %f\n", PFTHREE( pose2.Pos ) );
 
 #if 0
@@ -198,26 +202,36 @@ void UpdateFunction( void * tag, void * opaquev )
 	glLineWidth( 2.0 );
 
 
-#if 0
-	static float time_since_boom_test;
-	time_since_boom_test += deltatime;
-	if( time_since_boom_test > .5 )
+	int ctrl;
+	for( ctrl = 1; ctrl < 3; ctrl++ )
 	{
-		time_since_boom_test = 0.0;
-		cnovr_point3d p3d;
-		p3d[0] = (rand()%20)-10;
-		p3d[1] = rand()%10;
-		p3d[2] = -(rand()%20);
-		Boom( p3d, 100, .2, 2, 0);
-		printf( "BOOM AT %f %f %f %f\n", PFTHREE( p3d ), deltatime );
+		static float time_since_boom_test[2];
+		cnovrfocus_properties * p = CNOVRFocusGetPropsForDev( ctrl );
+		uint32_t bm = p->buttonmask[0];
+		int hand = ctrl-1;
+		time_since_boom_test[hand] += deltatime;
+		if( time_since_boom_test[hand] < 0.2 ) continue;
+		//printf( "%d %d\n", bm, (1<<CTRLA_TRIGGER) );
+		if( bm & (1<<CTRLA_TRIGGER) )
+		{
+			time_since_boom_test[hand] = 0.0;
+			cnovr_point3d p3d;
+			p3d[0] = (rand()%20)-10;
+			p3d[1] = rand()%10;
+			p3d[2] = -(rand()%20);
+		//	Boom( p3d, 100, .2, 2, 0);
+			printf( "BOOM AT %f %f %f %f\n", PFTHREE( p3d ), deltatime );
+			time_since_boom_test[hand] = 0;
+			EmitProjectile( hand?(&controllerpose2):(&controllerpose1), 10, .1 );
+		}
 	}
-#endif
 
 //void UpdateExplosionData( float deltatime );
 	UpdateUI( deltatime );
 	UpdateCanvas( deltatime );
 	UpdateExplosionData( deltatime );
-
+	UpdateProjectiles (deltatime);
+	UpdateRobots( deltatime );
 #if 0
 	int ctrl;
 	for( ctrl = 1; ctrl < 3; ctrl++ )
@@ -280,6 +294,8 @@ void RenderFunction( void * tag, void * opaquev )
 
 	glDisable(GL_CULL_FACE);
 	CNOVRRender( roombatest );
+	RenderRobots();
+	CNOVRRender( ourboi );
 	CNOVRRender( playarea );	
     glEnable(GL_CULL_FACE);
 
@@ -314,6 +330,7 @@ void example_scene_setup( void * tag, void * opaquev )
 //	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
+	InitRobots();
 	InitUI();
     InitCanvas();
 	InitProjectiles();
@@ -321,6 +338,11 @@ void example_scene_setup( void * tag, void * opaquev )
 	playarea = CNOVRModelCreate( 0, GL_TRIANGLES );
 	playarea->pose = &playareapose;
 	pose_make_identity( &playareapose );
+	cnovr_euler_angle euler;
+	euler[0] = 0;
+	euler[1] = 3.14;
+	euler[2] = 0;
+	quatfromeuler(playareapose.Rot, euler);
 	add3d( playareapose.Pos, playareapose.Pos, roomoffset );
 	CNOVRModelLoadFromFileAsync( playarea, "platform.obj:barytc" );
 
@@ -377,6 +399,16 @@ void example_scene_setup( void * tag, void * opaquev )
 	roombatestcapture.opaque = roombatest;
 	roombatestcapture.cb = CNOVRFocusDefaultFocusEvent;
 	CNOVRModelSetInteractable( roombatest, &roombatestcapture );
+
+	ourboi = CNOVRModelCreate( 0, GL_TRIANGLES );
+	ourboi->pose = &store->ourboipose;
+	if( store->ourboipose.Rot[0] == 0 )
+		pose_make_identity( & store->ourboipose );
+	CNOVRModelLoadFromFileAsync( ourboi, "ourboi.obj:barytc" );
+	ourboicapture.tag = 0;
+	ourboicapture.opaque = ourboi;
+	ourboicapture.cb = CNOVRFocusDefaultFocusEvent;
+	CNOVRModelSetInteractable( ourboi, &ourboicapture );
 
 //	pose_make_identity( &ringpose );
 //	ringpose.Pos[2] = -20;

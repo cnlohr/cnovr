@@ -1,10 +1,21 @@
-cnovr_canvas * uicanvas;
+cnovr_canvas * titlecanvas;
+cnovr_canvas * scorecanvas;
 //float fpstime = 1.;
 
+#define UI_WINDOW_COLOR 0x00004DFF
+#define UI_TEXT_COLOR 0x00000000
+
 //overballstore_t
+void InitUI()
+{
+	//CANVAS_PROP_NO_INTERACT
+	titlecanvas = CNOVRCanvasCreate( "titlecanvas", 260, 152, CANVAS_PROP_NO_INTERACT );
+	scorecanvas = CNOVRCanvasCreate( "scorecanvas", 200, 40, CANVAS_PROP_NO_INTERACT );
+}
 
 void UpdateUI( float deltatime )
 {
+	// time calculations
 	static double start;
 	static double last;
 	double now = OGGetAbsoluteTime();
@@ -12,48 +23,48 @@ void UpdateUI( float deltatime )
 	double runtime = now - start;
 	last = now;
 
-	//0x00000000
-	uicanvas->bgcolor = 0x000000FF;
+	//store->points // current points
+
+	//0x0000GGRR
+	titlecanvas->bgcolor = UI_WINDOW_COLOR;
+	titlecanvas->color = UI_TEXT_COLOR;
+	
+	scorecanvas->bgcolor = UI_WINDOW_COLOR;
+	scorecanvas->color = UI_TEXT_COLOR;
+	
+	//cnovrfocus_properties * headset_focus = CNOVRFocusGetPropsForDev( int ctrl );
+	//titlecanvas->pose = cnovrfocus_properties * CNOVRFocusGetPropsForDev( int ctrl )
+	//scorecanvas->pose = 
+	
+	// Get headset properties 
+	cnovrfocus_properties * p = CNOVRFocusGetPropsForDev( 0 );
+	//titlecanvas->pose = p.poseTip;
+	// TODO: from p->tip, project outwards and at a rotation to the side.
+	
+	/*
+	typedef struct cnovr_pose {
+		cnovr_quat Rot;
+		cnovr_point3d Pos;
+		FLT Scale;
+	} cnovr_pose;
+	*/
 
 	// clear canvas
-	CNOVRCanvasClearFrame( uicanvas );
+	CNOVRCanvasClearFrame( titlecanvas );
+	CNOVRCanvasClearFrame( scorecanvas );
 	
-	static double lastframetime;
-	static int frameno;
-	frameno++;
-	if( (frameno % 10) == 0 )
-	{
-		//fpstime = (float)(now-lastframetime);
-		lastframetime = now;
-	}
-	CNOVRCanvasSetLineWidth( uicanvas, 1 );
-	CNOVRCanvasDrawText( uicanvas, 2, 2, trprintf( "COSMIC\nMISCREANT\nCONDITIONER"), 8 );//
-	/*static float ovrhist[96];
-	static int histhead;
-	ovrhist[histhead] = cnovrstate->fFrameTimems;
-	histhead = (histhead+1)%96;*/
-	//CNOVRCanvasDrawText( uicanvas, 2, 2, trprintf( "%3.fFPS\n%4d\n%.2fms", 10./fpstime, points, cnovrstate->fFrameTimems ), 3 );
-	/*for( i = 0; i < 96; i++ )
-	{
-		//int px = ovrhist[(i+histhead)%96]*2.0; 
-		uicanvas->color = 0xff00ff00;
-		//if( px > 18 ) uicanvas->color = 0xff0000ff;
-		CNOVRCanvasTackSegment( uicanvas, i, 64, i, 64-px );
-	}*/
-	//??BBGGRR
-	//FFA500
-	uicanvas->color = 0x000000FF;
-	//CNOVRCanvasBGColor(uicanvas, 0x0000FF00);
-	CNOVRCanvasSwapBuffers( uicanvas );
+	CNOVRCanvasSetLineWidth( titlecanvas, 3 );
+	CNOVRCanvasSetLineWidth( scorecanvas, 3 );
+	
+	CNOVRCanvasDrawText( titlecanvas, 2, 4, trprintf( "  COSMIC\n MISCREANT\nCONDITIONER" ), 8 );
+	CNOVRCanvasDrawText( scorecanvas, 2, 4, trprintf( "SCORE: %04d", store->points ), 6 );
+	
+	CNOVRCanvasSwapBuffers( titlecanvas );
+	CNOVRCanvasSwapBuffers( scorecanvas );
 }
 
 void RenderUI()
 {
-	CNOVRRender( uicanvas );
+	CNOVRRender( titlecanvas );
+	CNOVRRender( scorecanvas );
 }
-
-void InitUI() //this
-{
-	uicanvas = CNOVRCanvasCreate( "UICanvas", 260, 150, 0 );
-}
-
