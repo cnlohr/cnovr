@@ -33,12 +33,12 @@
 			"cfile" : "cmc.c",
 			"identifier" : "cmc",
 			"additionalfiles" : [
-				"_player.h",
-				"_projectiles.h",
-				"_robots.h",
-				"_ui.h",
-				"_boom.h",
-				"_cmccanvas.h"
+				"player.h",
+				"projectiles.h",
+				"robots.h",
+				"ui.h",
+				"boom.h",
+				"cmccanvas.h"
 			],
 		},
 	]

@@ -828,6 +828,7 @@ void CNOVRModelTaintIndices( cnovr_model * vm )
 
 static void CNOVRModelDelete( cnovr_model * m )
 {
+	CNOVRFileTimeRemoveTagged( m, 1 );
 	OGLockMutex( m->model_mutex );
 	CNOVRListDeleteTag( m );
 	CNOVRJobCancelAllTag( (void*)m, 1 );
@@ -841,18 +842,24 @@ static void CNOVRModelDelete( cnovr_model * m )
 	{
 		for( i = 0; i < m->nMeshes; i++ )
 		{
-			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+			if( m->sMeshMarks[i] )
+			{
+				free( m->sMeshMarks[i] );
+			}
 		}
 		free( m->sMeshMarks );
+		m->sMeshMarks = 0;
 	}
 	if( m->iMeshMarks )
 	{
 		free( m->iMeshMarks );
+		m->iMeshMarks = 0;
 	}
 	for( i = 0; i < m->iTextures; i++ )
 	{
 		CNOVRDelete( m->pTextures[i] );
 	}
+	m->iTextures = 0;
 
 	CNOVRFreeLater( m->pIndices );
 	if( m->geofile ) CNOVRFreeLater( m->geofile );
@@ -1007,15 +1014,18 @@ void CNOVRModelSetNumIndices( cnovr_model * m, uint32_t indices )
 void CNOVRModelResetMarks( cnovr_model * m )
 {
 	int i;
-	for( i = 0; i < m->nMeshes; i++ )
+	if( m->sMeshMarks )
 	{
-		if( m->sMeshMarks && m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+		for( i = 0; i < m->nMeshes; i++ )
+		{
+			if( m->sMeshMarks[i] ) free( m->sMeshMarks[i] );
+		}
 	}
-	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * )*2 );
-	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t )*2 );
 	m->nMeshes = 1;
+	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * 2 );
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) );
 	m->iMeshMarks[0] = 0;
-	m->sMeshMarks[1] = 0;
+	m->sMeshMarks[0] = 0;
 	m->iLastVertMark = 0;
 }
 
@@ -1029,8 +1039,8 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * sectionname )
 	{
 		m->nMeshes++;
 	}
-	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 2 ) );
-	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes + 2 ) );
+	m->iMeshMarks = realloc( m->iMeshMarks, sizeof( uint32_t ) * ( m->nMeshes + 1 ) );
+	m->sMeshMarks = realloc( m->sMeshMarks, sizeof( char * ) * ( m->nMeshes ) );
 	m->iMeshMarks[m->nMeshes-1] = m->iIndexCount;
 	m->sMeshMarks[m->nMeshes-1] = strdup( sectionname );
 }
@@ -1630,6 +1640,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 		free( file );
 		return;
 	}
+
 	m->iLoadOpaque2 = 0;
 	char ** splits = CNOVRSplitStrings( file, "\n", "\r", 1, 0 );
 	free( file );

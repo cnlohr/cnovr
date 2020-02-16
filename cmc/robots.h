@@ -1,7 +1,7 @@
 
 #include "cnovrmath.h"
 
-#define MAX_ROBOTS 100
+#define MAX_ROBOTS 256
 
 struct robot
 {
@@ -92,6 +92,6 @@ void InitRobots()
 
 	robotmodels[0] = CNOVRModelCreate( 0, GL_TRIANGLES );
 	robotmodels[0]->pose = 0;
-	CNOVRModelLoadFromFileAsync( robotmodels[0], "room.bas.obj:barytc" );
+	CNOVRModelLoadFromFileAsync( robotmodels[0], "doomba.obj:barytc" );
 }
 

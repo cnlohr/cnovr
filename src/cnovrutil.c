@@ -486,7 +486,7 @@ char * CNOVRFileSearch( const char * fname )
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
-	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+4 ) ) ); }
+	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+1 ) ) ); }
 
 	int fnamelen = strlen( fname );
 
@@ -528,10 +528,21 @@ char * CNOVRFileSearchAbsolute( const char * fname )
 	char * pathfoundrealloc = alloca( pathfoundlen+2 );
 	memcpy( pathfoundrealloc, pathfound, pathfoundlen+1 );
 	char * cret = OGGetTLS( search_path_return );
+	memset( cret, 0, CNOVR_MAX_PATH+1 );
 #if defined( WIN32 ) || defined( WINDOWS ) || defined( WIN64 )
 	_fullpath( cret, pathfoundrealloc, CNOVR_MAX_PATH-1 );
 #else
-	realpath( pathfoundrealloc, cret );	
+	char * ctr = realpath( pathfoundrealloc, 0 );
+	if( !ctr )
+	{
+		cret[0] = 0;
+		return cret;
+	}
+	int cl = strlen(ctr);
+	if( cl >= CNOVR_MAX_PATH ) cl = CNOVR_MAX_PATH-1;
+	memcpy( cret, ctr, cl );
+	free( ctr );
+	cret[cl] = 0;
 #endif
 	return cret;
 }
@@ -735,6 +746,7 @@ double FileTimeCached( const char * fname )
 	filetimedata * in = malloc( sizeof( filetimedata ) );
 	in->front = 0;
 	in->time = 0;
+	in->time_noticed = 0;
 	CNHashInsert( htFileTimeCacher, strdup( fname ), in );
 	OGTSUnlockMutex( mutFileTimeCacher );
 	return 0;
@@ -820,6 +832,7 @@ void CNOVRFileTimeAddWatch( const char * fname, cnovr_cb_fn fn, void * tag, void
 		ftd = malloc( sizeof( filetimedata ) );
 		ftd->front = 0;
 		ftd->time = 0;
+		ftd->time_noticed = 0;
 		CNHashInsert( htFileTimeCacher, strdup( fname ), ftd );
 	}
 
