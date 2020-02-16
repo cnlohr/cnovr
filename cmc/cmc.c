@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #include "boom.h"
 
 void EmitProjectile( cnovr_pose * pemit, float velocity, float pewlen, int origin );
@@ -221,7 +220,7 @@ void UpdateFunction( void * tag, void * opaquev )
 			p3d[0] = (rand()%20)-10;
 			p3d[1] = rand()%10;
 			p3d[2] = -(rand()%20);
-		Boom( p3d, 100, .2, 2, 0);
+			//Boom( p3d, 100, .2, 2, 0);
 			printf( "BOOM AT %f %f %f %f\n", PFTHREE( p3d ), deltatime );
 			time_since_boom_test[hand] = 0;
 			EmitProjectile( hand?(&controllerpose2):(&controllerpose1), 40, .1, -1 );
@@ -398,7 +397,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	roombatest->pose = &store->roombatestpose;
 	if( store->roombatestpose.Rot[0] == 0 )
 		pose_make_identity( & store->roombatestpose );
-	CNOVRModelLoadFromFileAsync( roombatest, "room.bas.obj:barytc" );
+	CNOVRModelLoadFromFileAsync( roombatest, "doomba.obj:barytc" );
 	roombatestcapture.tag = 0;
 	roombatestcapture.opaque = roombatest;
 	roombatestcapture.cb = CNOVRFocusDefaultFocusEvent;
