@@ -13,6 +13,8 @@
 
 #include "boom.h"
 
+void EmitProjectile( cnovr_pose * pemit, float velocity, float pewlen, int origin );
+
 cnovr_pose controllerpose1, controllerpose2;
 
 struct ovrballstore_t
@@ -219,10 +221,10 @@ void UpdateFunction( void * tag, void * opaquev )
 			p3d[0] = (rand()%20)-10;
 			p3d[1] = rand()%10;
 			p3d[2] = -(rand()%20);
-		//	Boom( p3d, 100, .2, 2, 0);
+		Boom( p3d, 100, .2, 2, 0);
 			printf( "BOOM AT %f %f %f %f\n", PFTHREE( p3d ), deltatime );
 			time_since_boom_test[hand] = 0;
-			EmitProjectile( hand?(&controllerpose2):(&controllerpose1), 10, .1 );
+			EmitProjectile( hand?(&controllerpose2):(&controllerpose1), 40, .1, -1 );
 		}
 	}
 
@@ -308,8 +310,10 @@ void RenderFunction( void * tag, void * opaquev )
 	glEnable(GL_POINT_SPRITE);
 	glDisable(GL_POINT_SMOOTH);
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST );
-
+	
+	glLineWidth(2);
     RenderExplosions();
+	glLineWidth(10);
 	RenderProjectiles();
 
 	glEnable(GL_BLEND);

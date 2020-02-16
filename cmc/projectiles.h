@@ -15,6 +15,7 @@ int collision_head;
 struct projectile
 {
 	int enabled;
+	int originid;
 	cnovr_point3d color;
 	cnovr_point3d start;
 	cnovr_point3d position;
@@ -32,8 +33,26 @@ void UpdateProjectiles( float dtime )
 	for( i = 0; i < NUM_PROJECTILES; i++ )
 	{
 		p = &projectiles[i];
-		if( !p->enabled )
-			break;
+		if( !p->enabled ) continue;
+
+		int r;
+		for( r = 0; r < MAX_ROBOTS; r++ )
+		{
+			struct robot * rbt = &robots[r];
+			if( r == p->originid ) continue; //Robots can't hit themselves.
+			if( !rbt->enabled ) continue;
+			cnovr_point3d distance;
+			sub3d( distance, p->position, rbt->pose.Pos );
+			if( magnitude3d( distance ) < .3 )
+			{
+				//Explode robot (we have contact)
+				Boom( rbt->pose.Pos, 100, .2, 2, 0);
+				rbt->enabled = false;
+				p->enabled = false;
+				store->points++;
+				break;
+			}			
+		}
 		cnovr_point3d posdiv;
 		scale3d( posdiv, p->velocity, dtime );
 		add3d( p->position, p->position, posdiv );
@@ -53,11 +72,11 @@ void UpdateProjectiles( float dtime )
 			}
 			else
 			{
-				projectiles_points[0+j*3] = p->position[0]+prf[0];
-				projectiles_points[1+j*3] = p->position[1]+prf[1];
-				projectiles_points[2+j*3] = p->position[2]+prf[2];
+				projectiles_points[0+j*3] = p->position[0]-prf[0];
+				projectiles_points[1+j*3] = p->position[1]-prf[1];
+				projectiles_points[2+j*3] = p->position[2]-prf[2];
 			}
-			projectiles_data[0+j*4] = 10.;
+			projectiles_data[0+j*4] = p->enabled?10.:0.0;
 			projectiles_data[1+j*4] = 10.;
 			projectiles_data[2+j*4] = 10.;
 			projectiles_data[3+j*4] = 10.;
@@ -78,7 +97,7 @@ void UpdateProjectiles( float dtime )
 	CNOVRVBOTaint( projectiles_model->pGeos[3] );
 }
 
-void EmitProjectile( cnovr_pose * pemit, float velocity, float pewlen )
+void EmitProjectile( cnovr_pose * pemit, float velocity, float pewlen, int origin )
 {
 	struct projectile * p = &projectiles[collision_head];
 	copy3d( p->start, pemit->Pos );
@@ -90,8 +109,9 @@ void EmitProjectile( cnovr_pose * pemit, float velocity, float pewlen )
 	p->color[1] = (rand()%100)+1;
 	p->color[2] = (rand()%100)+1;
 	p->pewlen = pewlen;
+	p->originid = origin;
 	normalize3d( p->color, p->color );
-	printf ("%f %f %f -> %f %f %f %d\n", PFTHREE( p->position ), PFTHREE( p->velocity ), collision_head );
+	//printf ("%f %f %f -> %f %f %f %d\n", PFTHREE( p->position ), PFTHREE( p->velocity ), collision_head );
 	collision_head = (collision_head+1)%NUM_PROJECTILES;
 }
 
@@ -103,6 +123,7 @@ void RenderProjectiles()
 
 void InitProjectiles()
 {
+	store->points = 0;
     int i;
 	projectiles_shader = CNOVRShaderCreate( "ovrball/explosion" );
 	projectiles_model = CNOVRModelCreate( 0, GL_LINES );

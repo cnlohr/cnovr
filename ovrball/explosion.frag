@@ -10,4 +10,5 @@ void main()
 {
 	if( localcolor.a < 0.01 ) discard;
 	colorOut = localcolor;
+//	colorOut = vec4( 1. );
 }

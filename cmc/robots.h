@@ -1,13 +1,15 @@
 
 #include "cnovrmath.h"
 
-#define MAX_ROBOTS 128
+#define MAX_ROBOTS 100
 
 struct robot
 {
+	int enabled;
 	float time_offset;
 	float time_since_spawn;
 	cnovr_pose pose;
+	float time_to_shoot;
 };
 
 cnovr_model * robotmodels[1];
@@ -23,7 +25,7 @@ void enemy_pose(cnovr_pose *pose, FLT time, int enemyId, int type)
         FLT END_DEPTH = 40;
         int NUM_SPINS = 5;      // how many orbits to make before done
         int SPIN_DURATION = 10; // seconds per orbit
-        int MAX_ENEMIES = 100;
+        int MAX_ENEMIES = 256.;
 
         // rotation is position in overall enemy cycle,
         FLT rotation = FLT_MOD(time, SPIN_DURATION * NUM_SPINS);
@@ -52,9 +54,15 @@ void UpdateRobots( float dtime )
 	for( i = 0; i < MAX_ROBOTS; i++ )
 	{
 		struct robot * r = robots + i;
-
+		if( !r->enabled ) continue;
+		r->time_to_shoot -= dtime;
 		r->time_since_spawn += dtime;
 		enemy_pose( &r->pose, r->time_since_spawn + r->time_offset, i, 1 );
+		if( r->time_to_shoot < 0 )
+		{
+			EmitProjectile( &r->pose, 40, .1, i );
+			r->time_to_shoot = (rand()%10)*.02 ;
+		}
 	}
 }
 
@@ -64,6 +72,7 @@ void RenderRobots()
 	for( i = 0; i < MAX_ROBOTS; i++ )
 	{
 		struct robot * r = robots + i;
+		if( !r->enabled ) continue;
 	//	printf( "%f %f %f\n", PFTHREE( r->pose.Pos ) );
 		CNOVRModelRenderWithPose( robotmodels[0], &r->pose );
 	}
@@ -77,6 +86,8 @@ void InitRobots()
 		struct robot * r = robots + i;
 		r->time_since_spawn = 0;
 		r->time_offset = i*0.5;
+		r->enabled = 1;
+		r->time_to_shoot = (rand()%10)*.2 + 1;
 	}
 
 	robotmodels[0] = CNOVRModelCreate( 0, GL_TRIANGLES );

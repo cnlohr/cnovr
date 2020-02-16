@@ -208,15 +208,10 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	if( additionalfiles )
 	{
 		int i;
-		ovrprintf( "OK OK %d\n", count );
-		ovrprintf( "XXXX %p\n", additionalfiles );
 		for (i = 0 ; i < count; i++ )
 		{
-		    ovrprintf( "XXXX %s\n", additionalfiles[i] );
 			CNOVRFileTimeAddWatch( additionalfiles[i], ReloadTCCInstance, 0, ret );
-			ovrprintf( "OK OK\n" );
 		}
-		ovrprintf( "OK\n" );
 	}
 
 	CNOVRJobTack( cnovrQAsync, ReloadTCCInstance, 0, ret, 0 );
