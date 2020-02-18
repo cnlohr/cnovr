@@ -1,5 +1,7 @@
 # cnovr
 
+Pronounced /snoʊˈvɜ:/ "snow - ver" - declared as canon on Feb 17, 2020 after the first 3 livestreams.
+
 **This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it!**
 
 If you want to chat about it, discord's 'cnovr' channel on the cnlohr-projects server is the best way: https://discord.gg/ZUWdwXk
