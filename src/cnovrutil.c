@@ -490,10 +490,13 @@ static char * search_paths[MAX_SEARCH_PATHS];
 static og_mutex_t search_paths_mutex;
 static og_tls_t   search_path_return;
 
+static int InternalCheckFileExists( const char * fn );
+
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 #include <windows.h>
 static int CheckFileExists(const char * szPath)
 {
+	if( InternalCheckFileExists( szPath ) ) return 1;
 	DWORD dwAttrib = GetFileAttributesA(szPath);
 
 	return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
@@ -505,7 +508,7 @@ char * CNOVRFileSearch( const char * fname )
 {
 	#if !(defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 ))
 	struct stat sbuf;
-	#define CheckFileExists(x) ( stat( x, &sbuf ) == 0 )
+	#define CheckFileExists(x) InternalCheckFileExists(x)?1:(( stat( x, &sbuf ) == 0 ))
 	#endif
 
 	char * cret = OGGetTLS( search_path_return );
@@ -541,7 +544,8 @@ char * CNOVRFileSearch( const char * fname )
 	}
 	if( i < 0 ) cret[0] = 0;
 	OGTSUnlockMutex( search_paths_mutex );
-	return cret;
+	if( cret[0] == 0 ) return 0;
+	else return cret;
 }
 
 char * CNOVRFileSearchAbsolute( const char * fname )
@@ -640,7 +644,9 @@ void InternalFileSearchShutdown()
 
 ///////////////////////////////////////////////////////////////////////////////
 
-//Attempt at hooking fopen
+// Here, we hook fopen() in case we wanted to build files into the
+//  exectuable cnovr is running from. 
+
 #if defined( WIN32 ) || defined( WINDOWS )
 
 //No wrapping fopen here.
@@ -649,7 +655,35 @@ void InternalFileSearchShutdown()
 
 #include <dlfcn.h>
 
-__attribute__((used)) const char * IOF_testmemfile_txt = "\x07\x00\x00\x00memfile";
+//An example in-memory file.
+__attribute__((used)) const char IOF_testmemfile_txt[] = { 0x07, 0x00, 0x00, 0x00, 'm', 'e', 'm', 'f', 'i', 'l', 'e' };
+
+static int InternalCheckFileExists( const char * fname )
+{
+	//See if this symbol already exists in the executable.
+	char stbuff[PATH_MAX+5];
+
+	//The symbol is IOF_(filename) where filename has .'s and /'s replaced with _'s
+	stbuff[0] = 'I';
+	stbuff[1] = 'O';
+	stbuff[2] = 'F';
+	stbuff[3] = '_';
+	int i;
+	for( i = 0; i < PATH_MAX; i++ )
+	{
+		char c = fname[i];
+		if( c == '/' ) c = '_';
+		if( c == '.' ) c = '_';
+		stbuff[i+4] = c;
+		if( c == 0 ) break;
+	}
+	uint8_t * v = dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
+	if( v )
+		return 1;
+	else
+		return 0;
+}
+#include <signal.h>
 
 FILE * __real_fopen( const char * fname, const char * mode ) __attribute__((weak));
 FILE * __wrap_fopen( const char * fname, const char * mode )
@@ -658,6 +692,8 @@ FILE * __wrap_fopen( const char * fname, const char * mode )
 	{
 		//See if this symbol already exists in the executable.
 		char stbuff[PATH_MAX+5];
+
+		//The symbol is IOF_(filename) where filename has .'s and /'s replaced with _'s
 		stbuff[0] = 'I';
 		stbuff[1] = 'O';
 		stbuff[2] = 'F';
@@ -674,19 +710,20 @@ FILE * __wrap_fopen( const char * fname, const char * mode )
 		uint8_t * v = dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
 		if( v )
 		{
-			printf( "Opening: %s / %p\n", stbuff, v );
 			int size = v[0] | (v[1]<<8) | (v[2]<<16) | (v[3]<<24);
 			v += 4;
 			return fmemopen( v, size, mode );
 		}
 		//File was not found.
-
-		static FILE * flist;
-		if( !flist ) flist = __real_fopen( "filelist.txt", "a" );
-		fprintf( flist, "%s\n", fname );
-		fflush(flist);
 	}
 
+	static FILE * flist;
+	if( !flist ) flist = __real_fopen( "filelist.txt", "a" );
+	fprintf( flist, "%s\n", fname );
+	fflush(flist);
+
+	if( fname[0] == 0 ) raise(SIGABRT);
+ 
 	return __real_fopen( fname, mode );
 }
 

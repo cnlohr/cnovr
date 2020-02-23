@@ -61,12 +61,15 @@ void RenderObjects( int lines )
 				CNOVRRender( rp->modelsolid );
 		}
 	}
-	for( i = start; i < MAXRNS; i++ )
+	if( !nodetail )
 	{
-		struct renderpair * rp = &rps[i];
-		if( rp->show_status || rp->hold_status )
+		for( i = start; i < MAXRNS; i++ )
 		{
-			CNOVRRender( rp->status );
+			struct renderpair * rp = &rps[i];
+			if( rp->show_status || rp->hold_status )
+			{
+				CNOVRRender( rp->status );
+			}
 		}
 	}
 }
@@ -128,7 +131,8 @@ void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 			rp->modelsimple->pose = &cnovrstate->pRenderPoses[i];
 			
 			sprintf( tempname, "%s-%s-status", cnovrstate->asTrackedDeviceSerialStrings[i], rmname);
-			rp->status = CNOVRCanvasCreate( tempname, 96, 64, CANVAS_PROP_NO_INTERACT );
+			if( !nodetail )
+				rp->status = CNOVRCanvasCreate( tempname, 96, 64, CANVAS_PROP_NO_INTERACT );
 			//Allow mouse-over objects.
 			cnovrfocus_capture * capture = malloc( sizeof( cnovrfocus_capture ) ); //Will be auto deleted.
 			capture->tag = rp;

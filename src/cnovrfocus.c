@@ -333,7 +333,8 @@ void InternalCNOVRFocusSetup()
 					}
 					else
 					{
-						ovrprintf( "Got action: %s / %llx\n", stmp, FOCUS.actionhandles[ctrl][i] );
+						//Got the action OK.
+						//ovrprintf( "Got action: %s / %llx\n", stmp, FOCUS.actionhandles[ctrl][i] );
 					}
 				}
 			}

@@ -754,7 +754,7 @@ void ovrballstop( const char * identifier )
 
 int main()
 {
-#if 1
+#if 0
 	FILE * f = fopen( "testmemfile.txt", "rb" );
 	printf( "F: %p\n", f );
 	if( f )

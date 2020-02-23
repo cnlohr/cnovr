@@ -328,15 +328,17 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	//printf( "THS: %p\n", ths );
 	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
 	char * found = CNOVRFileSearch( stfbGeo ); if( found ) strcpy( stfbGeo, found );
-	filedataGeo = stb_include_file( stfbGeo, ths->prefix, "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
+	if( found )
+		filedataGeo = stb_include_file( stfbGeo, ths->prefix, "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
 	//XXX TODO: Do we care about odd errors on geo?
 	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
 	found = CNOVRFileSearch( stfbFrag ); if( found ) strcpy( stfbFrag, found );
-	filedataFrag = stb_include_file( stfbFrag, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
+	if( found )
+		filedataFrag = stb_include_file( stfbFrag, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
 	found = CNOVRFileSearch( stfbVert ); if( found ) strcpy( stfbVert, found );
-	filedataVert = stb_include_file( stfbVert, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
-
+	if( found )
+		filedataVert = stb_include_file( stfbVert, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
 	if( includeerrors2[0] )
 	{
 		CNOVRAlert( ths->base.tccctx, 1, "Shader preprocessor errors: %s\n", includeerrors2 );
@@ -462,13 +464,13 @@ cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const c
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
 	char * found = CNOVRFileSearch( stfb );
-	CNOVRFileTimeAddWatch( found, CNOVRShaderFileChange, ret, 0 );
+	if( found ) CNOVRFileTimeAddWatch( found, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.frag", shaderfilebase );
 	found = CNOVRFileSearch( stfb );
-	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	if( found ) CNOVRFileTimeAddWatch( found, CNOVRShaderFileChange, ret, 0 );
 	sprintf( stfb, "%s.vert", shaderfilebase );
 	found = CNOVRFileSearch( stfb );
-	CNOVRFileTimeAddWatch( stfb, CNOVRShaderFileChange, ret, 0 );
+	if( found ) CNOVRFileTimeAddWatch( found, CNOVRShaderFileChange, ret, 0 );
 	CNOVRShaderFileChange( ret, 0 );
 
 	return ret;
