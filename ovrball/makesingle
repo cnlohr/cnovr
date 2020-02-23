@@ -1,0 +1,18 @@
+# Execute this from the main cnovr folder
+# Example:
+#  make -f ovrball/makesingle
+
+PROJ:=singleovrball
+
+include Makefile
+CFLAGS+=-DSINGLEBUILD
+
+all : $(PROJ)
+
+BUILDOBJS := $(filter-out src/cnovrtcc.o lib/tcc_single_file.o lib/tccengine_link.o,$(OBJS)) lib/tccless.o
+
+$(PROJ) : ovrball/ovrball.c $(BUILDOBJS)
+	gcc -o $@ $^ $(LDFLAGS) $(CFLAGS)
+
+clean :
+	rm -rf $(PROJ)

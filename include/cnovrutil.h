@@ -33,6 +33,7 @@ char ** CNOVRFolderListing( const char * path, int * elements ); //You can free 
 char * CNOVRFileToString( const char * fname, int * length );
 char ** CNOVRSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount ); //You can just free(...) the return. it's safe.
 int CNOVRStringCompareEndingCase( const char * thing_to_search, const char * check_extension );
+char * CNOVRGetBaseFileName( const char * path ); //returned in trprintf, so you can't re-use the buffer.
 
 //////////////////////////////////////////////////////////////////////////////
 

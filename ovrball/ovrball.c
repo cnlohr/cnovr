@@ -211,6 +211,7 @@ int CheckCollideBallWithMeshSimpleRing( cnovr_model * m, int mesh, cnovr_pose * 
 			ringz =  ( rand() % 20 )/-2.-10.;
 		}
 	}
+	return 0;
 }
 
 int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
@@ -461,7 +462,6 @@ float fpstime = 1.;
 void UpdateFunction( void * tag, void * opaquev )
 {
 	int i;
-
 	glLineWidth( 2.0 );
 	static double start;
 	static double last;
@@ -722,11 +722,10 @@ void example_scene_setup( void * tag, void * opaquev )
 
 	shutting_down = 0;
 	thdmax = OGCreateThread( PhysicsThread, 0 );
-
 }
 
 
-void start( const char * identifier )
+void ovrballstart( const char * identifier )
 {
 	store = CNOVRNamedPtrData( "ovrballstore", 0, sizeof( *store ) + 1024 );
 	printf( "=== Initializing %p\n", store );
@@ -736,15 +735,42 @@ void start( const char * identifier )
 
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, example_scene_setup, 0, 0, 0 );
-	printf( "=== Example start %s(%p) + %p %p\n", identifier, identifier );
+	printf( "=== Example start %s(%p)\n", identifier, identifier );
 
 }
 
-void stop( const char * identifier )
+void ovrballstop( const char * identifier )
 {
 	shutting_down = 1;
 	OGJoinThread( thdmax );
 	printf( "=== End Example stop\n" );
 }
 
+//this is for the static compilation version
+#ifdef SINGLEBUILD
+
+#include <stdio.h>
+#include "../modules/openvrobjects/openvrobjects.c"
+
+int main()
+{
+	if( CNOVRInit( "test", 0, 0, 1 ) )
+	{
+		fprintf( stderr, "Error: Could not init CNOVR.\n" );
+		return -1;
+	}
+
+	CNOVRFileSearchAddPath( "ovrball" );
+	openvrobjectsstart( "wireframe,nodetail" );
+	ovrballstart( "test" );
+	while(1)
+	{
+		CNOVRUpdate();
+	}
+	//unreachable.
+	openvrobjectsstop( 0 );
+	ovrballstop( 0 );
+}
+
+#endif
 

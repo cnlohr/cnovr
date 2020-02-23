@@ -100,17 +100,20 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 
 	//At this point, we're committed.
 
-	printf( "Finishing up\n" );
 	void * backupimage = tce->image;
 	tce->image = malloc(r);
 	tcc_relocate( tce->state, tce->image );
-	printf( "Symming in\n" );
 	tcccrash_symtcc( tce->tccfilename, tce->state );
 
 	tce->init =  (tcccbfn)tcc_get_symbol( tce->state, "init" );
+	if( !tce->init && tce->basefilename )
+		tce->init = (tcccbfn)tcc_get_symbol( tce->state, trprintf( "%sinit", tce->basefilename ) );
 	tce->start = (tcccbfn)tcc_get_symbol( tce->state, "start" );
+	if( !tce->start && tce->basefilename )
+		tce->start = (tcccbfn)tcc_get_symbol( tce->state, trprintf( "%sstart", tce->basefilename ) );
 
-	printf( "Ok... Unlocking\n" );
+	printf( "INIT / START: %p %p\n", tce->init, tce->start );
+
 	OGUnlockMutex( tccmutex );
 
 	if( tce->bFirst && tce->init)
@@ -127,6 +130,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	}
 
 	tce->stop =  (tcccbfn)tcc_get_symbol( tce->state, "stop" );
+	if( !tce->stop && tce->basefilename ) 
+		tce->stop =  (tcccbfn)tcc_get_symbol( tce->state, trprintf( "%sstop", tce->basefilename ) );
 
 	if( backup_state )
 	{
@@ -202,6 +207,8 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	ret->bFirst = 1;
 	ret->bClosing = 0;
 
+	ret->basefilename = strdup( CNOVRGetBaseFileName( tccfilename ) );
+
 	//COMPLEX!!! We don't use the tag here, otherwise, the TCC system will try to close this event if it's trying to close out causing a deadlock.
 	CNOVRFileTimeAddWatch( ret->tccfilename, ReloadTCCInstance, 0, ret );
 	int count = sb_count( additionalfiles);
@@ -228,6 +235,7 @@ void DestroyTCCInstance( TCCInstance * tcc )
 	if( tcc->tccfilename ) free( tcc->tccfilename );
 	if( tcc->image ) { CNOVRFreeLater( tcc->image ); }
 	if( tcc->identifier ) { free( tcc->identifier );  }
+	if( tcc->basefilename ) { free( tcc->basefilename ); }
 	//if( tcc->additionalfiles ) { sb_free( tcc->additionalfiles );  }	//????
 	if( tcc->state ) tcc_delete( tcc->state );
 	free( tcc );

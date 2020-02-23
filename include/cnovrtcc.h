@@ -1,6 +1,10 @@
 #ifndef _CNOVRTCC_H
 #define _CNOVRTCC_H
 
+#ifdef SINGLEBUILD
+#define GetTCCTag() 0
+#endif
+
 #ifdef TCCINSTANCE
 
 
@@ -8,6 +12,8 @@
 void init( const char * id );	//called only once
 void start( const char * id );	//called on start and after reload
 void stop( const char * id );	//called on reload and stop
+
+//Alternatively, you can prefix the init/start/stop with your module's name, i.e. ovrballstart
 
 //These are provided.
 int printf( const char * format, ... );
@@ -61,6 +67,7 @@ void * GetTCCTag();
 
 #else
 
+#include <stdio.h>
 #include <stdint.h>
 
 struct TCCState;
@@ -76,6 +83,7 @@ typedef struct TCCInstance_t
 	char * tccfilename;
 	void * image;
 	char * identifier;
+	char * basefilename; //i.e. 'ovrball' 
 	char ** additionalfiles; //sb_buffer.
 	uint8_t bActive;
 	uint8_t bDynamicGen;

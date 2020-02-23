@@ -597,13 +597,8 @@ void CNFGSwapBuffers(void);
 #define TCCExport( x ) { #x, &TCC##x },
 #define TCCExportS( x ) { #x, &x },
 
-struct ImportList
-{
-	const char * SymName;
-	void * SymPlace;
-};
 
- const struct ImportList ILSYMS[] = {
+const struct ImportList ILSYMS[] = {
 	TCCExport( realloc )
 	TCCExport( malloc )
 	TCCExport( calloc )
@@ -912,11 +907,11 @@ struct ImportList
 	TCCExportS( CNFGWindowGC )
 	TCCExportS( CNFGVisual )
 #endif
+	{ 0, 0 }
 };
 
 void InternalPopulateTCC( TCCInstance * tce )
 {
-	printf( "InternalPopulateTCC { %p }\n", tce );
 	MARKOGLockMutex( tccinterfacemutex );
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
@@ -928,11 +923,11 @@ void InternalPopulateTCC( TCCInstance * tce )
 	for( i = 0; i < sizeof(ILSYMS)/sizeof(ILSYMS[0]); i++ )
 	{
 		const struct ImportList * il = ILSYMS + i;
-		tcc_add_symbol( tce->state, il->SymName, il->SymPlace );
+		if( il->SymName && il->SymPlace )
+			tcc_add_symbol( tce->state, il->SymName, il->SymPlace );
 	}
 	 
 	MARKOGUnlockMutex( tccinterfacemutex );
-	printf( "Populate done\n" );
 }
 
 void InternalInterfaceCreationDone( TCCInstance * tce )

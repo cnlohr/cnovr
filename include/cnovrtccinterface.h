@@ -50,7 +50,13 @@ void OGUnlockSafeMutices();
 
 #define TCCGetTag() ((TCCInstance*)OGGetTLS( tcctlstag ))
 
+struct ImportList
+{
+	const char * SymName;
+	void * SymPlace;
+};
 
+extern const struct ImportList ILSYMS[];	//List ends with 0, 0
 
 //User apps should not include this file.
 

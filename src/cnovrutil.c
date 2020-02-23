@@ -10,6 +10,7 @@
 #include <cnrbtree.h>
 #include <stretchy_buffer.h>
 #include "cnovrtccinterface.h"
+#include "cnovr.h"
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 #include <windows.h>
@@ -460,6 +461,28 @@ int CNOVRStringCompareEndingCase( const char * thing_to_search, const char * che
 	return strcasecmp( thing_to_search + tsclen - strlen( check_extension ), check_extension );
 }
 
+char * CNOVRGetBaseFileName( const char * path )
+{
+	//returned in trprintf, so you can't re-use the buffer.
+	int len = strlen( path );
+	int i;
+	int start = 0;
+	int lastdot = len;
+	char c = 0;
+	for( i = len-1; i >= 0; i-- )
+	{
+		c = path[i];
+		if( c == '/' || c == '\\' )
+			break;
+		if( c == '.' )
+			lastdot = i;
+	}
+	if( c == '/' || c == '\\' )
+		start = i+1;
+	char * ret = trprintf( "%s", path+start );
+	ret[lastdot-start] = 0;
+	return ret;
+}
 
 #define MAX_SEARCH_PATHS 10
 
@@ -1283,7 +1306,6 @@ int CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
 	{
 		cnhashelement * e = &t->elements[i];
 		JobListItem * jle = (JobListItem*)e->data;
-		//printf( "Update CALL %p %p\n", e, jle );
 		if( jle && jle->fn )
 		{
 			hit++;
@@ -1309,6 +1331,10 @@ void CNOVRListAdd( cnovrRunList l, void * b, cnovr_cb_fn * fn )
 	if( !jli ) jli = malloc( sizeof( JobListItem ) );
 	jli->fn = fn;
 	jli->tcctag = te;
+	if( e->data )
+	{
+		ovrprintf( "Warning overwriting element with CNOVRListAdd\n" );
+	}
 	e->data = jli;	//Overwrite if called again.
 	OGTSUnlockMutex( m );
 }

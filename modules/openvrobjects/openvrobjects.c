@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <chew.h>
 
-const char *  identifier;
-cnovr_shader * shader;
+const char *  openvrobjectsidentifier;
+cnovr_shader * openvrobjectsshader;
 
 #define MAXRNS MAX_POSES_TO_PULL_FROM_OPENVR
 
@@ -34,7 +34,7 @@ int nodetail;
 int do_wireframe;
 int do_lineify;
 
-void init( const char * identifier )
+void openvrobjectsinit( const char * identifier )
 {
 }
 
@@ -96,10 +96,9 @@ int ObjFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * 
 }
 
 
-void UpdateFunction( void * tag, void * opaquev )
+void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 {
 	int i;
-
 	for( i = 0; i < MAXRNS; i++ )
 	{
 		// o->trackedDeviceIndex
@@ -150,7 +149,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		{
 			memcpy( rp->status->pose, &cnovrstate->pRenderPoses[i], sizeof( cnovr_pose ) );
 			char statustext[1024];
-			sprintf( statustext, "%s %d\nx %3.3f\n%y %3.3f\nz %3.3f\n", cnovrstate->asTrackedDeviceSerialStrings[i], i, PFTHREE( cnovrstate->pRenderPoses[i].Pos ) );
+			sprintf( statustext, "%s %d\nx %3.3f\ny %3.3f\nz %3.3f\n", cnovrstate->asTrackedDeviceSerialStrings[i], i, PFTHREE( cnovrstate->pRenderPoses[i].Pos ) );
 			CNOVRCanvasClearFrame( rp->status );
 			CNOVRCanvasDrawText( rp->status, 2, 2, statustext, 2 );
 			CNOVRCanvasSwapBuffers( rp->status );
@@ -161,40 +160,39 @@ void UpdateFunction( void * tag, void * opaquev )
 
 
 
-void RenderFunction( void * tag, void * opaquev )
+void OpenVRObjectsRenderFunction( void * tag, void * opaquev )
 {
 	int i;
 	if( do_wireframe || do_lineify )
 	{
-		CNOVRRender( shader );
+		CNOVRRender( openvrobjectsshader );
 		RenderObjects( 1 );
 	}
 	else
 	{
-		CNOVRRender( shader );
+		CNOVRRender( openvrobjectsshader );
 		RenderObjects( 0 );
 	}
 }
 
-void scene_setup( void * tag, void * opaquev )
+void OpenVRObjectsSceneSetup( void * tag, void * opaquev )
 {
 	if( do_wireframe )
-	{
-		printf( "SETTING NODISCARD\n" );
-		shader = CNOVRShaderCreateWithPrefix( "assets/fakelines", "#define OPAQUIFY" );
-	}
+		openvrobjectsshader = CNOVRShaderCreateWithPrefix( "assets/fakelines", "#define OPAQUIFY" );
 	else if( do_lineify )
-		shader = CNOVRShaderCreate( "assets/fakelines" );
+		openvrobjectsshader = CNOVRShaderCreate( "assets/fakelines" );
 	else
-		shader = CNOVRShaderCreate( "assets/rendermodel" );
+		openvrobjectsshader = CNOVRShaderCreate( "assets/rendermodel" );
 
-	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
-	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
+	CNOVRListAdd( cnovrLRender2, openvrobjectsshader, OpenVRObjectsRenderFunction );
+	CNOVRListAdd( cnovrLUpdate, openvrobjectsshader, OpenVRObjectsUpdateFunction );
 }
 
 
-void start( const char * identifier )
+void openvrobjectsstart( const char * identifier )
 {	
+	openvrobjectsidentifier = strdup( identifier );
+
 	if( strstr( identifier, "wireframe" ) != 0 )
 	{
 		printf( "Wireframe objects\n" );
@@ -210,14 +208,13 @@ void start( const char * identifier )
 		printf( "no detail on OpenVR Objects\n" );
 		nodetail = 1;
 	}
-	identifier = strdup(identifier);
-	CNOVRJobTack( cnovrQPrerender, scene_setup, 0, 0, 0 );
-	printf( "=== Example start %s(%p) + %p %p\n", identifier, identifier );
+	CNOVRJobTack( cnovrQPrerender, OpenVRObjectsSceneSetup, 0, 0, 0 );
+	printf( "=== openvrobjects start %s(%p)\n", openvrobjectsidentifier, openvrobjectsidentifier );
 }
 
-void stop( const char * identifier )
+void openvrobjectsstop( const char * identifier )
 {
-	printf( "=== End Example stop\n" );
+	printf( "=== openvrobjects stop\n" );
 }
 
 
