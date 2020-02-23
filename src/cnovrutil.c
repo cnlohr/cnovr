@@ -716,13 +716,12 @@ FILE * __wrap_fopen( const char * fname, const char * mode )
 		}
 		//File was not found.
 	}
-
+#if 0
 	static FILE * flist;
 	if( !flist ) flist = __real_fopen( "filelist.txt", "a" );
 	fprintf( flist, "%s\n", fname );
 	fflush(flist);
-
-	if( fname[0] == 0 ) raise(SIGABRT);
+#endif
  
 	return __real_fopen( fname, mode );
 }
