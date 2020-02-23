@@ -212,7 +212,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 
 	ovrprintf( "OpenGL %s\n", glGetString(GL_VERSION) );
 
-	if( 1 )
+	//This is buggy on -rdynamic and older GL implementations.
+	if( glDebugMessageControl && glDebugMessageCallback )
 	{
 		ovrprintf( "Setting debug callback\n" );
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -220,8 +221,6 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		glDebugMessageCallback( (GLDEBUGPROC)DebugCallback, 0 );
 		ovrprintf( "Debug installed\n" );
 	}
-
-
 
 	//More OpenGL Setup
 	int i;

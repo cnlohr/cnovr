@@ -638,7 +638,59 @@ void InternalFileSearchShutdown()
 	OGDeleteTLS( search_path_return );
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
+//Attempt at hooking fopen
+#if defined( WIN32 ) || defined( WINDOWS )
+
+//No wrapping fopen here.
+
+#else
+
+#include <dlfcn.h>
+
+__attribute__((used)) const char * IOF_testmemfile_txt = "\x07\x00\x00\x00memfile";
+
+FILE * __real_fopen( const char * fname, const char * mode ) __attribute__((weak));
+FILE * __wrap_fopen( const char * fname, const char * mode )
+{
+	if( mode && mode[0] == 'r' && fname && fname[0] )
+	{
+		//See if this symbol already exists in the executable.
+		char stbuff[PATH_MAX+5];
+		stbuff[0] = 'I';
+		stbuff[1] = 'O';
+		stbuff[2] = 'F';
+		stbuff[3] = '_';
+		int i;
+		for( i = 0; i < PATH_MAX; i++ )
+		{
+			char c = fname[i];
+			if( c == '/' ) c = '_';
+			if( c == '.' ) c = '_';
+			stbuff[i+4] = c;
+			if( c == 0 ) break;
+		}
+		uint8_t * v = dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
+		if( v )
+		{
+			printf( "Opening: %s / %p\n", stbuff, v );
+			int size = v[0] | (v[1]<<8) | (v[2]<<16) | (v[3]<<24);
+			v += 4;
+			return fmemopen( v, size, mode );
+		}
+		//File was not found.
+
+		static FILE * flist;
+		if( !flist ) flist = __real_fopen( "filelist.txt", "a" );
+		fprintf( flist, "%s\n", fname );
+		fflush(flist);
+	}
+
+	return __real_fopen( fname, mode );
+}
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 

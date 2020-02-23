@@ -10,15 +10,22 @@
 #define TABLEONLY
 #undef CHEWTYPEDEF
 #undef CHEWTYPEDEF2
-#define CHEWTYPEDEF( ret, name, ... ) name##_t name;
-#define CHEWTYPEDEF2( ret, name, usename, ... ) usename##_t usename;
+#define CHEWTYPEDEF( ret, name, retcmd, parameters, ... ) name##_t name##fnptr;
+#define CHEWTYPEDEF2( ret, name, usename, retcmd, parameters, ... ) usename##_t usename##fnptr;
 #include "chew.h"
 
 #define TABLEONLY
 #undef CHEWTYPEDEF
 #undef CHEWTYPEDEF2
-#define CHEWTYPEDEF( ret, name, ... ) #name, 
-#define CHEWTYPEDEF2( ret, name, usename, ... ) #name, 
+#define CHEWTYPEDEF( ret, name, retcmd, parameters, ... ) ret name( __VA_ARGS__ ) { retcmd name##fnptr parameters; }
+#define CHEWTYPEDEF2( ret, name, usename, retcmd, parameters, ... ) ret usename( __VA_ARGS__ ) { retcmd usename##fnptr parameters ; }
+#include "chew.h"
+
+#define TABLEONLY
+#undef CHEWTYPEDEF
+#undef CHEWTYPEDEF2
+#define CHEWTYPEDEF( ret, name, retcmd, parameters, ... ) #name, 
+#define CHEWTYPEDEF2( ret, name, usename, retcmd, parameters, ... ) #name, 
 const char * symnames[] = {
 	#include "chew.h"
 };
@@ -26,8 +33,8 @@ const char * symnames[] = {
 #define TABLEONLY
 #undef CHEWTYPEDEF
 #undef CHEWTYPEDEF2
-#define CHEWTYPEDEF( ret, name, ... ) (void**)&name, 
-#define CHEWTYPEDEF2( ret, name, usename, ... ) (void**)&usename, 
+#define CHEWTYPEDEF( ret, name, retcmd, parameters, ... ) (void**)&name##fnptr, 
+#define CHEWTYPEDEF2( ret, name, usename, retcmd, parameters, ... ) (void**)&usename##fnptr, 
 void ** syms[] = {
 	#include "chew.h"
 };
@@ -53,7 +60,11 @@ void * chewGetProcAddress(const char *name)
 
 void * chewGetProcAddress(const char *name)
 {
-	return dlsym( 0/*RTLD_DEFAULT*/, name );
+	//Tricky use RTLD_NEXT first so we don't accidentally link against ourselves.
+	void * v1 = dlsym( (void*)((intptr_t)-1) /*RTLD_NEXT = -1*/ /*RTLD_DEFAULT = 0*/, name );
+	//printf( "%s = %p\n", name, v1 );
+	if( !v1 ) v1 = dlsym( 0, name );
+	return v1;
 }
 
 #endif

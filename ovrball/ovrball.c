@@ -754,6 +754,26 @@ void ovrballstop( const char * identifier )
 
 int main()
 {
+#if 1
+	FILE * f = fopen( "testmemfile.txt", "rb" );
+	printf( "F: %p\n", f );
+	if( f )
+	{
+		printf( "SEEK\n" );
+		fseek( f, 0, SEEK_END );
+		printf( "SEEK OK\n" );
+		printf( "TELL: %ld\n", ftell( f ) );
+		fseek( f, 0, SEEK_SET );
+		char buf[1024];
+		fread( buf, 1, 6, f );
+		fclose( f );
+		buf[7] = 0;
+		printf( "BUF: %s\n", buf );
+	}
+#endif
+
+//	return 0;
+
 	if( CNOVRInit( "test", 0, 0, 1 ) )
 	{
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );

@@ -1,3 +1,6 @@
 *.exe
 *.def
 crash.txt
+*.o
+builtin.c
+libopenvr_api.so

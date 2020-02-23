@@ -47,13 +47,16 @@ extern "C" {
 #define chew_FUN_EXPORT extern
 #endif
 
-#define CHEWTYPEDEF( ret, name, ... ) \
+#define CHEWTYPEDEF( ret, name, retcmd, parameters, ... ) \
 typedef ret (STDCALL *name##_t)( __VA_ARGS__ );	\
-chew_FUN_EXPORT name##_t	name;
+chew_FUN_EXPORT name##_t	name##fnptr; \
+chew_FUN_EXPORT ret name( __VA_ARGS__ );
 
-#define CHEWTYPEDEF2( ret, name, usename, ... ) \
+#define CHEWTYPEDEF2( ret, name, usename, retcmd, parameters, ... ) \
 typedef ret (STDCALL *usename##_t)( __VA_ARGS__ );	\
-chew_FUN_EXPORT usename##_t	usename;
+chew_FUN_EXPORT usename##_t	usename##fnptr; \
+chew_FUN_EXPORT ret usename( __VA_ARGS__ );
+
 
 void chewInit();
 void * chewGetProcAddress( const char *name );
@@ -62,93 +65,93 @@ void * chewGetProcAddress( const char *name );
 
 // Add the things you want here; DO NOT put ; at end of line.
 
-CHEWTYPEDEF( void, glGenVertexArrays, GLsizei n, GLuint *arrays )
-CHEWTYPEDEF( void, glBindVertexArray, GLuint array )
-CHEWTYPEDEF( void, glGenBuffers, GLsizei n, GLuint * buffers )
-CHEWTYPEDEF( void, glBindBuffer, GLenum target, GLuint buffer )
-CHEWTYPEDEF( void, glBufferData, GLenum target, GLsizeiptr size, const GLvoid * data, GLenum usage )
-CHEWTYPEDEF( void, glNamedBufferData, GLuint buffer, GLsizeiptr size, const void *data, GLenum usage )
-CHEWTYPEDEF( void, glEnableVertexAttribArray, GLuint index )
-CHEWTYPEDEF( void, glDisableVertexAttribArray, GLuint index )
-CHEWTYPEDEF( void, glEnableVertexArrayAttrib, GLuint vaobj, GLuint index )
-CHEWTYPEDEF( void, glDisableVertexArrayAttrib, GLuint vaobj, GLuint index )
-CHEWTYPEDEF( void, glVertexAttribPointer, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer )
-CHEWTYPEDEF( void, glVertexAttribIPointer, GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid * pointer )
-CHEWTYPEDEF( void, glVertexAttribLPointer, GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid * pointer )
-CHEWTYPEDEF( void, glDeleteVertexArrays, GLsizei n, const GLuint *arrays )
-CHEWTYPEDEF( void, glDeleteBuffers, GLsizei n, const GLuint * buffers )
-CHEWTYPEDEF( void, glBufferSubData, GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid * data )
-CHEWTYPEDEF( void, glNamedBufferSubData, GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data )
+CHEWTYPEDEF( void, glGenVertexArrays, , (n,arrays), GLsizei n, GLuint *arrays ) 
+CHEWTYPEDEF( void, glBindVertexArray, , (array), GLuint array )
+CHEWTYPEDEF( void, glGenBuffers, , (n,buffers), GLsizei n, GLuint * buffers )
+CHEWTYPEDEF( void, glBindBuffer, , (target,buffer), GLenum target, GLuint buffer )
+CHEWTYPEDEF( void, glBufferData, , (target,size,data,usage), GLenum target, GLsizeiptr size, const GLvoid * data, GLenum usage )
+CHEWTYPEDEF( void, glNamedBufferData, , (buffer,size,data,usage) , GLuint buffer, GLsizeiptr size, const void *data, GLenum usage )
+CHEWTYPEDEF( void, glEnableVertexAttribArray, , (index), GLuint index )
+CHEWTYPEDEF( void, glDisableVertexAttribArray, , (index), GLuint index )
+CHEWTYPEDEF( void, glEnableVertexArrayAttrib, , (vaobj,index), GLuint vaobj, GLuint index )
+CHEWTYPEDEF( void, glDisableVertexArrayAttrib, , (vaobj,index), GLuint vaobj, GLuint index )
+CHEWTYPEDEF( void, glVertexAttribPointer, , (index,size,type,normalized,stride,pointer), GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer )
+CHEWTYPEDEF( void, glVertexAttribIPointer, , (index,size,type,stride,pointer), GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid * pointer )
+CHEWTYPEDEF( void, glVertexAttribLPointer, , (index,size,type,stride,pointer), GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid * pointer )
+CHEWTYPEDEF( void, glDeleteVertexArrays, , (n,arrays), GLsizei n, const GLuint *arrays )
+CHEWTYPEDEF( void, glDeleteBuffers, , (n,buffers), GLsizei n, const GLuint * buffers )
+CHEWTYPEDEF( void, glBufferSubData, , (target,offset,size,data), GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid * data )
+CHEWTYPEDEF( void, glNamedBufferSubData, , (buffer,offset,size,data), GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data )
 
 //Already covered in SDL_opengl.h
-CHEWTYPEDEF2( void, glActiveTexture, glActiveTextureCHEW, GLenum texture )
-CHEWTYPEDEF2( void, glSampleCoverage, glSampleCoverageCHEW, GLfloat value, GLboolean invert )
+CHEWTYPEDEF2( void, glActiveTexture, glActiveTextureCHEW, , (texture) , GLenum texture )
+CHEWTYPEDEF2( void, glSampleCoverage, glSampleCoverageCHEW, , (value,invert), GLfloat value, GLboolean invert )
 
-CHEWTYPEDEF( void, glDebugMessageCallback, GLDEBUGPROC callback, const void * userParam )
-CHEWTYPEDEF( void, glDebugMessageControl, GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled )
+CHEWTYPEDEF( void, glDebugMessageCallback, , (callback,userParam), GLDEBUGPROC callback, const void * userParam )
+CHEWTYPEDEF( void, glDebugMessageControl, , (source,type,severity,count,ids,enabled), GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled )
 
-CHEWTYPEDEF2( void, glGenerateMipmap, glGenerateMipmapCHEW, GLuint index )
+CHEWTYPEDEF2( void, glGenerateMipmap, glGenerateMipmapCHEW, , (index), GLuint index )
 
-CHEWTYPEDEF( void, glGenFramebuffers, GLsizei n, GLuint * framebuffers )
-CHEWTYPEDEF( void, glGenRenderbuffers, GLsizei n, GLuint * renderbuffers )
-CHEWTYPEDEF( void, glBindFramebuffer, GLenum target, GLuint framebuffer )
-CHEWTYPEDEF( void, glBindRenderbuffer, GLenum target, GLuint renderbuffer )
-CHEWTYPEDEF( void, glRenderbufferStorage, GLenum target, GLenum internalformat, GLsizei width, GLsizei height )
-CHEWTYPEDEF( void, glRenderbufferStorageMultisample, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height )
-CHEWTYPEDEF( void, glNamedRenderbufferStorageMultisample, GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height )
-CHEWTYPEDEF( void, glFramebufferRenderbuffer, GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer )
-CHEWTYPEDEF( void, glTexImage2DMultisample, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations )
-CHEWTYPEDEF( void, glFramebufferTexture2D, GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level )
-CHEWTYPEDEF( void, glBlitFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter )
-CHEWTYPEDEF( void, glBlitNamedFramebuffer, GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter )
-CHEWTYPEDEF( void, glDeleteFramebuffers, GLsizei n, const GLuint * framebuffers )
-CHEWTYPEDEF( void, glDeleteRenderbuffers, GLsizei n, const GLuint * renderbuffers )
-CHEWTYPEDEF( GLenum, glCheckFramebufferStatus, GLenum target )
-CHEWTYPEDEF( GLenum, glCheckNamedFramebufferStatus, GLuint framebuffer, GLenum target )
-CHEWTYPEDEF( void, glFramebufferTexture, GLenum target, GLenum attachment, GLuint texture, GLint level )
+CHEWTYPEDEF( void, glGenFramebuffers, , (n,framebuffers), GLsizei n, GLuint * framebuffers )
+CHEWTYPEDEF( void, glGenRenderbuffers, , (n,renderbuffers), GLsizei n, GLuint * renderbuffers )
+CHEWTYPEDEF( void, glBindFramebuffer, , (target,framebuffer), GLenum target, GLuint framebuffer )
+CHEWTYPEDEF( void, glBindRenderbuffer, , (target,renderbuffer), GLenum target, GLuint renderbuffer )
+CHEWTYPEDEF( void, glRenderbufferStorage, , (target,internalformat,width,height), GLenum target, GLenum internalformat, GLsizei width, GLsizei height )
+CHEWTYPEDEF( void, glRenderbufferStorageMultisample, , (target,samples,internalformat,width,height), GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height )
+CHEWTYPEDEF( void, glNamedRenderbufferStorageMultisample, , (renderbuffer,samples,internalformat,width,height), GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height )
+CHEWTYPEDEF( void, glFramebufferRenderbuffer, ,(target,attachment,renderbuffertarget,renderbuffer), GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer )
+CHEWTYPEDEF( void, glTexImage2DMultisample, ,(target,samples,internalformat, width, height, fixedsamplelocations),GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations )
+CHEWTYPEDEF( void, glFramebufferTexture2D, ,(target,attachment, textarget, texture, level) , GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level )
+CHEWTYPEDEF( void, glBlitFramebuffer, , (srcX0, srcY0, srcX1, srcY1,dstX0, dstY0,dstX1, dstY1,mask, filter) , GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter )
+CHEWTYPEDEF( void, glBlitNamedFramebuffer, , (readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter), GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter )
+CHEWTYPEDEF( void, glDeleteFramebuffers, , (n,framebuffers), GLsizei n, const GLuint * framebuffers )
+CHEWTYPEDEF( void, glDeleteRenderbuffers, , (n,renderbuffers), GLsizei n, const GLuint * renderbuffers )
+CHEWTYPEDEF( GLenum, glCheckFramebufferStatus, return, (target) , GLenum target )
+CHEWTYPEDEF( GLenum, glCheckNamedFramebufferStatus, return, (framebuffer,target), GLuint framebuffer, GLenum target )
+CHEWTYPEDEF( void, glFramebufferTexture, , (target,attachment,texture,level), GLenum target, GLenum attachment, GLuint texture, GLint level )
 
 
 
-CHEWTYPEDEF( GLuint, glCreateProgram, void )
-CHEWTYPEDEF( GLuint, glCreateShader, GLenum )
-CHEWTYPEDEF( void, glShaderSource, GLuint shader, GLsizei count, const GLchar **string, const GLint *length )
-CHEWTYPEDEF( void, glCompileShader, GLuint shader )
-CHEWTYPEDEF( void, glGetShaderiv, GLuint shader, GLenum pname, GLint *params )
-CHEWTYPEDEF( void, glGetShaderInfoLog, GLuint shader, GLsizei maxLength, GLsizei *length, GLchar *infoLog )
-CHEWTYPEDEF( void, glDeleteProgram, GLuint program )
-CHEWTYPEDEF( void, glDeleteShader, GLuint shader )
-CHEWTYPEDEF( void, glAttachShader, GLuint program, GLuint shader )
-CHEWTYPEDEF( void, glLinkProgram, GLuint program )
-CHEWTYPEDEF( void, glGetProgramiv, GLuint program, GLenum pname, GLint *params )
-CHEWTYPEDEF( void, glUseProgram, GLuint program )
-CHEWTYPEDEF( void, glUniform1f, GLint location, GLfloat v0 )
-CHEWTYPEDEF( void, glUniform2f, GLint location, GLfloat v0, GLfloat v1 )
-CHEWTYPEDEF( void, glUniform3f, GLint location, GLfloat v0, GLfloat v1, GLfloat v2 )
-CHEWTYPEDEF( void, glUniform4f, GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3 )
-CHEWTYPEDEF( void, glUniform1i, GLint location, GLint v0 )
-CHEWTYPEDEF( void, glUniform2i, GLint location, GLint v0, GLint v1 )
-CHEWTYPEDEF( void, glUniform3i, GLint location, GLint v0, GLint v1, GLint v2 )
-CHEWTYPEDEF( void, glUniform4i, GLint location, GLint v0, GLint v1, GLint v2, GLint v3 )
-CHEWTYPEDEF( void, glUniform1fv, GLint location, GLsizei count, const GLfloat *value )
-CHEWTYPEDEF( void, glUniform2fv, GLint location, GLsizei count, const GLfloat *value )
-CHEWTYPEDEF( void, glUniform3fv, GLint location, GLsizei count, const GLfloat *value )
-CHEWTYPEDEF( void, glUniform4fv, GLint location, GLsizei count, const GLfloat *value )
-CHEWTYPEDEF2( void, glUniform4fv, glUniform4fvCHEW, GLint location, GLsizei count, const GLfloat *value )
-CHEWTYPEDEF( void, glUniform1iv, GLint location, GLsizei count, const GLint *value )
-CHEWTYPEDEF( void, glUniform2iv, GLint location, GLsizei count, const GLint *value )
-CHEWTYPEDEF( void, glUniform3iv, GLint location, GLsizei count, const GLint *value )
-CHEWTYPEDEF( void, glUniform4iv, GLint location, GLsizei count, const GLint *value )
-CHEWTYPEDEF( void, glUniformMatrix2fv, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value )
-CHEWTYPEDEF( void, glUniformMatrix3fv, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value )
-CHEWTYPEDEF( void, glUniformMatrix4fv, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value )
-CHEWTYPEDEF( void, glGetProgramInfoLog, GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog )
-CHEWTYPEDEF( GLint, glGetUniformLocation, GLuint program, const GLchar *name )
+CHEWTYPEDEF( GLuint, glCreateProgram, return, () , void )
+CHEWTYPEDEF( GLuint, glCreateShader, return, (e), GLenum e )
+CHEWTYPEDEF( void, glShaderSource, , (shader,count,string,length), GLuint shader, GLsizei count, const GLchar **string, const GLint *length )
+CHEWTYPEDEF( void, glCompileShader, ,(shader), GLuint shader )
+CHEWTYPEDEF( void, glGetShaderiv, , (shader,pname,params), GLuint shader, GLenum pname, GLint *params )
+CHEWTYPEDEF( void, glGetShaderInfoLog , , (shader,maxLength, length, infoLog), GLuint shader, GLsizei maxLength, GLsizei *length, GLchar *infoLog )
+CHEWTYPEDEF( void, glDeleteProgram, , (program), GLuint program )
+CHEWTYPEDEF( void, glDeleteShader, , (shader), GLuint shader )
+CHEWTYPEDEF( void, glAttachShader, , (program,shader), GLuint program, GLuint shader )
+CHEWTYPEDEF( void, glLinkProgram, , (program), GLuint program )
+CHEWTYPEDEF( void, glGetProgramiv, , (program,pname,params), GLuint program, GLenum pname, GLint *params )
+CHEWTYPEDEF( void, glUseProgram, , (program), GLuint program )
+CHEWTYPEDEF( void, glUniform1f, , (location,v0), GLint location, GLfloat v0 )
+CHEWTYPEDEF( void, glUniform2f, , (location,v0,v1), GLint location, GLfloat v0, GLfloat v1 )
+CHEWTYPEDEF( void, glUniform3f, , (location,v0,v1,v2), GLint location, GLfloat v0, GLfloat v1, GLfloat v2 )
+CHEWTYPEDEF( void, glUniform4f, , (location,v0,v1,v2,v3), GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3 )
+CHEWTYPEDEF( void, glUniform1i, , (location,v0), GLint location, GLint v0 )
+CHEWTYPEDEF( void, glUniform2i, , (location,v0,v1), GLint location, GLint v0, GLint v1 )
+CHEWTYPEDEF( void, glUniform3i, , (location,v0,v1,v2), GLint location, GLint v0, GLint v1, GLint v2 )
+CHEWTYPEDEF( void, glUniform4i, , (location,v0,v1,v2,v3), GLint location, GLint v0, GLint v1, GLint v2, GLint v3 )
+CHEWTYPEDEF( void, glUniform1fv, , (location,count,value), GLint location, GLsizei count, const GLfloat *value )
+CHEWTYPEDEF( void, glUniform2fv, , (location,count,value), GLint location, GLsizei count, const GLfloat *value )
+CHEWTYPEDEF( void, glUniform3fv, , (location,count,value), GLint location, GLsizei count, const GLfloat *value )
+CHEWTYPEDEF( void, glUniform4fv, , (location,count,value), GLint location, GLsizei count, const GLfloat *value )
+CHEWTYPEDEF2( void, glUniform4fv, glUniform4fvCHEW, , (location,count,value), GLint location, GLsizei count, const GLfloat *value )
+CHEWTYPEDEF( void, glUniform1iv, , (location,count,value), GLint location, GLsizei count, const GLint *value )
+CHEWTYPEDEF( void, glUniform2iv, , (location,count,value), GLint location, GLsizei count, const GLint *value )
+CHEWTYPEDEF( void, glUniform3iv, , (location,count,value), GLint location, GLsizei count, const GLint *value )
+CHEWTYPEDEF( void, glUniform4iv, , (location,count,value), GLint location, GLsizei count, const GLint *value )
+CHEWTYPEDEF( void, glUniformMatrix2fv, ,(location,count,transpose,value) , GLint location, GLsizei count, GLboolean transpose, const GLfloat *value )
+CHEWTYPEDEF( void, glUniformMatrix3fv, ,(location,count,transpose,value) , GLint location, GLsizei count, GLboolean transpose, const GLfloat *value )
+CHEWTYPEDEF( void, glUniformMatrix4fv, ,(location,count,transpose,value) , GLint location, GLsizei count, GLboolean transpose, const GLfloat *value )
+CHEWTYPEDEF( void, glGetProgramInfoLog, , (program,maxLength, length, infoLog), GLuint program, GLsizei maxLength, GLsizei *length, GLchar *infoLog )
+CHEWTYPEDEF( GLint, glGetUniformLocation, return, (program,name), GLuint program, const GLchar *name )
 
-CHEWTYPEDEF( void *, glMapBuffer, GLenum target, GLenum access )
-CHEWTYPEDEF( void *, glMapNamedBuffer, GLuint buffer, GLenum access )
-CHEWTYPEDEF( void *, glMapBufferRange, GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access )
+CHEWTYPEDEF( void *, glMapBuffer, return, (target,access), GLenum target, GLenum access )
+CHEWTYPEDEF( void *, glMapNamedBuffer, return, (buffer,access), GLuint buffer, GLenum access )
+CHEWTYPEDEF( void *, glMapBufferRange, return, (buffer,offset,length,access), GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access )
 
-CHEWTYPEDEF( GLboolean, glUnmapBuffer, GLenum target )
+CHEWTYPEDEF( GLboolean, glUnmapBuffer, return, (target), GLenum target )
 
 #ifdef __cplusplus
 #ifndef TABLEONLY

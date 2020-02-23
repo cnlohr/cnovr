@@ -9,11 +9,46 @@ CFLAGS+=-DSINGLEBUILD
 
 all : $(PROJ)
 
-BUILDOBJS := $(filter-out src/cnovrtcc.o lib/tcc_single_file.o lib/tccengine_link.o,$(OBJS)) lib/tccless.o
+BUILTIN_ASSETS:= \
+	assets/pointer.frag \
+	assets/pointer.vert \
+	assets/cnovr.glsl \
+	assets/fakelines.frag \
+	assets/fakelines.vert \
+	ovrball/epicenter.frag \
+	ovrball/epicenter.vert \
+	ovrball/retrolines.frag \
+	ovrball/retrolines.vert \
+	ovrball/ringshader.frag \
+	ovrball/ringshader.vert \
+	ovrball/playarea.obj \
+	assets/rendermodelnearestaa.frag \
+	assets/rendermodelnearestaa.vert \
+	assets/rendermodel.frag \
+	assets/rendermodel.vert \
+	ovrball/explosion.frag \
+	ovrball/explosion.vert \
+	assets/isosphere.obj \
+	ovrball/ring.obj \
+	ovrball/paddle.obj \
+	ovrball/80sSun.png \
+	assets/indexvisor.obj \
+	assets/resolve.frag \
+	assets/resolve.vert
+
+
+BUILDOBJS := $(filter-out src/cnovrtcc.o lib/tcc_single_file.o lib/tccengine_link.o,$(OBJS))
+BUILDOBJS += lib/tccless.o ovrball/builtin.o
+LDFLAGS += -s
+
+ovrball/builtin.o : $(BUILTIN_ASSETS)
+	gcc lib/builtin_assets.c -o lib/builtin_assets
+	lib/builtin_assets ovrball/builtin.c $(BUILTIN_ASSETS)
+	gcc -o $@ ovrball/builtin.c -c
 
 $(PROJ) : ovrball/ovrball.c $(BUILDOBJS)
 	gcc -o $@ $^ $(LDFLAGS) $(CFLAGS)
 
 clean :
-	rm -rf $(PROJ)
+	rm -rf $(PROJ) ovrball/builtin.o
 
