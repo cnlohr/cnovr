@@ -1,4 +1,4 @@
-#version 430
+#version 330
 #include "cnovr.glsl"
 
 //This is a weird system for making things that look like GL_LINES with a hard black

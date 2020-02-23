@@ -351,6 +351,17 @@ static cnovr_rf_buffer * TCCCNOVRRFBufferCreate( int w, int h, int multisample )
 	return ret;
 }
 
+
+static cnovr_shader * TCCCNOVRShaderCreateWithPrefix( const char * shaderfilebase, const char * prefix )
+{
+	cnovr_shader * ret = CNOVRShaderCreateWithPrefix( shaderfilebase, prefix );
+	MARKOGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	MARKOGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
 static cnovr_shader * TCCCNOVRShaderCreate( const char * shaderfilebase )
 {
 	cnovr_shader * ret = CNOVRShaderCreate( shaderfilebase );
@@ -647,6 +658,7 @@ struct ImportList
 	TCCExportS( CNOVRModelLoadFromFileAsync )
 	TCCExport( CNOVRTextureCreate )
 	TCCExport( CNOVRShaderCreate )
+	TCCExport( CNOVRShaderCreateWithPrefix )
 	TCCExport( CNOVRDeleteBase )
 	TCCExportS( CNOVRTextureLoadDataNow )
 	TCCExportS( CNOVRTextureLoadFileAsync )

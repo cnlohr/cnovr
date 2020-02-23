@@ -58,7 +58,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	ret->base.tccctx = TCCGetTag();
 
 	ret->multisample = multisample;
-	printf( "CNOVRRFBufferCreate %d (%d,%d)\n", multisample, nWidth, nHeight );
+	//printf( "CNOVRRFBufferCreate %d (%d,%d)\n", multisample, nWidth, nHeight );
 
 	//XXX TODO: Figure out why we can't use depth buffers with multisamples.
 	int texmul = multisample?GL_TEXTURE_2D_MULTISAMPLE:GL_TEXTURE_2D;
@@ -1940,8 +1940,10 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	int lineify = 0;
 	int flipv = 1;
+	int barytc = 0;
 	if( modifiers )
 	{
+		if( strstr( modifiers, "barytc" ) ) barytc = 1;
 		if( strstr( modifiers, "lineify" ) ) lineify = 1;
 		if( strstr( modifiers, "noflipv" ) ) flipv = 0;
 	}
@@ -1994,7 +1996,7 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 
 	if( m->iGeos != 3 )
 	{
-		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 2, 3 );
+		CNOVRModelSetNumVBOsWithStrides( m, 3, 3, 4, 3 );
 		CNOVRModelResetMarks( m );
 	}
 	CNOVRModelSetNumIndices( m, 0 );
@@ -2029,7 +2031,16 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 				if( VNumber1 < pModel->unVertexCount && VNumber1 >= 0 )
 				{
 					CNOVRVBOTackv( m->pGeos[0], 3, v1->vPosition.v );
-					CNOVRVBOTackv( m->pGeos[1], 2, v1->rfTextureCoord );
+					if( barytc )
+					{
+						int p = iao1o%3;
+						CNOVRVBOTack( m->pGeos[1], 4, (p==0)?1.f:0.f,
+							(p==1)?1.f:0.f, (p==2)?1.f:0.f, 0 );
+					}
+					else
+					{
+						CNOVRVBOTackv( m->pGeos[1], 2, v1->rfTextureCoord );
+					}
 					CNOVRVBOTackv( m->pGeos[2], 3, v1->vNormal.v );
 				}
 				else
@@ -2078,6 +2089,24 @@ static void CNOVRModelLoadRenderModel( cnovr_model * m, char * pchRenderModelNam
 		cnrbtree_cnovr_point3dint_destroy( lvps );
 		cnrbtree_int64_trbset_null_t_destroy( lvpsi );
 
+	}
+	else if( barytc )
+	{
+		for( i = 0; i < pModel->unTriangleCount*3; i++ )
+		{
+			//pModel->rIndexData[i*3+0], pModel->rIndexData[i*3+1], pModel->rIndexData[i*3+2] );
+			int ridx = pModel->rIndexData[i];
+
+			RenderModel_Vertex_t * v = pModel->rVertexData + ridx;
+			CNOVRVBOTackv( m->pGeos[0], 3, v->vPosition.v );
+			if( !flipv ) v->rfTextureCoord[1] = 1-v->rfTextureCoord[1];
+			//CNOVRVBOTackv( m->pGeos[1], 2, v->rfTextureCoord );
+			int p = i%3;
+			CNOVRVBOTack( m->pGeos[1], 4, (p==0)?1.f:0.f,
+				(p==1)?1.f:0.f, (p==2)?1.f:0.f, 0 );
+			CNOVRVBOTackv( m->pGeos[2], 3, v->vNormal.v );
+			CNOVRModelTackIndex( m, 1, i );
+		}
 	}
 	else
 	{

@@ -1,5 +1,6 @@
-#version 430
+#version 330
 #include "cnovr.glsl"
+#inject
 
 in vec4 barytc;
 in vec3 normo;
@@ -17,10 +18,14 @@ void main()
 	baryo = ( baryo + extrathickness ) * sharpness;
 	baryo = clamp( baryo, 0.0, 1.0 );
 
-	colorOut = vec4( mix( vec3( 0. ), abs(normo), baryo ), 1.0 );
-
-	colorOut = vec4( barytc.xyz, 1. );
-
-	if( baryo < .5 ) discard;
+//	colorOut = vec4( mix( vec3( 0. ), abs(normo), baryo ), 1.0 );
+//	colorOut = vec4( barytc.xyz, 1. );
 	colorOut = vec4( abs(normo), baryo );
+
+#ifndef OPAQUIFY
+	if( baryo < .5 ) discard;
+#else
+	if( baryo < .5 ) colorOut = vec4( 0., 0., 0., 1. ); 
+#endif
 }
+

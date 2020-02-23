@@ -12,9 +12,7 @@
 #include <chew.h>
 
 const char *  identifier;
-cnovr_shader * shaderlines;
-cnovr_shader * shadersolid;
-cnovr_shader * shaderrendermodel;
+cnovr_shader * shader;
 
 #define MAXRNS MAX_POSES_TO_PULL_FROM_OPENVR
 
@@ -109,7 +107,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		if( cnovrstate->bRenderPosesValid[i] && !rp->loaded )
 		{
 			char * rmname = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_RenderModelName_String );
-			rp->modellines = CNOVRModelCreate( 0, GL_LINES );
+			rp->modellines = CNOVRModelCreate( 0, GL_TRIANGLES );
 			rp->modelsolid = CNOVRModelCreate( 0, GL_TRIANGLES );
 			char tempname[300];
 			const char * dotrendermodel = ".rendermodel";
@@ -118,7 +116,7 @@ void UpdateFunction( void * tag, void * opaquev )
 				rmname = "assets/indexvisor.obj";
 				dotrendermodel = "";
 			}
-			sprintf( tempname, "%s%s:lineify", rmname, dotrendermodel );
+			sprintf( tempname, "%s%s:barytc", rmname, dotrendermodel );
 			CNOVRModelLoadFromFileAsync( rp->modellines, tempname);
 			sprintf( tempname, "%s%s", rmname, dotrendermodel );
 			CNOVRModelLoadFromFileAsync( rp->modelsolid, tempname );
@@ -168,26 +166,27 @@ void RenderFunction( void * tag, void * opaquev )
 	int i;
 	if( do_wireframe || do_lineify )
 	{
-		if( do_lineify )
-		{
-			CNOVRRender( shadersolid );
-			RenderObjects( 0 );
-		}
-		CNOVRRender( shaderlines );
+		CNOVRRender( shader );
 		RenderObjects( 1 );
 	}
 	else
 	{
-		CNOVRRender( shaderrendermodel );
+		CNOVRRender( shader );
 		RenderObjects( 0 );
 	}
 }
 
 void scene_setup( void * tag, void * opaquev )
 {
-	shaderlines = CNOVRShaderCreate( "assets/basic" );
-	shadersolid = CNOVRShaderCreate( "assets/blackmask" );
-	shaderrendermodel = CNOVRShaderCreate( "assets/rendermodel" );
+	if( do_wireframe )
+	{
+		printf( "SETTING NODISCARD\n" );
+		shader = CNOVRShaderCreateWithPrefix( "assets/fakelines", "#define OPAQUIFY" );
+	}
+	else if( do_lineify )
+		shader = CNOVRShaderCreate( "assets/fakelines" );
+	else
+		shader = CNOVRShaderCreate( "assets/rendermodel" );
 
 	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
