@@ -1,6 +1,6 @@
 //uniforms that are used several places are placed here.
 
-// #MAPUNIFORM is a special flag that tells cnovr to load the named uniform into a slot
+// (pound sign)MAPUNIFORM is a special flag that tells cnovr to load the named uniform into a slot
 // this is like the layout= thing that was provided in later versions of OpenGL.
 // but I want to support as broad of a platform as possible, so we have to reinvent the wheel.
 

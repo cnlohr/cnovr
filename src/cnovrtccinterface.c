@@ -640,6 +640,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( OGSetTLS )
 	TCCExport( GetTCCTag )
 	TCCExportS( cnovrstate )
+	TCCExportS( cnovr_current_shader )
 	TCCExport( CNOVRNodeCreateSimple )
 	TCCExportS( CNOVRVBOTaint )
 	TCCExport( CNOVRModelCreate )

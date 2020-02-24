@@ -87,7 +87,12 @@ typedef struct cnovr_shader_t
 	uint8_t uniforms[SHADER_MAX_UNIFORM_MAP];
 } cnovr_shader;
 
+#if defined( TCCINSTANCE ) && defined( WINDOWS )
+__declspec( dllimport ) cnovr_shader * cnovr_current_shader;
+#else
 extern cnovr_shader * cnovr_current_shader;
+#endif
+
 #define INVALIDUNIFORM 255
 #define CNOVRUNIFORMPOS( id ) ( cnovr_current_shader->uniforms[id]  )
 
