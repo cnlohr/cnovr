@@ -134,3 +134,6 @@ Livestream TODO:
 
 NOTES: 
  * Fix "AdditionalFiles" cause that's busted right now.
+
+TODO:
+ * Add barytc to all things by means of stuffing a value in the w component of normal.

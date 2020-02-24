@@ -1,9 +1,9 @@
 #version 430
 #include "cnovr.glsl"
 
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 data;
-layout(location = 2) in vec4 color;
+in vec4 position; //#MAPATTRIB position 0
+in vec4 data;     //#MAPATTRIB data 1
+in vec4 color;    //#MAPATTRIB color 2
 
 out vec4 localcolor;
 

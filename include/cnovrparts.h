@@ -76,6 +76,7 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
 void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b );
 
 ///////////////////////////////////////////////////////////////////////////////
+#define SHADER_MAX_UNIFORM_MAP 32
 
 typedef struct cnovr_shader_t
 {
@@ -83,20 +84,20 @@ typedef struct cnovr_shader_t
 	GLuint nShaderID;
 	char * shaderfilebase;
 	char * prefix;
-
-	//Temporary list of all watched filenames.
-	//struct watchlist
-	//{	
-	//	struct watchlist * next;
-	//	char   watchfile[1];
-	//} * tempwl;
+	uint8_t uniforms[SHADER_MAX_UNIFORM_MAP];
 } cnovr_shader;
+
+extern cnovr_shader * cnovr_current_shader;
+#define INVALIDUNIFORM 255
+#define CNOVRUNIFORMPOS( id ) ( cnovr_current_shader->uniforms[id]  )
 
 //Call 'render' submethod to activate, and 'prerender' checks to see if anything is tainted.
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase );
 
 //"prefix" can be things like "#define xxx" or whatever you want to be at the top of the shader files.
 cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const char * prefix );
+
+int CNOVRShaderMapUniform( cnovr_shader * shader, const char * uniform_name, int targetmap );
 
 ///////////////////////////////////////////////////////////////////////////////
 

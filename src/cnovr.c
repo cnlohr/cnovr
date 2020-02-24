@@ -213,7 +213,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	ovrprintf( "OpenGL %s\n", glGetString(GL_VERSION) );
 
 	//This is buggy on -rdynamic and older GL implementations.
-	if( glDebugMessageControl && glDebugMessageCallback )
+	if( glDebugMessageControlfnptr && glDebugMessageCallbackfnptr )
 	{
 		ovrprintf( "Setting debug callback\n" );
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -588,14 +588,21 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap )
 
 void CNOVRShaderLoadedSetUniformsInternal()
 {
-	if( CNOVRCheck() ) ovrprintf( "Pre-Uniform Check\n" );
-	static GLint TextureSlots[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
-	glUniformMatrix4fv( UNIFORMSLOT_VIEW, 1, 1, cnovrstate->mView );
-	glUniformMatrix4fv( UNIFORMSLOT_PERSPECTIVE, 1, 1, cnovrstate->mPerspective );
-	glUniform4fv( UNIFORMSLOT_RENDERPROPS, 1, &cnovrstate->iRTWidth );
-	glUniform1iv( UNIFORMSLOT_TEXTURES, 8, TextureSlots );
+	if( CNOVRCheck() ) ovrprintf( "Pre-Uniform Check with shader %s\n", cnovr_current_shader->shaderfilebase );
+	const static GLint TextureSlots[8] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+	int uniform;
+	if( ( uniform = CNOVRUNIFORMPOS( UNIFORMSLOT_MODEL ) ) != INVALIDUNIFORM )
+		glUniformMatrix4fv( uniform, 1, 1, cnovrstate->mModel );
+	if( ( uniform = CNOVRUNIFORMPOS( UNIFORMSLOT_VIEW ) )  != INVALIDUNIFORM )
+		glUniformMatrix4fv( uniform , 1, 1, cnovrstate->mView );
+	if( ( uniform = CNOVRUNIFORMPOS( UNIFORMSLOT_PERSPECTIVE ) ) != INVALIDUNIFORM )
+		glUniformMatrix4fv( uniform, 1, 1, cnovrstate->mPerspective );
+	if( ( uniform = CNOVRUNIFORMPOS( UNIFORMSLOT_RENDERPROPS ) ) != INVALIDUNIFORM )
+		glUniform4fv( uniform, 1, &cnovrstate->iRTWidth );
+	if( ( uniform = CNOVRUNIFORMPOS( UNIFORMSLOT_TEXTURES ) ) != INVALIDUNIFORM )
+		glUniform1iv( uniform, 8, TextureSlots );
 	//Ignore all uniform errors.
+	if( CNOVRCheck() ) ovrprintf( "Post-Uniform Check\n" );
 	glGetError();
 }
 

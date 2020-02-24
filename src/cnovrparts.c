@@ -304,6 +304,55 @@ static void CNOVRShaderFileTackInclude( void * opaque, const char * filename )
 	//s->tempwl = new;
 }
 
+static void CNOVRShaderProcessTextForMappingAttrib( cnovr_shader * shader, GLuint mprogram, const char * shadertext )
+{
+	char scratch[256];
+	int sint;
+	//First remap any attribs.
+	char * pos = strstr( shadertext, "#MAPATTRIB" );
+	while( pos )
+	{
+		pos += 11;
+		int rx = sscanf( pos, "%255s %d", scratch, &sint );
+		if( rx == 2 )
+		{
+			if( CNOVRCheck() ) ovrprintf( "Pre-Bind-Attrib Check\n" );
+			glBindAttribLocation( mprogram, sint, scratch );
+			if( CNOVRCheck() ) ovrprintf( "glBindAttribLocation fault.\n" );			
+		}
+		else
+		{
+			strncpy( scratch, pos, 64 );
+			ovrprintf( "Issue encountered in shader %s with text attrib mapping, starting here %s\n", shader->shaderfilebase, scratch );
+		}
+		pos = strstr( pos, "#MAPATTRIB" );
+	}
+}
+
+static void CNOVRShaderProcessTextForMappingUniform( cnovr_shader * shader, GLuint mprogram, const char * shadertext )
+{
+	char scratch[256];
+	int sint;
+	//First remap any attribs.
+	char * pos = strstr( shadertext, "#MAPUNIFORM" );
+	while( pos )
+	{
+		pos += 11;
+		int rx = sscanf( pos, "%255s %d", scratch, &sint );
+		if( rx == 2 )
+		{
+			CNOVRShaderMapUniform( shader, scratch, sint );
+		}
+		else
+		{
+			strncpy( scratch, pos, 64 );
+			ovrprintf( "Issue encountered in shader %s with text uniform mapping, starting here %s\n", shader->shaderfilebase, scratch );
+		}
+		pos = strstr( pos, "#MAPUNIFORM" );
+	}
+}
+
+
 static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 {
 	//Re-load shader
@@ -342,22 +391,21 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	if( includeerrors2[0] )
 	{
 		CNOVRAlert( ths->base.tccctx, 1, "Shader preprocessor errors: %s\n", includeerrors2 );
-		return;		
+		goto jumpout;
 	}
 
 	if( !filedataFrag || !filedataVert )
 	{
 		CNOVRAlert( ths->base.tccctx, 1, "Unable to open vert/frag in shader: %s\n", ths->shaderfilebase );
-		return;
+		goto jumpout;
 	}
 
-	if( filedataGeo ) nGeoShader = CNOVRShaderCompilePart( ths, GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
+	if( filedataGeo )
+	{
+		nGeoShader = CNOVRShaderCompilePart( ths, GL_GEOMETRY_SHADER, stfbGeo, filedataGeo );
+	}
 	nFragShader = CNOVRShaderCompilePart( ths, GL_FRAGMENT_SHADER, stfbFrag, filedataFrag );
 	nVertShader = CNOVRShaderCompilePart( ths, GL_VERTEX_SHADER, stfbVert, filedataVert );
-
-	if( filedataVert ) free( filedataVert );
-	if( filedataFrag ) free( filedataFrag );
-	if( filedataGeo ) free( filedataGeo );
 
 	bool compfail = false;
 	if( filedataGeo )
@@ -381,34 +429,56 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 		}
 		glAttachShader( unProgramID, nFragShader );
 		glAttachShader( unProgramID, nVertShader );
-		glLinkProgram( unProgramID );
 
-		GLint programSuccess = GL_TRUE;
-		glGetProgramiv( unProgramID, GL_LINK_STATUS, &programSuccess );
-		if ( programSuccess != GL_TRUE )
+		int i;
+
+		//XXX VERY TRICKY = we have to link twice, so we can rebind the attribs.
+		for( i = 0; i < 2; i++ )
 		{
-			CNOVRAlert( ths->base.tccctx, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
-			int retval;
-			glGetShaderiv( unProgramID, GL_INFO_LOG_LENGTH, &retval );
-			if ( retval > 1 ) {
-				char * log = (char*)malloc( retval );
-				glGetProgramInfoLog( unProgramID, retval, NULL, log );
-				CNOVRAlert( ths->base.tccctx, 1, "%s\n", log );
-				free( log );
-			}
-			else
+			glLinkProgram( unProgramID );
+
+			GLint programSuccess = GL_TRUE;
+			glGetProgramiv( unProgramID, GL_LINK_STATUS, &programSuccess );
+			if ( programSuccess != GL_TRUE )
 			{
-				CNOVRAlert( ths->base.tccctx, 1, "No message\n" );
+				CNOVRAlert( ths->base.tccctx, 1, "Shader linking failed: %s\n", ths->shaderfilebase );
+				int retval;
+				glGetShaderiv( unProgramID, GL_INFO_LOG_LENGTH, &retval );
+				if ( retval > 1 ) {
+					char * log = (char*)malloc( retval );
+					glGetProgramInfoLog( unProgramID, retval, NULL, log );
+					CNOVRAlert( ths->base.tccctx, 1, "%s\n", log );
+					free( log );
+				}
+				else
+				{
+					CNOVRAlert( ths->base.tccctx, 1, "No message\n" );
+				}
+				glDeleteProgram( unProgramID );
+				unProgramID = 0;
+				compfail = true;
 			}
-			glDeleteProgram( unProgramID );
-			unProgramID = 0;
-			compfail = true;
+
+			if( !compfail && i == 0 )
+			{
+				//If we are going to proceed with compiling, we should make sure
+				//all of the attributes are lined up correctly.
+				if( filedataGeo )
+				{
+					CNOVRShaderProcessTextForMappingAttrib( ths, unProgramID, filedataGeo );
+				}
+				//Fragment shaders will not have attributes, but we do this just in case the impossible in unforeseen.
+				CNOVRShaderProcessTextForMappingAttrib( ths, unProgramID, filedataFrag );
+				CNOVRShaderProcessTextForMappingAttrib( ths, unProgramID, filedataVert );
+			}
 		}
 	}
 	else
 	{
 		CNOVRAlert( ths->base.tccctx, 1, "Shader compilation failed: %s\n", ths->shaderfilebase );
 	}
+
+	memset( ths->uniforms, INVALIDUNIFORM, sizeof( ths->uniforms ) );
 
 	if ( unProgramID )
 	{
@@ -419,7 +489,16 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 			glDeleteProgram( ths->nShaderID );
 		}
 		ths->nShaderID = unProgramID;
+
+		if( nGeoShader ) CNOVRShaderProcessTextForMappingUniform( ths, nGeoShader, filedataGeo );
+		CNOVRShaderProcessTextForMappingUniform( ths, nVertShader, filedataVert );
+		CNOVRShaderProcessTextForMappingUniform( ths, nFragShader, filedataFrag );
 	}
+
+jumpout:
+	if( filedataVert ) free( filedataVert );
+	if( filedataFrag ) free( filedataFrag );
+	if( filedataGeo ) free( filedataGeo );
 
 	if( nGeoShader )  glDeleteShader( nGeoShader );
 	if( nFragShader ) glDeleteShader( nFragShader );
@@ -433,11 +512,15 @@ static void CNOVRShaderFileChange( void * tag, void * opaquev )
 	CNOVRJobTack( cnovrQPrerender, CNOVRShaderFileChangePrerender, tag, opaquev, 0 );
 }
 
+cnovr_shader default_shader = { { 0, 0 }, 0, "UNASSIGNED SHADER" };
+cnovr_shader * cnovr_current_shader = &default_shader;
+
 static void CNOVRShaderRender( cnovr_shader * ths )
 {
 	int shdid = ths->nShaderID;
 	if( !shdid ) { return; }
 	glUseProgram( shdid );
+	cnovr_current_shader = ths;
 	CNOVRShaderLoadedSetUniformsInternal();
 }
 
@@ -460,6 +543,7 @@ cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const c
 	ret->base.tccctx = TCCGetTag();
 	ret->shaderfilebase = strdup( shaderfilebase );
 	ret->prefix = prefix?strdup(prefix):0;
+	memset( ret->uniforms, INVALIDUNIFORM, sizeof( ret->uniforms ) );
 
 	char stfb[CNOVR_MAX_PATH];
 	sprintf( stfb, "%s.geo", shaderfilebase );
@@ -475,6 +559,36 @@ cnovr_shader * CNOVRShaderCreateWithPrefix( const char * shaderfilebase, const c
 
 	return ret;
 }
+
+int CNOVRShaderMapUniform( cnovr_shader * shader, const char * uniform_name, int targetmap )
+{
+	GLint al = glGetUniformLocation( shader->nShaderID, uniform_name ); 
+	if( al < 0 )
+	{
+		//ovrprintf( "ERROR: CNOVRShaderRemapUniform called on shader %s name %s, cannot find uniform.\n", shader->shaderfilebase, uniform_name );
+		//This gets called even on unused uniforms.
+		return -1;
+	}
+	if( targetmap >= SHADER_MAX_UNIFORM_MAP || targetmap < 0 )
+	{
+		ovrprintf( "ERROR: CNOVRShaderRemapUniform called on shader %s name %s, targetmap %d out of range.\n", shader->shaderfilebase, uniform_name, targetmap );
+		return -2;
+	}
+	if( al > 254 )
+	{
+		ovrprintf( "ERROR: CNOVRShaderRemapUniform called on shader %s name %s, uniform out of range (%d).\n", shader->shaderfilebase, uniform_name, al );
+		return -3;
+	}
+	uint8_t assigned_value = shader->uniforms[targetmap];
+	if( assigned_value != INVALIDUNIFORM && assigned_value != al )
+	{
+		ovrprintf( "ERROR: CNOVRShaderRemapUniform called on shader %s name %s, uniform already mapped (%d was assigned, attempted to assign %d).\n", shader->shaderfilebase, uniform_name, assigned_value, al );
+		return -4;
+	}
+	shader->uniforms[targetmap] = al;
+	return 0;
+}
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -879,7 +993,7 @@ static void CNOVRModelRender( cnovr_model * m )
 	if( m->pose )
 	{
 		pose_to_matrix44( cnovrstate->mModel, m->pose );
-		glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
+		glUniformMatrix4fv( CNOVRUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
 	}
 
 	if( !m->bIsUploaded || m->nIBO < 0 ) return;
@@ -1293,7 +1407,7 @@ void CNOVRModelSetNumTextures( cnovr_model * m, int textures )
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 {
 	pose_to_matrix44( cnovrstate->mModel, pose );
-	glUniformMatrix4fv( UNIFORMSLOT_MODEL, 1, 1, cnovrstate->mModel );
+	glUniformMatrix4fv( CNOVRUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
 	m->base.header->Render( (cnovr_base*)m );
 }
 

@@ -8,8 +8,8 @@ in vec2 texcoords;
 in vec3 position;
 in vec3 normal;
 
-layout(location = 22) uniform vec4 colorprops1;
-layout(location = 23) uniform vec4 colorprops2;
+uniform vec4 colorprops1; //#MAPUNIFORM colorprops1 22
+uniform vec4 colorprops2; //#MAPUNIFORM colorprops2 23
 
 const vec3 cvr = { 1.402, -.714, 0.0 };
 const vec3 cvb = { 0.0, -.344, 1.772 };

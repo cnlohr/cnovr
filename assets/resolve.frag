@@ -9,7 +9,7 @@ in vec3 localpos;
 
 #inject
 
-layout(location = 18) uniform sampler2DMS tex;
+uniform sampler2DMS tex; //#MAPUNIFORM tex 18
 
 #ifdef MULTISAMPLES
 

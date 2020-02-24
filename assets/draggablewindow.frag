@@ -8,7 +8,7 @@ in vec3 position;
 in vec3 normal;
 in vec4 extradataout;
 
-layout(location = 19) uniform vec4 paramdata[16*4];
+uniform vec4 paramdata[16*4]; //#MAPUNIFORM paramdata 19
 
 void main()
 {

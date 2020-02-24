@@ -1,9 +1,9 @@
 #version 430
 #include "cnovr.glsl"
 
-layout(location = 0) in vec3 positionin;
-layout(location = 1) in vec2 texcoordsin;
-layout(location = 2) in vec3 normalin;
+in vec3 positionin;  //#MAPATTRIB positionin 0
+in vec2 texcoordsin; //#MAPATTRIB texcoordsin 1
+in vec3 normalin;    //#MAPATTRIB normalin 2
 
 out vec2 texcoords;
 out vec3 normal;

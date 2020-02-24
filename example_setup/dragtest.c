@@ -393,7 +393,7 @@ void Render()
 
 	glEnable( GL_TEXTURE_2D );
 	CNOVRRender( shader );
-	glUniform4fv( 19, MAX_DRAGGABLE_WINDOWS*4, store->uniformset ); glGetError(); //glGetError ignores the error if we aren't examining uniform #17
+	glUniform4fv( CNOVRUNIFORMPOS( 19 ), MAX_DRAGGABLE_WINDOWS*4, store->uniformset ); glGetError(); //glGetError ignores the error if we aren't examining uniform #17
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
 		struct DraggableWindow * dw = &dwindows[i];

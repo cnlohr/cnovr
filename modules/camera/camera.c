@@ -846,8 +846,8 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		glActiveTextureCHEW( GL_TEXTURE0 + 2 );
 		glBindTexture( GL_TEXTURE_2D, canvasvideo->model->pTextures[0]->nTextureId );
 		CNOVRRender( previewcomposite );
-		glUniform4fv( 22, 1, store->colorcalprops + 0 );
-		glUniform4fv( 23, 1, store->colorcalprops + 4 );
+		glUniform4fv( CNOVRUNIFORMPOS( 22 ), 1, store->colorcalprops + 0 );
+		glUniform4fv( CNOVRUNIFORMPOS( 23 ), 1, store->colorcalprops + 4 );
 		CNOVRRender( cnovrstate->fullscreengeo );
 #if defined( OBS ) && defined( LINUX )
 		//Pull the OBS texture off.
@@ -1016,17 +1016,18 @@ void RenderFunction( void * tag, void * opaquev )
 			CNOVRRender( canvaspreview->model );
 		}
 	}
-
 	if( canvasvideo )
 	{
 		CNOVRRender( canvasvideo->overrideshd );
-		glUniform4fv( 19, 1, videoosdvals );
+		if( CNOVRCheck() ) ovrprintf( "Camera-post-render-canvasvideo-shader-fault\n" );
+		glUniform4fv( CNOVRUNIFORMPOS( 19 ), 1, videoosdvals );
 		CNOVRRender( canvasvideo );
 	}
 
 	#ifdef SECTIONDEBUG
 		printf( "RenderFunction end\n" );
 	#endif
+	if( CNOVRCheck() ) ovrprintf( "Camera Render Fault\n" );
 }
 
 void UpdateCamera()

@@ -1,7 +1,7 @@
 #version 430
 #include "cnovr.glsl"
 
-layout(location = 0) in vec3 positionin;
+in vec3 positionin; //#MAPATTRIB position 0
 
 void main()
 {

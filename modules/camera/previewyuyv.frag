@@ -3,7 +3,7 @@
 
 out vec4 colorOut;
 
-layout(location = 19) uniform vec4 osdtarget;
+uniform vec4 osdtarget; //#MAPUNIFORM osdtarget 19
 
 in vec2 texcoords;
 

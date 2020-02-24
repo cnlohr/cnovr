@@ -78,6 +78,8 @@ CHEWTYPEDEF( void, glDisableVertexArrayAttrib, , (vaobj,index), GLuint vaobj, GL
 CHEWTYPEDEF( void, glVertexAttribPointer, , (index,size,type,normalized,stride,pointer), GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer )
 CHEWTYPEDEF( void, glVertexAttribIPointer, , (index,size,type,stride,pointer), GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid * pointer )
 CHEWTYPEDEF( void, glVertexAttribLPointer, , (index,size,type,stride,pointer), GLuint index, GLint size, GLenum type, GLsizei stride, const GLvoid * pointer )
+CHEWTYPEDEF( void, glBindAttribLocation, , (program,index,name), GLuint program, GLuint index, const GLchar *name )
+
 CHEWTYPEDEF( void, glDeleteVertexArrays, , (n,arrays), GLsizei n, const GLuint *arrays )
 CHEWTYPEDEF( void, glDeleteBuffers, , (n,buffers), GLsizei n, const GLuint * buffers )
 CHEWTYPEDEF( void, glBufferSubData, , (target,offset,size,data), GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid * data )

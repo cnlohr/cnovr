@@ -43,7 +43,7 @@ int main( int argc, char ** argv )
 			replacename[j+4] = c;
 			if( c == 0 ) break;
 		}
-		fprintf( f, "__attribute__((used)) unsigned char %s[] = { 0x%02x, 0x%02x, 0x%02x, 0x%02x, ", replacename, len & 0xff, (len>>8)&0xff, (len>>16)&0xff, (len>>24)&0xff );
+		fprintf( f, "__attribute__((used)) const unsigned char %s[] = { 0x%02x, 0x%02x, 0x%02x, 0x%02x, ", replacename, len & 0xff, (len>>8)&0xff, (len>>16)&0xff, (len>>24)&0xff );
 		for( j = 0; j < len; j++ )
 		{
 			if( !(j & 0xf) ) fprintf( f, "\n\t" );

@@ -7,14 +7,14 @@
 //
 //NOTE: your geometry *must* be loaded with the "barytc" modifier.
 
-layout(location = 0) in vec4 position;
-layout(location = 1) in vec4 bary;
-layout(location = 2) in vec3 norm;
+in vec4 position; //#MAPATTRIB position 0
+in vec4 bary;     //#MAPATTRIB bary 1
+in vec3 norm;     //#MAPATTRIB norm 2
 
 out vec4 barytc;
 out vec3 normo;
 
-layout( location = 21 ) uniform vec4 ringanimation;
+uniform vec4 ringanimation; //#MAPUNIFORM ringanimation 21 
 
 void main()
 {

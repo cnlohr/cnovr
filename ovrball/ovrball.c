@@ -589,8 +589,10 @@ void RenderFunction( void * tag, void * opaquev )
 	ringmodel->iRenderMesh = 2;
 
 	CNOVRRender( shaderEpicenter );
-	glUniform4f( 21, OGGetAbsoluteTime()-ring_time_of_last_hit, HitEpicenter[0], HitEpicenter[1], HitEpicenter[2] );
-	glUniform4f (22, ring_velocity_of_last_hit[0], ring_velocity_of_last_hit[1], ring_velocity_of_last_hit[2], 0 );
+	glUniform4f( CNOVRUNIFORMPOS( 21 ), 
+		OGGetAbsoluteTime()-ring_time_of_last_hit, HitEpicenter[0], HitEpicenter[1], HitEpicenter[2] );
+	glUniform4f( CNOVRUNIFORMPOS( 22 ),
+		ring_velocity_of_last_hit[0], ring_velocity_of_last_hit[1], ring_velocity_of_last_hit[2], 0 );
 //Boat mode.. :-)
 	//Wash over the scene to prevent lines from overdrawing.
 	CNOVRModelRenderWithPose( playareacollide, &playareapose );
@@ -598,7 +600,8 @@ void RenderFunction( void * tag, void * opaquev )
 
 	CNOVRRender( shaderRing );
 	double nestate  = OGGetAbsoluteTime()-ring_time_of_last_hit;
-	glUniform4f( 21, (float)ring_hit_last, OGGetAbsoluteTime()-ring_time_of_last_hit, 0.0f, 0.0f );
+	glUniform4f( CNOVRUNIFORMPOS( 21 ), 
+		(float)ring_hit_last, OGGetAbsoluteTime()-ring_time_of_last_hit, 0.0f, 0.0f );
 //	copy3d( ringpose.Pos, isosphereposehist[draw_matrix_slot].Pos );
 	CNOVRModelRenderWithPose( ringmodel, &ringpose );
 
@@ -610,7 +613,7 @@ void RenderFunction( void * tag, void * opaquev )
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	glUniform4f( 19, 1.0f, 0.0f, 0.0f, 0.0f );
+	glUniform4f( CNOVRUNIFORMPOS( 19 ), 1.0f, 0.0f, 0.0f, 0.0f );
 
 #define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
 	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);

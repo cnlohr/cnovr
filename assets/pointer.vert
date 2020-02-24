@@ -1,8 +1,8 @@
 #version 330
 #include "cnovr.glsl"
 
-layout(location = 0) in vec4 position;
-layout(location = 20) uniform vec4 props;
+in vec4 position;    //#MAPATTRIB position 0
+uniform vec4 props;  //#MAPUNIFORM props 20
 
 out vec4 localpos;
 

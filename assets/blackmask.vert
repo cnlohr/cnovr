@@ -4,7 +4,7 @@
 //Create black geometry, but pushed ever so slightly further away from the view than normal geometry.
 //this can be used for washing a black color over the scene where there's geometry.
 
-layout(location = 0) in vec4 position;
+in vec4 position; //#MAPATTRIB position 0
 
 varying vec3 localpos;
 

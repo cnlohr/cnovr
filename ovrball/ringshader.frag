@@ -8,7 +8,7 @@ out vec4 colorOut;
 const float extrathickness = 0.5;
 const float sharpness = 1.0;
 
-layout( location = 21 ) uniform vec4 ringanimation;
+uniform vec4 ringanimation; //#MAPUNIFORM ringanimation 21
 
 void main()
 {

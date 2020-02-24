@@ -33,8 +33,6 @@
 			"cfile" : "ovrball.c",
 			"identifier" : "ovrball",
 			"additionalfiles" : [
-				"another1.h",
-				"another2.h"
 			],
 		},
 	]

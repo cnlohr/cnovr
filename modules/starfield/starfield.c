@@ -86,11 +86,11 @@ static void RenderFunction( void * tag, void * opaquev )
     glEnable(GL_DEPTH_CLAMP);
 
 	glPointSize( 4 );
-	glUniform4fv( 19, 1, fvu );
+	glUniform4fv( CNOVRUNIFORMPOS( 19 ), 1, fvu );
 	CNOVRModelRenderWithPose( model, &outpose ); //Stars
 	glLineWidth(1.2); //Better for presentation, normal is best with 0.8
 	fvu[0] = 0;
-	glUniform4fv( 19, 1, fvu );
+	glUniform4fv( CNOVRUNIFORMPOS( 19 ), 1, fvu );
 	CNOVRModelRenderWithPose( modelConst, &outpose ); //Constellations
 
 	//Galaxy image.
@@ -114,7 +114,7 @@ static void RenderFunction( void * tag, void * opaquev )
 //		outpose.Pos[1] -= .035;
 		CNOVRRender( galaxyshader );
 		fvu[0] = galaxyalpha;
-		glUniform4fv( 19, 1, fvu );
+		glUniform4fv( CNOVRUNIFORMPOS( 19 ), 1, fvu );
 		CNOVRModelRenderWithPose( galaxyimage, &outpose );
 	}
 

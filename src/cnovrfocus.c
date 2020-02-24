@@ -64,7 +64,7 @@ void FocusSystemRender( void * tag, void * opaque )
 
 			if( mp )
 			{
-				glUniform4f( 20, props->capturedPassiveDistance, 0, 0, 0 );
+				glUniform4f( CNOVRUNIFORMPOS( 20 ), props->capturedPassiveDistance, 0, 0, 0 );
 				CNOVRModelRenderWithPose( mp, &props->poseTip );
 			}
 
@@ -72,7 +72,7 @@ void FocusSystemRender( void * tag, void * opaque )
 
 			if( mh )
 			{
-				glUniform4f( 20, props->capturedPassiveDistance, 1, 0, 0 );
+				glUniform4f( CNOVRUNIFORMPOS( 20 ), props->capturedPassiveDistance, 1, 0, 0 );
 				cnovr_pose pintersect = {.Rot = {1.0, 0.0, 0.0, 0.0}, .Scale = 1, .Pos = { 0.0, 0.0, props->capturedPassiveDistance } };
 				apply_pose_to_pose( &pintersect, &props->poseTip, &pintersect);
 				CNOVRModelRenderWithPose( mh, &pintersect );
