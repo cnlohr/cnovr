@@ -430,7 +430,6 @@ failout:
 
 void CNOVRStartTCCSystem( const char * tccsuitefile )
 {
-	tcccrash_install();
 	CNOVRStopTCCSystem();
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
 	cnovrtccsystem.suitefile = strdup( tccsuitefile );

@@ -502,7 +502,7 @@ static int CheckFileExists(const char * szPath)
 	return (dwAttrib != INVALID_FILE_ATTRIBUTES &&
 		!(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
-int InternalCheckFileExists( const char * path ) { return CheckFileExists( path ); }
+int InternalCheckFileExists( const char * path ) { return 0; }
 #endif
 
 char * CNOVRFileSearch( const char * fname )

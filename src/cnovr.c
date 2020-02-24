@@ -97,6 +97,9 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 {
 	int r;
 
+	ovrprintf( "Installing crash handler.\n" );
+	tcccrash_install();
+
 	InternalSetupTCCInterface();
 	InternalSetupNamedPtrs();
 	OGResetSafeMutices();
@@ -242,12 +245,13 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	ovrprintf( "Setting up focus\n" );
 	InternalCNOVRFocusSetup();
 
-
 	{
 		cnovrstate->fullscreengeo = CNOVRModelCreate( 0, GL_TRIANGLES );
 		cnovr_point3d size = { 1., 1., 0. };
 		CNOVRModelAppendMesh( cnovrstate->fullscreengeo, 1, 1, 0, size, 0, 0 );
 	}
+
+	ovrprintf( "Waiting 30ms for OpenVR to initialize. (TODO, should figure out why this is needed)\n" );
 	
 	//???! How do we make sure OpenVR initialization is complete?
 	OGUSleep( 30000 );
