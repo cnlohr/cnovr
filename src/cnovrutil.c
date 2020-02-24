@@ -28,11 +28,10 @@ struct casprintfmt
 };
 static og_tls_t casprintftls;
 
-int tasprintf( char ** dat, const char * fmt, ... )
+static struct casprintfmt * GetOrInitCASPRINTFMT()
 {
-	int n;
 	if( !casprintftls ) casprintftls = OGCreateTLS();
-	struct casprintfmt * ca = OGGetTLS( casprintftls );
+	struct casprintfmt * ca  = OGGetTLS( casprintftls );
 	if( !ca )
 	{
 		ca = CNOVRThreadMalloc( sizeof( struct casprintfmt ) );
@@ -40,6 +39,13 @@ int tasprintf( char ** dat, const char * fmt, ... )
 		ca->buffer = CNOVRThreadMalloc( ca->size );
 		OGSetTLS( casprintftls, ca );
 	}
+	return ca;
+}
+
+int tasprintf( char ** dat, const char * fmt, ... )
+{
+	int n;
+	struct casprintfmt * ca = GetOrInitCASPRINTFMT();
 	va_list ap;
 	while (1) {
 		va_start(ap, fmt);
@@ -71,16 +77,8 @@ char * trprintf( const char * format, ... )
 int tvasprintf( char ** dat, const char * fmt, va_list ap )
 {
 	int n;
-	if( !casprintftls ) casprintftls = OGCreateTLS();
-	struct casprintfmt * ca = OGGetTLS( casprintftls );
-	if( !ca )
-	{
-		ca = malloc( sizeof( struct casprintfmt ) );
-		ca->size = 256;
-		ca->buffer = CNOVRThreadMalloc( ca->size );
-		OGSetTLS( casprintftls, ca );
-	}
-	
+	struct casprintfmt * ca = GetOrInitCASPRINTFMT();
+
 	while (1) {
 		va_list aq;
 		va_copy(aq, ap); //XXX TODO: review if this behavior is correct.
@@ -94,28 +92,6 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 		ca->size *= 2;
 		ca->buffer = CNOVRThreadRealloc( ca->buffer, ca->size );
 	}
-}
-
-char * jsmnstrtr( const char * data, int start, int end )
-{
-	if( !casprintftls ) casprintftls = OGCreateTLS();
-	struct casprintfmt * ca = OGGetTLS( casprintftls );
-	if( !ca )
-	{
-		ca = malloc( sizeof( struct casprintfmt ) );
-		ca->size = 256;
-		ca->buffer = CNOVRThreadMalloc( ca->size );
-		OGSetTLS( casprintftls, ca );
-	}
-	int len = end - start;
-	if( ca->size <= len + 1 )
-	{
-		ca->size *= 2;
-		ca->buffer = CNOVRThreadRealloc( ca->buffer, ca->size );
-	}
-	memcpy( ca->buffer, data + start, len );
-	ca->buffer[len] = 0;
-	return ca->buffer;
 }
 
 char * jsmnstrsn( char * outbuffer, int outlen, const char * data, int start, int end )

@@ -265,6 +265,8 @@ void CNOVRTCCLog( void * data, const char * tolog )
 
 void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 {
+	char tmporig[CNOVR_MAX_PATH];
+
 	printf( "File change event\n" );
 	const char * tccsuitefile = cnovrtccsystem.suitefile;
 
@@ -280,7 +282,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 
 	int i = 0;
 	jsmntok_t * t = 0;
-	printf( "CNOVRTCCSystemFileChange\n" );
+
 	while( i < l )
 	{
 		t = tokens + i++;
@@ -299,9 +301,9 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 				for( j = 0; j < arraylen; j++ )
 				{
 					t = tokens + i++;
-					char * st = jsmnstrtr( filestr, t->start, t->end );
-					CNOVRFileSearchAddPath( st );
-					sb_push( cnovrtccsystem.searchfolders, strdup( st ) );
+					jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
+					CNOVRFileSearchAddPath( tmporig );
+					sb_push( cnovrtccsystem.searchfolders, strdup( tmporig ) );
 				}
 			}
 			else if( strncmp( filestr + t->start, "cfiles", t->end - t->start ) == 0 )
@@ -332,9 +334,9 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							t = tokens + i++;
 							if( t->type == JSMN_STRING && cfile == 0 )
 							{
-								char * tmp = jsmnstrtr( filestr, t->start, t->end );
-								tmp = CNOVRFileSearch( tmp );
-								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrtr( filestr, t->start, t->end ) ); }
+								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
+								char * tmp = CNOVRFileSearch( tmporig );
+								if( !tmp ) { printf( "Can't find file: %s\n", tmporig ); }
 								cfile = strdup( tmp );
 							}
 							else goto failout;
@@ -355,8 +357,8 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							t = tokens + i++;
 							if( t->type == JSMN_STRING && identifier == 0 )
 							{
-								char * tmp = jsmnstrtr( filestr, t->start, t->end );
-								identifier = strdup( tmp );
+								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
+								identifier = strdup( tmporig );
 							}
 							else goto failout;
 						}
@@ -370,7 +372,6 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							{
 								t = tokens + i++;
 								if( t->type != JSMN_STRING ) goto failout;
-								char tmporig[CNOVR_MAX_PATH];
 								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
 								char * tmp = CNOVRFileSearch( tmporig );
 								if( !tmp )
@@ -427,9 +428,12 @@ failout:
 	if( i < l-1 ) //Ignore last token.
 	{
 		if( t )
-			printf( "Error parsing JSON around %s [%d != %d]\n", jsmnstrtr( filestr, t->start, t->end ), i, l );
+		{
+			jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
+			ovrprintf( "Error parsing JSON around %s [%d != %d]\n", tmporig, i, l );
+		}
 		else
-			printf( "Couldn't begin JSON parsing\n" );
+			ovrprintf( "Couldn't begin JSON parsing\n" );
 	}
 	free( filestr );
 }
