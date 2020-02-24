@@ -23,8 +23,13 @@
 
 struct casprintfmt
 {
+	//We have multiple buffers here so we can ping-pong between them to prevent
+	//trprintf from exploding if printing a buffer it was passed from a
+	//previous call to itself.
 	int size;
 	char * buffer;
+	int sizeback;
+	char * bufferback;
 };
 static og_tls_t casprintftls;
 
@@ -35,8 +40,10 @@ static struct casprintfmt * GetOrInitCASPRINTFMT()
 	if( !ca )
 	{
 		ca = CNOVRThreadMalloc( sizeof( struct casprintfmt ) );
-		ca->size = 256;
+		ca->size = 128;
 		ca->buffer = CNOVRThreadMalloc( ca->size );
+		ca->sizeback = 128;
+		ca->bufferback = CNOVRThreadMalloc( ca->sizeback );
 		OGSetTLS( casprintftls, ca );
 	}
 	return ca;
@@ -67,9 +74,9 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 	int n;
 	struct casprintfmt * ca = GetOrInitCASPRINTFMT();
 
-	//XXX To consider:
-	// What if one of the strings being passed in are from a trprintf()?
-	// Right now something bad happens.
+	//What if one of the strings being passed in are from a trprintf()?
+	//Originally, something bad happens, but we are changing that and
+	//temporarily writing into a stack buffer. 
 
 	while (1) {
 		va_list aq;
@@ -78,7 +85,14 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 		va_end( aq );
 		if( n < ca->size-1 && n != -1 )
 		{
-			*dat = ca->buffer;
+			//Ping-pong the buffers.
+			char * hold1 = ca->buffer;
+			int hold1s = ca->size;
+			ca->buffer = ca->bufferback;
+			ca->size = ca->sizeback;
+			ca->bufferback = hold1;
+			ca->sizeback = hold1s;
+			*dat = hold1;
 			return n;
 		}
 		ca->size *= 2;
