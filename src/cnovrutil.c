@@ -44,23 +44,11 @@ static struct casprintfmt * GetOrInitCASPRINTFMT()
 
 int tasprintf( char ** dat, const char * fmt, ... )
 {
-	int n;
-	struct casprintfmt * ca = GetOrInitCASPRINTFMT();
 	va_list ap;
-	while (1) {
-		va_start(ap, fmt);
-		n = vsnprintf( ca->buffer, ca->size-1, fmt, ap );
-		va_end(ap);
-		if( n < 0 )
-			return n;
-		if( n < ca->size-1 )
-		{
-			*dat = ca->buffer;
-			return n;
-		}
-		ca->size *= 2;
-		ca->buffer = CNOVRThreadRealloc( ca->buffer, ca->size );
-	}
+	va_start( ap, fmt);
+	int ret = tvasprintf( dat, fmt, ap );
+	va_end( ap );
+	return ret;
 }
 
 char * trprintf( const char * format, ... )
@@ -79,9 +67,13 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 	int n;
 	struct casprintfmt * ca = GetOrInitCASPRINTFMT();
 
+	//XXX To consider:
+	// What if one of the strings being passed in are from a trprintf()?
+	// Right now something bad happens.
+
 	while (1) {
 		va_list aq;
-		va_copy(aq, ap); //XXX TODO: review if this behavior is correct.
+		va_copy(aq, ap);
 		n = vsnprintf( ca->buffer, ca->size-1, fmt, aq );
 		va_end( aq );
 		if( n < ca->size-1 && n != -1 )
