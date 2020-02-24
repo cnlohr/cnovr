@@ -11,7 +11,7 @@
 		{
 			"cfile" : "starfield/starfield.c",
 			"identifier" : "starfield",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
@@ -20,17 +20,9 @@
 			"disabled" : false,
 		},
 		{
-			"cfile" : "assets/camera.c",
-			"identifier" : "starfield",
-			"disabled" : false,
-		},
-		{
 			"cfile" : "example.c",
 			"identifier" : "example1",
-			"additionalfiles" : [
-				"another1.h",
-				"another2.h"
-			],
+			"additionalfiles" : [ "another1.h", "another2.h" ],
 			"disabled" : false,
 		},
 		{

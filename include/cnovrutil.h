@@ -17,7 +17,8 @@ typedef void(cnovr_cb_fn)( void * tag, void * opaquev );
 int tasprintf( char ** out, const char * format, ... );
 int tvasprintf( char ** out, const char * format, va_list ap );
 char * trprintf( const char * format, ... ); //Thread-save return value.
-char * jsmnstrdup( const char * data, int start, int end );
+char * jsmnstrtr( const char * data, int start, int end ); //Return the value extracted in the thread safe printf buffer (You cannot use this in a printf)
+char * jsmnstrsn( char * outbuffer, int outlen, const char * data, int start, int end ); //same as jsmnstrtr except you specify the buffer to output to
 int    jsmnintparse( const char * data, int start, int end );
 
 //Not sure if we need this feature.

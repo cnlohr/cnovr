@@ -96,7 +96,7 @@ int tvasprintf( char ** dat, const char * fmt, va_list ap )
 	}
 }
 
-char * jsmnstrdup( const char * data, int start, int end )
+char * jsmnstrtr( const char * data, int start, int end )
 {
 	if( !casprintftls ) casprintftls = OGCreateTLS();
 	struct casprintfmt * ca = OGGetTLS( casprintftls );
@@ -116,6 +116,18 @@ char * jsmnstrdup( const char * data, int start, int end )
 	memcpy( ca->buffer, data + start, len );
 	ca->buffer[len] = 0;
 	return ca->buffer;
+}
+
+char * jsmnstrsn( char * outbuffer, int outlen, const char * data, int start, int end )
+{
+	int copylen = end-start;
+	if( copylen > outlen-1 )
+	{
+		copylen = outlen - 1;
+	}
+	strncpy( outbuffer, data + start, copylen );
+	outbuffer[copylen] = 0;
+	return outbuffer;
 }
 
 int    jsmnintparse( const char * data, int start, int end )

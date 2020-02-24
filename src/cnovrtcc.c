@@ -289,7 +289,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 		while( i < l )
 		{
 			if( t->type != JSMN_STRING ) goto failout;
-			//printf( "%s\n", jsmnstrdup( filestr, t->start, t->end ) );
+			//printf( "%s\n", jsmnstrtr( filestr, t->start, t->end ) );
 			if( strncmp( filestr + t->start, "searchfolders", t->end - t->start ) == 0 )
 			{
 				t = tokens + i++;
@@ -299,7 +299,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 				for( j = 0; j < arraylen; j++ )
 				{
 					t = tokens + i++;
-					char * st = jsmnstrdup( filestr, t->start, t->end );
+					char * st = jsmnstrtr( filestr, t->start, t->end );
 					CNOVRFileSearchAddPath( st );
 					sb_push( cnovrtccsystem.searchfolders, strdup( st ) );
 				}
@@ -332,9 +332,9 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							t = tokens + i++;
 							if( t->type == JSMN_STRING && cfile == 0 )
 							{
-								char * tmp = jsmnstrdup( filestr, t->start, t->end );
+								char * tmp = jsmnstrtr( filestr, t->start, t->end );
 								tmp = CNOVRFileSearch( tmp );
-								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
+								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrtr( filestr, t->start, t->end ) ); }
 								cfile = strdup( tmp );
 							}
 							else goto failout;
@@ -344,7 +344,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							t = tokens + i++;
 							if( t->type == JSMN_PRIMITIVE )
 							{
-								//char * tmp = jsmnstrdup( filestr, t->start, t->end );
+								//char * tmp = jsmnstrtr( filestr, t->start, t->end );
 								//printf( "~~~~~~~~~~~~TMP: %s\n", tmp );
 								disabled = jsmnintparse( filestr, t->start, t->end );
 							}
@@ -355,14 +355,13 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							t = tokens + i++;
 							if( t->type == JSMN_STRING && identifier == 0 )
 							{
-								char * tmp = jsmnstrdup( filestr, t->start, t->end );
+								char * tmp = jsmnstrtr( filestr, t->start, t->end );
 								identifier = strdup( tmp );
 							}
 							else goto failout;
 						}
 						else if( t->type == JSMN_STRING && strncmp( filestr + t->start, "additionalfiles", t->end - t->start ) == 0 )
 						{
-                            ovrprintf( "NOTE: FOUND ADDITIONAL FILES\n" );
 							t = tokens + i++;
 							if( t->type != JSMN_ARRAY ) goto failout;
 							int nra = t->size;
@@ -371,11 +370,18 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							{
 								t = tokens + i++;
 								if( t->type != JSMN_STRING ) goto failout;
-								char * tmp = jsmnstrdup( filestr, t->start, t->end );
-								tmp = CNOVRFileSearch( tmp );
-								if( !tmp ) { printf( "Can't find file: %s\n", jsmnstrdup( filestr, t->start, t->end ) ); }
-                                ovrprintf( "ADDITIONAL FILE: %s\n", tmp );
-								sb_push( additionalfiles, strdup( tmp ) );
+								char tmporig[CNOVR_MAX_PATH];
+								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
+								char * tmp = CNOVRFileSearch( tmporig );
+								if( !tmp )
+								{
+									ovrprintf( "Can't find file: %s", tmporig ); 
+								}
+								else
+								{
+									ovrprintf( "Additional file: %s\n", tmp );
+									sb_push( additionalfiles, strdup( tmp ) );
+								}
 							}
 						}
 						else if( t->type == JSMN_STRING )
@@ -421,7 +427,7 @@ failout:
 	if( i < l-1 ) //Ignore last token.
 	{
 		if( t )
-			printf( "Error parsing JSON around %s [%d != %d]\n", jsmnstrdup( filestr, t->start, t->end ), i, l );
+			printf( "Error parsing JSON around %s [%d != %d]\n", jsmnstrtr( filestr, t->start, t->end ), i, l );
 		else
 			printf( "Couldn't begin JSON parsing\n" );
 	}
