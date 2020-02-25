@@ -622,7 +622,7 @@ void Render()
 		}
 	}
 	CNOVRRender( shader );
-	glUniform4fv( CNOVRUNIFORMPOS( 19 ), MAX_DRAGGABLE_WINDOWS*4, store->uniformset );
+	glUniform4fv( CNOVRUNIFORMPOS( 19 ), MAX_DRAGGABLE_WINDOWS, store->uniformset );
 	glGetError(); //glGetError ignores the error if we aren't examining uniform #19
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{
