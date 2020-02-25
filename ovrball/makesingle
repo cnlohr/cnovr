@@ -38,7 +38,9 @@ BUILTIN_ASSETS:= \
 
 
 BUILDOBJS := $(filter-out src/cnovrtcc.o lib/tcc_single_file.o lib/tccengine_link.o,$(OBJS))
-BUILDOBJS += lib/tccless.o ovrball/builtin.o
+BUILDOBJS += lib/tccless.o
+#BUILDOBJS += ovrball/builtin.o
+
 #LDFLAGS += -s
 
 ovrball/builtin.o : $(BUILTIN_ASSETS)
