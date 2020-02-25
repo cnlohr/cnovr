@@ -894,6 +894,9 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( atan2 )
 	{ "_findfirst64", FindFirstFileA },
 	{ "_findnext64", FindNextFile },
+#elif defined(ANDROID)
+	//No OS-dependant exports here yet.
+	
 #else
 	TCCExportS( CNFGSetVSync )
 

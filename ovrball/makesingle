@@ -44,10 +44,10 @@ BUILDOBJS += lib/tccless.o ovrball/builtin.o
 ovrball/builtin.o : $(BUILTIN_ASSETS)
 	gcc lib/builtin_assets.c -o lib/builtin_assets
 	lib/builtin_assets ovrball/builtin.c $(BUILTIN_ASSETS)
-	gcc -o $@ ovrball/builtin.c -c
+	$(CC) -o $@ ovrball/builtin.c -c
 
 $(PROJ) : ovrball/ovrball.c $(BUILDOBJS)
-	gcc -o $@ $^ $(LDFLAGS) $(CFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(CFLAGS)
 
 clean :
 	rm -rf $(PROJ) ovrball/builtin.o

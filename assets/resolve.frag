@@ -1,4 +1,4 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 

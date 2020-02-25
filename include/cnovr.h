@@ -75,7 +75,7 @@ struct cnovrstate_t
 	uint8_t  eyeTarget;
 	uint8_t  has_ovr;
 	uint8_t  has_preview;
-	uint8_t  multisample;
+	uint8_t  iMultisample; //If 0, use direct path, otherwise, use 2+.
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )

@@ -1,4 +1,4 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 in vec4 position;    //#MAPATTRIB position 0

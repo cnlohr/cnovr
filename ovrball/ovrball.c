@@ -615,14 +615,6 @@ void RenderFunction( void * tag, void * opaquev )
 
 	glUniform4f( CNOVRUNIFORMPOS( 19 ), 1.0f, 0.0f, 0.0f, 0.0f );
 
-#define GL_VERTEX_PROGRAM_POINT_SIZE 0x8642
-	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST);
-	glEnable( GL_VERTEX_PROGRAM_POINT_SIZE );
-//	glDisable(GL_POINT_SMOOTH);
-
-	glEnable(GL_POINT_SPRITE);
-	glDisable(GL_POINT_SMOOTH);
-	glHint(GL_POINT_SMOOTH_HINT, GL_FASTEST );
 	CNOVRRender( explosion_shader );
 	CNOVRRender( explosion_model );
 
@@ -782,7 +774,9 @@ int main()
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;
 	}
-
+	
+	cnovrstate->iMultisample = 0;
+	
 	CNOVRFileSearchAddPath( "ovrball" );
 	openvrobjectsstart( "wireframe,nodetail" );
 	ovrballstart( "test" );

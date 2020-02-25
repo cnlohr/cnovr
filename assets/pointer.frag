@@ -1,4 +1,4 @@
-#version 330
+#version AUTOVER
 #include "cnovr.glsl"
 
 out vec4 colorOut;
@@ -25,8 +25,8 @@ void main()
 		//Ruler
 		colorOut = vec4(
 			.4,
-			(mod( z, 1 ) < 0.01)?1.0:0.0,
-			(mod( z, .1 ) < 0.01)?1.0:0.0,
+			(mod( z, 1.0 ) < 0.01)?1.0:0.0,
+			(mod( z, 0.1 ) < 0.01)?1.0:0.0,
 			1.0);
 
 	}

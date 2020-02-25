@@ -1,4 +1,4 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 //Create black geometry, but pushed ever so slightly further away from the view than normal geometry.

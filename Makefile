@@ -13,9 +13,9 @@ OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o
 
 
-CFLAGS:=-Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
-CFLAGS +=-Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
-CFLAGS +=-O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC
+CFLAGS := -Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
+CFLAGS += -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
+CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONLY
 
 #Note: If you are operating on older OpenGL Implementations, uncomment
 # the following line, this will prevent the #line directive from being

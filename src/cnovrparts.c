@@ -265,8 +265,27 @@ static void CNOVRShaderDelete( cnovr_shader * ths )
 	CNOVRFreeLater( ths );
 }
 
-static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, const char * shadername, const char * compstr )
+static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, const char * shadername, char * compstr )
 {
+	//Tricky - see if we want to autoversion this.
+#ifndef TARGET_SHADER_VERSION
+#define TARGET_SHADER_VERSION "330"
+#endif
+
+	if( strncmp( compstr, "#version AUTOVER", 16 ) == 0 )
+	{
+		int i;
+		char c;
+		int eostr = 0;
+		for( i = 0; i < 7; i++ )
+		{
+			if( eostr ) c = 0;
+			else c = TARGET_SHADER_VERSION[i];
+			if( c == 0 ) { eostr = 1; c = ' '; }
+			compstr[9+i] = c;
+		}
+	}
+	
 	GLuint nShader = glCreateShader( shader_type );
 	glShaderSource( nShader, 1, &compstr, NULL );
 	glCompileShader( nShader );

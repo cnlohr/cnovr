@@ -1,10 +1,10 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 in vec4 position; //#MAPATTRIB position 0
 in vec4 normal;   //#MAPATTRIB normal 2
 
-varying vec3 localpos;
+out vec3 localpos;
 
 void main()
 {

@@ -170,7 +170,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->sterotargets[0] = 0;
 		cnovrstate->sterotargets[1] = 0;
 		cnovrstate->fPreviewFOV = 100;
-		cnovrstate->multisample = DEFAULT_MULTISAMPLE;
+		cnovrstate->iMultisample = DEFAULT_MULTISAMPLE;
 
 		//Initial camrea
 		pose_make_identity( &cnovrstate->pPreviewPose );
@@ -340,8 +340,8 @@ void CNOVRUpdate()
 			CNOVRDelete( cnovrstate->sterotargets[1] );
 	 
 			//Resize the render targets.
-			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->multisample );
-			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->multisample );
+			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->iMultisample );
+			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->iMultisample );
 			cnovrstate->iEyeRenderWidth = iEyeRenderWidth;
 			cnovrstate->iEyeRenderHeight = iEyeRenderHeight;
 		}

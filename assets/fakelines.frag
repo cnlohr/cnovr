@@ -1,4 +1,4 @@
-#version 330
+#version AUTOVER
 #include "cnovr.glsl"
 #inject
 

@@ -1,4 +1,4 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 in vec4 barytc;
@@ -8,7 +8,7 @@ out vec4 colorOut;
 const float extrathickness = 0.5;
 const float sharpness = 1.0;
 
-uniform vec4 ringanimation; //#MAPUNIFORM ringanimation 21
+uniform vec4 ringanimation; //Already assigned in the .vert.
 
 void main()
 {

@@ -1,4 +1,4 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 uniform vec4 rprops; //#MAPUNIFORM rprops 19
