@@ -546,6 +546,7 @@ char * CNOVRFileSearch( const char * fname )
 char * CNOVRFileSearchAbsolute( const char * fname )
 {
 	char * pathfound = CNOVRFileSearch( fname );
+	if( !pathfound ) return 0;
 	int pathfoundlen = strlen( pathfound );
 	char * pathfoundrealloc = alloca( pathfoundlen+2 );
 	memcpy( pathfoundrealloc, pathfound, pathfoundlen+1 );
