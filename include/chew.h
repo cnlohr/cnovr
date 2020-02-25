@@ -40,7 +40,12 @@ extern "C" {
 #define APIENTRY
 #endif
 #endif
+#ifdef EGL_LEAN_AND_MEAN
+#include <GLES/gl.h>
+#include <GLES2/gl2.h>
+#else
 #include <GL/gl.h>
+#endif
 #include "chewtypes.h"
 
 #ifndef chew_FUN_EXPORT

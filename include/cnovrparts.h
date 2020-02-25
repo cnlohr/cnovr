@@ -3,10 +3,10 @@
 #ifndef _CNOVRPARTS_H
 #define _CNOVRPARTS_H
 
-#include <GL/gl.h>
-#include <os_generic.h>
-#include <cnovrmath.h>
 #include <stdint.h>
+#include <cnovrmath.h>
+#include <chew.h>
+#include <os_generic.h>
 #include <cnovrfocus.h>
 
 typedef struct cnovr_collide_results_t
