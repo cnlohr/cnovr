@@ -14,8 +14,8 @@ in vec3 norm;      //#MAPATTRIB norm 2
 out vec4 barytc;
 out vec3 normo;
 
-uniform vec4 ringanimation;  //#MAPUNIFORM ringanimation 21
-uniform vec4 ballspeedathit; //#MAPUNIFORM ballspeedathit 22
+uniform vec4 ringanimation;
+uniform vec4 ballspeedathit;
 
 void main()
 {

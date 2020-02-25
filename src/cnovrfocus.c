@@ -22,7 +22,7 @@ typedef struct internal_focus_system_t
 	cnovr_model * mdlPointer;
 	cnovr_model * mdlHitPos;
 	cnovr_shader * shdPointer;
-
+	cnovr_shader_uniform shdPointerProps;
 
 	cnovr_pose      poseTip[CNOVRINPUTDEVS];
 	cnovrfocus_properties focusProps[CNOVRINPUTDEVS];	//Tricky: Device0 is the HMD, 1 and 2 are the controllers.
@@ -53,6 +53,7 @@ void FocusSystemRender( void * tag, void * opaque )
 	if( f->shdPointer )
 	{
 		int i;
+		f->shdPointerProps.name = "props";
 		CNOVRRender( f->shdPointer );
 		cnovr_model * mp = f->mdlPointer;
 		cnovr_model * mh = f->mdlHitPos;
@@ -64,7 +65,7 @@ void FocusSystemRender( void * tag, void * opaque )
 
 			if( mp )
 			{
-				glUniform4f( CNOVRUNIFORMPOS( 20 ), props->capturedPassiveDistance, 0, 0, 0 );
+				glUniform4f( CNOVRUniform( &f->shdPointerProps ), props->capturedPassiveDistance, 0, 0, 0 );
 				CNOVRModelRenderWithPose( mp, &props->poseTip );
 			}
 
@@ -72,7 +73,7 @@ void FocusSystemRender( void * tag, void * opaque )
 
 			if( mh )
 			{
-				glUniform4f( CNOVRUNIFORMPOS( 20 ), props->capturedPassiveDistance, 1, 0, 0 );
+				glUniform4f( CNOVRUniform( &f->shdPointerProps ), props->capturedPassiveDistance, 1, 0, 0 );
 				cnovr_pose pintersect = {.Rot = {1.0, 0.0, 0.0, 0.0}, .Scale = 1, .Pos = { 0.0, 0.0, props->capturedPassiveDistance } };
 				apply_pose_to_pose( &pintersect, &props->poseTip, &pintersect);
 				CNOVRModelRenderWithPose( mh, &pintersect );

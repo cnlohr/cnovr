@@ -11,8 +11,12 @@
 
 const char * identifier;
 cnovr_shader * shaderLines;
+cnovr_shader_uniform shaderLines_rprops = { "rprops" };
 cnovr_shader * shaderEpicenter;
+cnovr_shader_uniform shaderEpicenter_ringanimation = { "ringanimation" };
+cnovr_shader_uniform shaderEpicenter_ballspeedathit = { "ballspeedathit" };
 cnovr_shader * shaderRing;
+cnovr_shader_uniform shaderRing_ringanimation = { "ringanimation" };
 cnovr_shader * shaderFakeLines;
 cnovr_shader * rendermodelshader;
 og_thread_t thdmax;
@@ -589,9 +593,10 @@ void RenderFunction( void * tag, void * opaquev )
 	ringmodel->iRenderMesh = 2;
 
 	CNOVRRender( shaderEpicenter );
-	glUniform4f( CNOVRUNIFORMPOS( 21 ), 
+
+	glUniform4f( CNOVRUniform( &shaderEpicenter_ringanimation ), 
 		OGGetAbsoluteTime()-ring_time_of_last_hit, HitEpicenter[0], HitEpicenter[1], HitEpicenter[2] );
-	glUniform4f( CNOVRUNIFORMPOS( 22 ),
+	glUniform4f( CNOVRUniform( &shaderEpicenter_ballspeedathit ),
 		ring_velocity_of_last_hit[0], ring_velocity_of_last_hit[1], ring_velocity_of_last_hit[2], 0 );
 //Boat mode.. :-)
 	//Wash over the scene to prevent lines from overdrawing.
@@ -600,7 +605,7 @@ void RenderFunction( void * tag, void * opaquev )
 
 	CNOVRRender( shaderRing );
 	double nestate  = OGGetAbsoluteTime()-ring_time_of_last_hit;
-	glUniform4f( CNOVRUNIFORMPOS( 21 ), 
+	glUniform4f( CNOVRUniform( &shaderRing_ringanimation ), 
 		(float)ring_hit_last, OGGetAbsoluteTime()-ring_time_of_last_hit, 0.0f, 0.0f );
 //	copy3d( ringpose.Pos, isosphereposehist[draw_matrix_slot].Pos );
 	CNOVRModelRenderWithPose( ringmodel, &ringpose );
@@ -613,7 +618,7 @@ void RenderFunction( void * tag, void * opaquev )
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-	glUniform4f( CNOVRUNIFORMPOS( 19 ), 1.0f, 0.0f, 0.0f, 0.0f );
+	glUniform4f( CNOVRUniform( &shaderLines_rprops ), 1.0f, 0.0f, 0.0f, 0.0f );
 
 	CNOVRRender( explosion_shader );
 	CNOVRRender( explosion_model );

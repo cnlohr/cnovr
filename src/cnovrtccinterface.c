@@ -654,6 +654,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRModelLoadFromFileAsync )
 	TCCExport( CNOVRTextureCreate )
 	TCCExport( CNOVRShaderCreate )
+	TCCExportS( CNOVRUniform )
 	TCCExport( CNOVRShaderCreateWithPrefix )
 	TCCExport( CNOVRDeleteBase )
 	TCCExportS( CNOVRTextureLoadDataNow )

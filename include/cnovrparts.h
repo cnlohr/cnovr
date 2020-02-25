@@ -87,6 +87,13 @@ typedef struct cnovr_shader_t
 	uint8_t uniforms[SHADER_MAX_UNIFORM_MAP];
 } cnovr_shader;
 
+typedef struct cnovr_shader_uniform_t
+{
+	const char * name;
+	cnovr_shader * connected_shader;
+	GLint mapped_uniform;
+} cnovr_shader_uniform;
+
 #if defined( TCCINSTANCE ) && defined( WINDOWS )
 __declspec( dllimport ) cnovr_shader * cnovr_current_shader;
 #else
@@ -94,7 +101,9 @@ extern cnovr_shader * cnovr_current_shader;
 #endif
 
 #define INVALIDUNIFORM 255
-#define CNOVRUNIFORMPOS( id ) ( cnovr_current_shader->uniforms[id]  )
+#define CNOVRMAPPEDUNIFORMPOS( id ) ( cnovr_current_shader->uniforms[id]  )
+
+GLint CNOVRUniform( cnovr_shader_uniform * u );
 
 //Call 'render' submethod to activate, and 'prerender' checks to see if anything is tainted.
 cnovr_shader * CNOVRShaderCreate( const char * shaderfilebase );

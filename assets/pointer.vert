@@ -2,7 +2,7 @@
 #include "cnovr.glsl"
 
 in vec4 position;    //#MAPATTRIB position 0
-uniform vec4 props;  //#MAPUNIFORM props 20
+uniform vec4 props;
 
 out vec4 localpos;
 

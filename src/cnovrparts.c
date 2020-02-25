@@ -534,6 +534,18 @@ static void CNOVRShaderFileChange( void * tag, void * opaquev )
 cnovr_shader default_shader = { { 0, 0 }, 0, "UNASSIGNED SHADER" };
 cnovr_shader * cnovr_current_shader = &default_shader;
 
+GLint CNOVRUniform( cnovr_shader_uniform * u )
+{
+	if( u->connected_shader == cnovr_current_shader )
+		return u->mapped_uniform;
+	else
+	{
+		u->connected_shader = cnovr_current_shader;
+		return u->mapped_uniform = glGetUniformLocation(cnovr_current_shader->nShaderID, u->name );
+	}
+}
+
+
 static void CNOVRShaderRender( cnovr_shader * ths )
 {
 	int shdid = ths->nShaderID;
@@ -1012,7 +1024,7 @@ static void CNOVRModelRender( cnovr_model * m )
 	if( m->pose )
 	{
 		pose_to_matrix44( cnovrstate->mModel, m->pose );
-		glUniformMatrix4fv( CNOVRUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
+		glUniformMatrix4fv( CNOVRMAPPEDUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
 	}
 
 	if( !m->bIsUploaded || m->nIBO < 0 ) return;
@@ -1426,7 +1438,7 @@ void CNOVRModelSetNumTextures( cnovr_model * m, int textures )
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
 {
 	pose_to_matrix44( cnovrstate->mModel, pose );
-	glUniformMatrix4fv( CNOVRUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
+	glUniformMatrix4fv( CNOVRMAPPEDUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
 	m->base.header->Render( (cnovr_base*)m );
 }
 
