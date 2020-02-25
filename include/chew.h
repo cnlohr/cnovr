@@ -43,7 +43,6 @@ extern "C" {
 #ifdef EGL_LEAN_AND_MEAN
 #include <GLES/gl.h>
 #include <GLES3/gl3.h>
-#include 
 #else
 #include <GL/gl.h>
 #endif
