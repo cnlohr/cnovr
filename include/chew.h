@@ -121,7 +121,9 @@ CHEWTYPEDEF( void, glFramebufferTexture, , (target,attachment,texture,level), GL
 
 CHEWTYPEDEF( GLuint, glCreateProgram, return, () , void )
 CHEWTYPEDEF( GLuint, glCreateShader, return, (e), GLenum e )
+#ifndef EGL_LEAN_AND_MEAN
 CHEWTYPEDEF( void, glShaderSource, , (shader,count,string,length), GLuint shader, GLsizei count, const GLchar **string, const GLint *length )
+#endif
 CHEWTYPEDEF( void, glCompileShader, ,(shader), GLuint shader )
 CHEWTYPEDEF( void, glGetShaderiv, , (shader,pname,params), GLuint shader, GLenum pname, GLint *params )
 CHEWTYPEDEF( void, glGetShaderInfoLog , , (shader,maxLength, length, infoLog), GLuint shader, GLsizei maxLength, GLsizei *length, GLchar *infoLog )
