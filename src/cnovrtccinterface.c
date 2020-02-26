@@ -885,7 +885,9 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( srand )
 
 	TCCExportS( sin )
+	TCCExportS( sinf )
 	TCCExportS( cos )
+	TCCExportS( cosf )
 	TCCExportS( acos )
 	TCCExportS( atan )
 	TCCExport( ffloor )
@@ -893,6 +895,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( floorf )
 	TCCExportS( tan )
 	TCCExportS( atan2 )
+	TCCExportS( fmodf )
 	{ "_findfirst64", FindFirstFileA },
 	{ "_findnext64", FindNextFile },
 #elif defined(ANDROID)
