@@ -12,6 +12,10 @@
 #include <cnrbtree.h>
 #include <chew.h>
 
+#ifndef WIN32
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 #define MARKOGLockMutex( x )  OGLockMutex( x );
 #define MARKOGUnlockMutex( x ) OGUnlockMutex( x );

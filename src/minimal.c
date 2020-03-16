@@ -12,7 +12,7 @@ int main( int argc, char ** argv )
 		return -1;
 	}
 
-	cnovrstate->multisample = 0;
+	cnovrstate->iMultisample = 0;
 
 	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example_setup/minimal.json" );
 /*
