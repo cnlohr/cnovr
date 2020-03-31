@@ -390,7 +390,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	eightiessunpose.Pos[1] = 17;
 	eightiessunpose.Scale = 10;
 	eightiessun->pose = &eightiessunpose;
-	CNOVRModelApplyTextureFromFileAsync( eightiessun, "ovrball/80sSun.png" );
+	CNOVRModelApplyTextureFromFileAsync( eightiessun, "80sSun.png" );
 
 
 	roombatest = CNOVRModelCreate( 0, GL_TRIANGLES );

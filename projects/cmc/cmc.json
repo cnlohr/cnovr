@@ -1,6 +1,6 @@
 {
 	"searchfolders" : [
-		"example_setup", "cmc"
+		"example_setup", "projects/cmc"
 	],
 	"cfiles" : [
 		{

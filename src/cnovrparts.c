@@ -633,6 +633,12 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 
 	int x, y, chan;
 	const char * ffn = CNOVRFileSearch( localfn );
+	if( !ffn )
+	{
+		ovrprintf( "WARNING: Failed to find texture %s\n", localfn );
+		free( localfn );
+		return;
+	}
 	chan = 4;
 	x = 0;
 	y = 0;
