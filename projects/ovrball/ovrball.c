@@ -633,10 +633,10 @@ void example_scene_setup( void * tag, void * opaquev )
 {
 	printf( "+++ Example scene setup\n" );
 	int i;
-	shaderEpicenter = CNOVRShaderCreate( "ovrball/epicenter" );
-	shaderLines = CNOVRShaderCreate( "ovrball/retrolines" );
-	shaderRing = CNOVRShaderCreate( "ovrball/ringshader" );
-	shaderFakeLines = CNOVRShaderCreate( "assets/fakelines" );
+	shaderEpicenter = CNOVRShaderCreate( "epicenter" );
+	shaderLines = CNOVRShaderCreate( "retrolines" );
+	shaderRing = CNOVRShaderCreate( "ringshader" );
+	shaderFakeLines = CNOVRShaderCreate( "fakelines" );
 //	rendermodelshader = CNOVRShaderCreate( "assets/rendermodel" );
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
@@ -679,7 +679,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	paddetransform.Rot[3] = 0.5;
 	quatnormalize(paddetransform.Rot,paddetransform.Rot);
 
-	explosion_shader = CNOVRShaderCreate( "ovrball/explosion" );
+	explosion_shader = CNOVRShaderCreate( "explosion" );
 	explosion_model = CNOVRModelCreate( 0, GL_LINES );
 	CNOVRModelSetNumVBOsWithStrides( explosion_model, 4, 3, 4, 4, 4 );
 	for( i = 0; i < PARTICLEVERTS; i++ )
@@ -711,7 +711,7 @@ void example_scene_setup( void * tag, void * opaquev )
 	eightiessunpose.Pos[1] = 17;
 	eightiessunpose.Scale = 10;
 	eightiessun->pose = &eightiessunpose;
-	CNOVRModelApplyTextureFromFileAsync( eightiessun, "ovrball/80sSun.png" );
+	CNOVRModelApplyTextureFromFileAsync( eightiessun, "80sSun.png" );
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
