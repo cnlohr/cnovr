@@ -444,8 +444,23 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 {
 	CNOVRStopTCCSystem();
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
-	cnovrtccsystem.suitefile = strdup( tccsuitefile );
-	printf( "CNOVRStartTCCSystem( %s %p )\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
+	
+	char * gfile = CNOVRFileSearch( tccsuitefile );
+	if( !gfile )
+	{
+		char cts[1024];
+		sprintf( cts, "projects/%s/%s.json", tccsuitefile, tccsuitefile );
+		printf( "Project not found.  Maybe it was a project name?  Trying: %s\n", cts );
+		gfile = CNOVRFileSearch( cts );
+	}
+	if( !gfile )
+	{
+		ovrprintf( "Error: Could not find project by name of %s\n", tccsuitefile );
+		return;
+	}
+	
+	cnovrtccsystem.suitefile = gfile;
+	ovrprintf( "CNOVRStartTCCSystem( %s %p )\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
 	CNOVRFileTimeAddWatch( cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 	CNOVRJobTack( cnovrQAsync, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0, 0 );
 }
