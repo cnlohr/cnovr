@@ -1,6 +1,6 @@
 {
 	"searchfolders" : [
-		"example_setup", "ovrball"
+		"example_setup", "projects/ovrball", "ovrball"
 	],
 	"cfiles" : [
 		{

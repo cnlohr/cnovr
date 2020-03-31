@@ -58,6 +58,8 @@ BOOL EnumWindows(WNDENUMPROC lpEnumFunc,LPARAM      lParam);
 int handle;
 
 cnovr_shader * shader;
+cnovr_shader_uniform draggablewindow_uniform_paramdata = { "paramdata" };
+
 
 /////////////////////////////////////////////////////////////////////////////////
 // Display stuff
@@ -391,7 +393,7 @@ void * GetTextureThread( void * v )
 
 //	ListWindows();
 //	AllocateNewWindow( 0, "firefox", -1 );
-	AllocateNewWindow( 0, "chrom", -1 );
+//	AllocateNewWindow( 0, "chrom", -1 );
 //	AllocateNewWindow( 0, "notepad++", -1 );
 //	AllocateNewWindow( "Frame Timing", 0, -1 );
 //	AllocateNewWindow( ": ~/Fonts", 0, -1 );
@@ -622,7 +624,7 @@ void Render()
 		}
 	}
 	CNOVRRender( shader );
-	glUniform4fv( CNOVRUNIFORMPOS( 19 ), MAX_DRAGGABLE_WINDOWS, store->uniformset );
+	glUniform4fv( CNOVRUniform( &draggablewindow_uniform_paramdata ), MAX_DRAGGABLE_WINDOWS, store->uniformset );
 	glGetError(); //glGetError ignores the error if we aren't examining uniform #19
 	for( i = 0; i < MAX_DRAGGABLE_WINDOWS; i++ )
 	{

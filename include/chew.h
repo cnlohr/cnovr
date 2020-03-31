@@ -8,18 +8,14 @@
 typedef intptr_t GLsizeiptr;
 typedef intptr_t GLintptr;
 #endif
-#include <windows.h>
+//#include <windows.h>
 #include <stdint.h>
 #else
 //Include OpenGL or something maybe?
 #endif
 #endif
 
-#ifndef APIENTRY
-#define APIENTRY
-#endif
-
-#ifdef WIN32
+#if defined( WIN32 ) || defined( WINDOWS )
 #define STDCALL __stdcall
 #else
 #define STDCALL
@@ -33,13 +29,6 @@ extern "C" {
 
 #ifndef TABLEONLY
 
-#if defined( WINDOWS ) || defined( _WINDOWS ) || defined( WIN32 )
-#include <windows.h>
-#else
-#ifndef APIENTRY
-#define APIENTRY
-#endif
-#endif
 #ifdef EGL_LEAN_AND_MEAN
 #include <GLES/gl.h>
 #include <GLES3/gl3.h>

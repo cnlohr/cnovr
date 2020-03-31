@@ -71,6 +71,12 @@ cnovr_canvas * canvasvideo;
 int previewframehisthead;
 cnovr_rf_buffer * previewtarget[PREVIEWFRAMEHIST][3]; //Background, foreground, and final
 
+cnovr_shader_uniform previewyuyv_osdtarget = { "osdtarget" };
+
+cnovr_shader_uniform previewwindow_colorprops1 = { "colorprops1" };
+cnovr_shader_uniform previewwindow_colorprops2 = { "colorprops2" };
+
+
 #ifndef WINDOWS
 cnv4l2 * v4l2interface;
 #endif
@@ -740,13 +746,13 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
 				if( advanced_view )
 				{
-					previewtarget[ih][0] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->multisample );
-					previewtarget[ih][1] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->multisample );
+					previewtarget[ih][0] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample );
+					previewtarget[ih][1] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample );
 					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, 0 );
 				}
 				else
 				{
-					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->multisample );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample );
 					CNOVRCheck(); //Check for errors.
 				}
 				previewframehisthead = 0;
@@ -782,13 +788,13 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
 				if( advanced_view )
 				{
-					previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
-					previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+					previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample );
+					previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample );
 					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
 				}
 				else
 				{
-					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->multisample );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample );
 					CNOVRCheck(); //Check for errors.
 				}
 				previewframehisthead = 0;
@@ -846,8 +852,8 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		glActiveTextureCHEW( GL_TEXTURE0 + 2 );
 		glBindTexture( GL_TEXTURE_2D, canvasvideo->model->pTextures[0]->nTextureId );
 		CNOVRRender( previewcomposite );
-		glUniform4fv( CNOVRUNIFORMPOS( 22 ), 1, store->colorcalprops + 0 );
-		glUniform4fv( CNOVRUNIFORMPOS( 23 ), 1, store->colorcalprops + 4 );
+		glUniform4fv( CNOVRUniform( &previewwindow_colorprops1 ), 1, store->colorcalprops + 0 );
+		glUniform4fv( CNOVRUniform( &previewwindow_colorprops2 ), 1, store->colorcalprops + 4 );
 		CNOVRRender( cnovrstate->fullscreengeo );
 #if defined( OBS ) && defined( LINUX )
 		//Pull the OBS texture off.
@@ -1020,7 +1026,7 @@ void RenderFunction( void * tag, void * opaquev )
 	{
 		CNOVRRender( canvasvideo->overrideshd );
 		if( CNOVRCheck() ) ovrprintf( "Camera-post-render-canvasvideo-shader-fault\n" );
-		glUniform4fv( CNOVRUNIFORMPOS( 19 ), 1, videoosdvals );
+		glUniform4fv( CNOVRUniform( &previewyuyv_osdtarget ), 1, videoosdvals );
 		CNOVRRender( canvasvideo );
 	}
 

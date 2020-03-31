@@ -12,7 +12,7 @@
 #include <cnrbtree.h>
 #include <chew.h>
 
-#ifndef WIN32
+#if !defined( WIN32 ) && !defined( WINDOWS )
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -643,6 +643,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( OGGetTLS )
 	TCCExportS( OGSetTLS )
 	TCCExport( GetTCCTag )
+	TCCExportS( CNOVRGetOpenVRFunctionTable )
 	TCCExportS( cnovrstate )
 	TCCExportS( cnovr_current_shader )
 	TCCExport( CNOVRNodeCreateSimple )
@@ -894,6 +895,10 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( cosf )
 	TCCExportS( acos )
 	TCCExportS( atan )
+	TCCExportS( atan2f )
+	TCCExportS( asinf )
+	TCCExportS( atan2 )
+	TCCExportS( asin )
 	TCCExport( ffloor )
 	TCCExportS( floor )
 	TCCExportS( floorf )
