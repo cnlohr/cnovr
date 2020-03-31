@@ -1,0 +1,35 @@
+{
+	"searchfolders" : [
+		"projects/cyber_chair_stacker"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/starfield/starfield.c",
+			"identifier" : "starfield",
+			"disabled" : true,
+		},
+		{
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe",
+			"comment":"lineify",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "cyber_chair_stacker.c",
+			"identifier" : "example1",
+			"additionalfiles" : [ "another1.h", "another2.h" ],
+			"disabled" : false,
+		},
+		{
+			"cfile" : "picturealbum/picturealbum.c",
+			"identifier" : "assets",
+			"disabled" : false,
+		},
+	]
+}
+
