@@ -269,8 +269,9 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 {
 	char tmporig[CNOVR_MAX_PATH];
 
-	printf( "File change event\n" );
 	const char * tccsuitefile = cnovrtccsystem.suitefile;
+
+	printf( "File change event (%s)\n", tccsuitefile );
 
 	CNOVRStopTCCSystem();
 	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
@@ -446,6 +447,7 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
 	
 	char * gfile = CNOVRFileSearch( tccsuitefile );
+	printf( "COMP FILE %s/%s\n", gfile, tccsuitefile );
 	if( !gfile )
 	{
 		char cts[1024];

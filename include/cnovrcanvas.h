@@ -58,8 +58,8 @@ void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int
 void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 );
 void CNOVRCanvasDrawBox( cnovr_canvas * c, int x1, int y1, int x2, int y2 );
 void CNOVRCanvasTackRectangle( cnovr_canvas * c, int x1, int y1, int x2, int y2 ); //Uses foreground
-#define CNOVRCanvasColor( c, col ) c->color = c
-#define CNOVRCanvasBGColor( c, col ) c->bgcolor = c
+#define CNOVRCanvasColor( c, col ) c->color = col
+#define CNOVRCanvasBGColor( c, col ) c->bgcolor = col
 void CNOVRCanvasTackPoly( cnovr_canvas * c, int * points, int verts );
 void CNOVRCanvasSwapBuffers( cnovr_canvas * c );
 void CNOVRCanvasClearFrame( cnovr_canvas * c ); //Uses background color.

@@ -9,14 +9,14 @@
 			"disabled" : false,
 		},
 		{
-			"cfile" : "modules/starfield/starfield.c",
-			"identifier" : "starfield",
-			"disabled" : true,
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe,nodetail",
+			"comment":"lineify",
+			"disabled" : false,
 		},
 		{
-			"cfile" : "modules/openvrobjects/openvrobjects.c",
-			"identifier" : "wireframe",
-			"comment":"lineify",
+			"cfile" : "modules/camera/camera.c",
+			"identifier" : "advanced,preview",
 			"disabled" : false,
 		},
 		{
