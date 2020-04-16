@@ -634,6 +634,15 @@ void example_scene_setup( void * tag, void * opaquev )
 {
 	printf( "+++ Example scene setup\n" );
 	int i;
+	int j;
+	char * rv;
+	int controllers = 0;
+	int is_vive = 0;
+	int is_controller = 0;
+	float paddle_angles[] = //In case we create support for other controllers, store angles here
+	{.4, .6, .4, .5, 		//Knuckles angles
+	0, 0, .7, .7};			//Vive angles
+	
 	shaderEpicenter = CNOVRShaderCreate( "epicenter" );
 	shaderLines = CNOVRShaderCreate( "retrolines" );
 	shaderRing = CNOVRShaderCreate( "ringshader" );
@@ -688,9 +697,9 @@ void example_scene_setup( void * tag, void * opaquev )
 		is_controller = strstr( rv, "Controller" )?1:0;
 
 		//Are we using something that is a Vive?
-		if( is_vive == 1 )
+		if( is_vive )
 			//Is it a controller?
-			if( is_controller == 1 )
+			if( is_controller )
 			{
 				printf( "Device %d is HTC Controller\n", i );
 				controllers++;
