@@ -4,6 +4,10 @@ Pronounced /snoʊˈvɜ:/ "snow - ver" - declared as canon on Feb 17, 2020 after 
 
 **This is just me tinkering around with VR for fun in my own free time.  I'm not supporting this.  No, really.  This is a playground, you can come play, but it's probably broken for whatever you want to use it for, and don't expect me to fix it!**
 
+To see what is possible checkout the playlist or visit [my channnel](https://www.youtube.com/user/CNLohr).
+
+<a alt="playlist" href="https://www.youtube.com/playlist?list=PLDRymMFQl3NldBEGAaeZlqINSU0ALUqRQ"><img src="https://i.ytimg.com/vi/fCiY-6XVcvE/hqdefault.jpg?sqp=-oaymwEXCNACELwBSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLCazPIgBI7lKzaAcqILsw9EC3FO7w" /></a>
+
 If you want to chat about it, discord's 'cnovr' channel on the cnlohr-projects server is the best way: https://discord.gg/ZUWdwXk
 
 My goal is to make a system which allows for extremely rapid VR game development, geared for livestreams.  In order to accomplish this, the primry mode for gameplay programming is to use C.  The whole of the engine is written in C to facilitate very fast recompiles.  All of the following assets may be modified at runtime and cnovr will constantly be scanning for file changes:
