@@ -102,6 +102,7 @@ int ObjFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * 
 void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 {
 	int i;
+	int j = 1;	//byteshift variable for vive controllers
 	for( i = 0; i < MAXRNS; i++ )
 	{
 		// o->trackedDeviceIndex
@@ -141,7 +142,12 @@ void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 			capture->cb = ObjFocusEvent;
 			CNOVRModelSetInteractable( rp->modelsimple, capture );
 			if( strstr( rmname, "controller" ) )
-				rp->modelsimple->focuscontrol->collide_mask = (strstr( rmname, "left" )?2:0) | (strstr( rmname, "right" )?4:0);
+			{
+				if(strstr( rmname, "vive" )?1:0)	//if we are using a vive, left and right doesn't exist
+					rp->modelsimple->focuscontrol->collide_mask = j <<= 1;	//byteshifting to get 2 and 4 for the mask
+				else
+					rp->modelsimple->focuscontrol->collide_mask = (strstr( rmname, "left" )?2:0) | (strstr( rmname, "right" )?4:0);
+			}
 		}
 	}
 	
