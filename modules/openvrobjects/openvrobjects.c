@@ -144,9 +144,13 @@ void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 			if( strstr( rmname, "controller" ) )
 			{
 				if(strstr( rmname, "vive" )?1:0)	//if we are using a vive, left and right doesn't exist
+				{
 					rp->modelsimple->focuscontrol->collide_mask = j <<= 1;	//byteshifting to get 2 and 4 for the mask
+				}
 				else
+				{
 					rp->modelsimple->focuscontrol->collide_mask = (strstr( rmname, "left" )?2:0) | (strstr( rmname, "right" )?4:0);
+				}
 			}
 		}
 	}
