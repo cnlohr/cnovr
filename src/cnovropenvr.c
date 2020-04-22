@@ -70,10 +70,14 @@ int32_t CNOVRGetTrackedDeviceInt32(TrackedDeviceIndex_t unDevice, TrackedDeviceP
 	TrackedPropertyError RetrievalError;
 	Output = cnovrstate->oSystem->GetInt32TrackedDeviceProperty(unDevice, property, &RetrievalError);
 
-	printf("Getting property %i of device %i returned a value of %i with error %i.", property, unDevice, Output, RetrievalError);
-
 	if(RetrievalError) { ovrprintf("Error getting tracked device int32 property %d:%d:%d\n", unDevice, property, RetrievalError); }
 	return Output;
 }
 
-
+// Given a tracked device ID of a controller, this will tell you which hand it is associated with.
+// 0 = Invalid, 1 = Left Hand, 2 = Right Hand
+int32_t CNOVRGetControllerHandFromDeviceID(TrackedDeviceIndex_t unDevice)
+{
+	if( !cnovrstate->oSystem ) return 0;
+	return cnovrstate->oSystem->GetControllerRoleForTrackedDeviceIndex(unDevice);
+}

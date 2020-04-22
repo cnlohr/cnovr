@@ -26,6 +26,7 @@ void * CNOVRGetOpenVRFunctionTable( const char * interfacename );
 void CNOVRPoseFromHMDMatrix( cnovr_pose * pose, struct HmdMatrix34_t * matrix ); 
 char * CNOVRGetTrackedDeviceString( TrackedDeviceIndex_t unDevice, TrackedDeviceProperty prop );
 int32_t CNOVRGetTrackedDeviceInt32(TrackedDeviceIndex_t unDevice, TrackedDeviceProperty property);
+int32_t CNOVRGetControllerHandFromDeviceID(TrackedDeviceIndex_t unDevice);
 
 #endif
 

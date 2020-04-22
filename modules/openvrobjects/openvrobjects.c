@@ -102,7 +102,6 @@ int ObjFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * 
 void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 {
 	int i;
-	int j = 2;	//variable for vive controllers
 	for( i = 0; i < MAXRNS; i++ )
 	{
 		// o->trackedDeviceIndex
@@ -145,8 +144,10 @@ void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 			{
 				if( strstr( rmname, "vive" ) )	//if we are using a vive, left and right doesn't exist
 				{
-					rp->modelsimple->focuscontrol->collide_mask = j;
-					j = (j > 2?2:4);	//each time we go through this loop, cycle between 2 and 4
+					int32_t ControllerRole = CNOVRGetControllerHandFromDeviceID(i);
+					printf("Controller role of device ID %i is %ld.\n", i, ControllerRole);
+
+					rp->modelsimple->focuscontrol->collide_mask = ControllerRole * 2;
 				}
 				else
 				{
