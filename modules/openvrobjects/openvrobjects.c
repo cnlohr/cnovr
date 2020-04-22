@@ -142,12 +142,12 @@ void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 			CNOVRModelSetInteractable( rp->modelsimple, capture );
 			if( strstr( rmname, "controller" ) )
 			{
-				if( strstr( rmname, "vive" ) )	//if we are using a vive, left and right doesn't exist
+				if( strstr( rmname, "vive" ) )
 				{
 					int32_t ControllerRole = CNOVRGetControllerHandFromDeviceID(i);
 					printf("Controller role of device ID %i is %ld.\n", i, ControllerRole);
 
-					rp->modelsimple->focuscontrol->collide_mask = ControllerRole * 2;
+					rp->modelsimple->focuscontrol->collide_mask = ControllerRole * 2; // TODO: See if this can be generalized to both Index and Vive controllers.
 				}
 				else
 				{
