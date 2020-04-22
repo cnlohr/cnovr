@@ -53,9 +53,27 @@ char * CNOVRGetTrackedDeviceString( TrackedDeviceIndex_t unDevice, TrackedDevice
 	if( e ) goto err;
 	return t->data;
 err:
-	ovrprintf( "Error getting tracked device property %d:%d:%d\n", unDevice, prop, e );
+	ovrprintf( "Error getting tracked device string property %d:%d:%d\n", unDevice, prop, e );
 	t->data[0] = 0;
 	return t->data; 
+}
+
+// Gets an int32 property of the given device from the OpenVR system.
+// unDevice: The device to get data about
+// property: The data to get about the device. See ETrackedDeviceProperty in the OpenVR API for the list of options.
+int32_t CNOVRGetTrackedDeviceInt32(TrackedDeviceIndex_t unDevice, TrackedDeviceProperty property)
+{
+	int32_t Output = 0;
+
+	if( !cnovrstate->oSystem ) return 0;
+ 
+	TrackedPropertyError RetrievalError;
+	Output = cnovrstate->oSystem->GetInt32TrackedDeviceProperty(unDevice, property, &RetrievalError);
+
+	printf("Getting property %i of device %i returned a value of %i with error %i.", property, unDevice, Output, RetrievalError);
+
+	if(RetrievalError) { ovrprintf("Error getting tracked device int32 property %d:%d:%d\n", unDevice, property, RetrievalError); }
+	return Output;
 }
 
 

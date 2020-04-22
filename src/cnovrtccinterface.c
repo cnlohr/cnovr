@@ -700,6 +700,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExport( CNOVRRFBufferCreate )
 	TCCExportS( CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA )
 	TCCExportS( CNOVRGetTrackedDeviceString )
+	TCCExportS( CNOVRGetTrackedDeviceInt32 )
 	TCCExportS( CNOVRListCall )
 	TCCExportS( CNOVRFBufferActivate )
 	TCCExportS( CNOVRFBufferBlitResolve )
