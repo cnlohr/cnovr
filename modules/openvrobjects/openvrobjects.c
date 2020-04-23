@@ -155,6 +155,11 @@ void OpenVRObjectsUpdateFunction( void * tag, void * opaquev )
 				}
 			}
 		}
+		if(cnovrstate->bRenderPosesValid[i] && rp->loaded && CNOVRGetTrackedDeviceInt32(i, ETrackedDeviceProperty_Prop_DeviceClass_Int32) == ETrackedDeviceClass_TrackedDeviceClass_Controller)
+		{ // TODO: Don't stupidly check this every frame, instead listen for change events.
+			int32_t ControllerRole = CNOVRGetControllerHandFromDeviceID(i);
+			rp->modelsimple->focuscontrol->collide_mask = ControllerRole * 2;
+		}
 	}
 	
 	for( i = 0; i < MAXRNS; i++ )
