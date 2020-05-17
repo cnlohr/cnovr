@@ -287,7 +287,7 @@ static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, co
 	}
 	
 	GLuint nShader = glCreateShader( shader_type );
-	glShaderSource( nShader, 1, &compstr, NULL );
+	glShaderSource( nShader, 1, (const char**)&compstr, NULL );
 	glCompileShader( nShader );
 	GLint vShaderCompiled = GL_FALSE;
 

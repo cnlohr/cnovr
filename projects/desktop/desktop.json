@@ -1,0 +1,36 @@
+{
+	"searchfolders" : [
+		"projects/example"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "objfile/objfile.c",
+			"identifier" : "environment",
+			"model" : "projects/cmc/platform.obj",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe",
+			"comment":"lineify",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "example.c",
+			"identifier" : "example1",
+			"additionalfiles" : [ "another1.h", "another2.h" ],
+			"disabled" : true,
+		},
+		{
+			"cfile" : "picturealbum/picturealbum.c",
+			"identifier" : "assets",
+			"disabled" : true,
+		},
+	]
+}
+

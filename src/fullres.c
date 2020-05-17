@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <CNFGFunctions.h>
+#include <CNFG.h>
 #include <cnovrtcc.h>
 #include <cnovr.h>
 #include <cnovrutil.h>

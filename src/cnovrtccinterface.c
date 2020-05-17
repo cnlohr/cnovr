@@ -569,6 +569,11 @@ void * TCCGetTCCTag()
 	return TCCGetTag();
 }
 
+void * TCCGetOtherTCCProperties()
+{
+	return TCCGetTag()->otherproperties;
+}
+
 #if defined( WINDOWS  ) || defined ( WIN32 ) || defined( WIN64 )
 //XXX TODO: I think we'll need these maybe?
 static void TCC_InterlockedExchangeAdd( ) { ovrprintf( "Unsupported function\n" );  }
@@ -643,6 +648,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( OGGetTLS )
 	TCCExportS( OGSetTLS )
 	TCCExport( GetTCCTag )
+	TCCExport( GetOtherTCCProperties )
 	TCCExportS( CNOVRGetOpenVRFunctionTable )
 	TCCExportS( cnovrstate )
 	TCCExportS( cnovr_current_shader )

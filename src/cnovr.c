@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
-#include <CNFGFunctions.h>
+#include <CNFG.h>
 #include <cnovr.h>
 #include <string.h>
 #include <stdarg.h>

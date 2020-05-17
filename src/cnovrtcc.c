@@ -198,12 +198,13 @@ static void DestroyTCC( TCCInstance * tcc )
 #endif
 
 //Expects pre-dupped 
-TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilename, char ** additionalfiles, char * identifier, int bDynamicGen )
+TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilename, char ** additionalfiles, char * identifier, cnstrstrmap * otherproperties, int bDynamicGen )
 {
 	TCCInstance * ret = malloc( sizeof( TCCInstance ) );
 	memset( ret, 0, sizeof( TCCInstance ) );
 	ret->tccfilename = tccfilename;
 	ret->identifier = identifier;
+	ret->otherproperties = otherproperties;
 	ret->additionalfiles = additionalfiles;
 	ret->bDynamicGen = bDynamicGen;
 	ret->bFirst = 1;
@@ -237,6 +238,7 @@ void DestroyTCCInstance( TCCInstance * tcc )
 	if( tcc->tccfilename ) free( tcc->tccfilename );
 	if( tcc->image ) { CNOVRFreeLater( tcc->image ); }
 	if( tcc->identifier ) { free( tcc->identifier );  }
+	if( tcc->otherproperties ) { cnstrstrmap_destroy( tcc->otherproperties ); }
 	if( tcc->basefilename ) { free( tcc->basefilename ); }
 	//if( tcc->additionalfiles ) { sb_free( tcc->additionalfiles );  }	//????
 	if( tcc->state ) tcc_delete( tcc->state );
@@ -271,13 +273,14 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 
 	const char * tccsuitefile = cnovrtccsystem.suitefile;
 
-	printf( "File change event (%s)\n", tccsuitefile );
+	printf( "File change event (%s)\n", cnovrtccsystem.suitefile );
 
 	CNOVRStopTCCSystem();
 	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 
 	int filelen;
 	char * filestr = CNOVRFileToString( tccsuitefile, &filelen );
+
 	jsmn_parser jp;
 	jsmntok_t tokens[1024];
 	jsmn_init( &jp );
@@ -321,9 +324,11 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 				{
 					char * cfile;
 					char * identifier;
+					cnstrstrmap * otherproperties;
 					int disabled = 0;
 					char ** additionalfiles = 0;
 					cfile = 0;
+					otherproperties = 0;
 					identifier = 0;
 					while( i < l )
 					{
@@ -390,9 +395,22 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 						}
 						else if( t->type == JSMN_STRING )
 						{
+							int indexlen = t->end-t->start;
+							char oiindex[indexlen+1];
+							memcpy( oiindex, filestr + t->start, indexlen );
+							oiindex[indexlen] = 0;
+							//Other parameters go into  	cnstrstrmap * otherproperties;
 							t = tokens + i++;
-							if( t->type != JSMN_STRING ) goto failout;
-							//Any other data type here...
+							if( t->type == JSMN_STRING || t->type == JSMN_PRIMITIVE ) //TODO: Consider removing this check.
+							{
+								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
+								printf( "Assigning tag: %s = %s\n", oiindex, tmporig );
+								if( !otherproperties ) otherproperties = cnstrstrmap_create();
+								char ** v = &(cnstrstrmap_insert( otherproperties, oiindex )->data);
+								if( *v ) free( *v );
+								*v = strdup( tmporig );
+							}
+							else goto failout;
 						}
 						else //End of 
 						{
@@ -409,7 +427,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 					}
 
 					sb_push( cnovrtccsystem.instances, 
-						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, 0 ) );
+						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, otherproperties, 0 ) );
 
 					if( additionalfiles )
 					{
@@ -461,7 +479,7 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 		return;
 	}
 	
-	cnovrtccsystem.suitefile = gfile;
+	cnovrtccsystem.suitefile = strdup( gfile );
 	ovrprintf( "CNOVRStartTCCSystem( %s %p )\n", cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange );
 	CNOVRFileTimeAddWatch( cnovrtccsystem.suitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 	CNOVRJobTack( cnovrQAsync, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0, 0 );

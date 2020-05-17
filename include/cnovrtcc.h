@@ -64,11 +64,14 @@ void OGSetTLS( og_tls_t key, void * data );
 
 void * GetTCCTag();
 
+//Actually a cnstrstrmap * but, we don't cast it here to make it so users don't need cnhash.
+void * GetOtherTCCProperties(); 
 
 #else
 
 #include <stdio.h>
 #include <stdint.h>
+#include <cnrbtree.h>
 
 struct TCCState;
 typedef struct TCCState TCCState;
@@ -85,6 +88,7 @@ typedef struct TCCInstance_t
 	char * identifier;
 	char * basefilename; //i.e. 'ovrball' 
 	char ** additionalfiles; //sb_buffer.
+	cnstrstrmap * otherproperties;
 	uint8_t bActive;
 	uint8_t bDynamicGen;
 	uint8_t bFirst;

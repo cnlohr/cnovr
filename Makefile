@@ -6,7 +6,7 @@ OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
 	lib/symbol_enumerator_link.o lib/cnhash_link.o lib/jsmn.o \
 	lib/os_generic_link.o
 
-OBJS+=rawdraw/CNFGDriver.o rawdraw/CNFGFunctions.o
+OBJS+=rawdraw/CNFG.o
 
 OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
