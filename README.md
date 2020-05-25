@@ -55,7 +55,7 @@ make -j4
 git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
 winbuild
-main ovrball\ovrball.json
+main projects\ovrball\ovrball.json
 ```
 
 #### <sup>1</sup> Alternative TCC directory
