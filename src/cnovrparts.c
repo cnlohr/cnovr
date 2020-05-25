@@ -1805,6 +1805,7 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 	{
 		if( strstr( modifiers, "lineify" ) ) lineify = 1;
 		if( strstr( modifiers, "barytc" ) ) barytc = 1;
+		if( strstr( modifiers, "switchlines" ) ) { m->nRenderType = GL_LINES; }
 		if( strstr( modifiers, "noflipv" ) ) flipv = 0;
 	}
 
