@@ -11,14 +11,15 @@
 		{
 			"cfile" : "objfile/objfile.c",
 			"identifier" : "environment",
-			"model" : "projects/cmc/platform.obj",
+			"model" : "projects/cmc/platform.obj:lineify,barytc,switchlines",
+			"shader" : "retrolines",
 			"disabled" : false,
 		},
 		{
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
 			"identifier" : "wireframe",
 			"comment":"lineify",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "example.c",
