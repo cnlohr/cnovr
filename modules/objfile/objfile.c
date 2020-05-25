@@ -50,7 +50,6 @@ static void objfile_scene_setup( void * tag, void * opaquev )
 	int i;
 
 	cnstrstrmap * map = (cnstrstrmap*)GetOtherTCCProperties();
-	printf( "RBHAS(model) = %d\n", RBHAS( map, "model" ) );
 
 	shaderBasic = CNOVRShaderCreate( RBHAS( map, "shader" )?RBA( map, "shader" ):"assets/basic" );
 	modelobj = CNOVRModelCreate( 0, GL_TRIANGLES );
