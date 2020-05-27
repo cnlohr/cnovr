@@ -6,12 +6,12 @@
 		{
 			"cfile" : "draggablewindows/draggablewindows.c",
 			"identifier" : "dockable;nocursor",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "modules/picturealbum/picturealbum.c",
 			"identifier" : "pics;",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "starfield/starfield.c",
@@ -22,12 +22,12 @@
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
 			"identifier" : "wireframe,nodetail",
 			"comment":"lineify",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "modules/camera/camera.c",
 			"identifier" : "advanced,preview",
-			"disabled" : false,
+			"disabled" : true,
 		},
 		{
 			"cfile" : "ovrball.c",

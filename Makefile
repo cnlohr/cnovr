@@ -8,7 +8,7 @@ OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
 
 OBJS+=rawdraw/CNFG.o
 
-OBJS+=src/cnovr.o src/chew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
+OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o
 

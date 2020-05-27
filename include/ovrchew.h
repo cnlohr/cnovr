@@ -1,5 +1,5 @@
-#if !defined( _CHEW_H ) || defined( TABLEONLY )
-#define _CHEW_H
+#if !defined( OVR_CHEW_H ) || defined( TABLEONLY )
+#define OVR_CHEW_H
 
 #ifndef TABLEONLY
 
@@ -150,6 +150,11 @@ CHEWTYPEDEF( void *, glMapNamedBuffer, return, (buffer,access), GLuint buffer, G
 CHEWTYPEDEF( void *, glMapBufferRange, return, (buffer,offset,length,access), GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access )
 
 CHEWTYPEDEF( GLboolean, glUnmapBuffer, return, (target), GLenum target )
+
+#if defined( WINDOWS ) || defined( WIN32 ) || defined( WIN64 )
+CHEWTYPEDEF2( void, wglSwapIntervalEXT, wglSwapIntervalEXTCHEW, , (do_vsync), GLint do_vsync )
+#endif
+
 
 #ifdef __cplusplus
 #ifndef TABLEONLY

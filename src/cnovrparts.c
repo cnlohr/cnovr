@@ -3,7 +3,7 @@
 #include <cnovrparts.h>
 #include <cnovr.h>
 #include <cnovrutil.h>
-#include <chew.h>
+#include <ovrchew.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>

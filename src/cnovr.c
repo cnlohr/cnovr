@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include "chew.h"
+#include "ovrchew.h"
 #include "cnovrutil.h"
 #include "cnovrparts.h"
 #include "cnovrtcc.h"
@@ -421,6 +421,8 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Render Check\n" );
 
+	cnovrstate->oCompositor->PostPresentHandoff();
+
 	int did_advanced_preview = 1;
 	if( cnovrstate->has_preview )
 	{
@@ -490,6 +492,7 @@ void CNOVRUpdate()
 	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );
 
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
+	wglSwapIntervalEXTCHEW(0);
 #else
 	//XXX Hacky - this disables vsync on Linux only
 	void   CNFGSetVSync( int vson );
@@ -500,8 +503,9 @@ void CNOVRUpdate()
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
 	if( !did_advanced_preview ) CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
+
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
-	glFlush();
+//	glFlush();
 	cnovrstate->fFrameTimems = (OGGetAbsoluteTime()-FrameStart)*1000;
 
 }
