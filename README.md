@@ -77,6 +77,10 @@ Add `-DSTB_INCLUDE_LINE_NONE` to the end of line 2 in `winbuild.bat`.
 
 #### No OSX Support planned because there are no VR platforms for OSX. 
 
+## Mixed reality
+
+You will need Linux to do mixed reality.  There is currently no windows driver supported by cnv4l2.  There is a camera widget you can see from within VR that will help you configure your camera if you enable advanced camera settings in your JSON.  There are a few weird restrictions.  Your camera **must** be 1920x1080, and **must** be YUYV.  30 or 60 Hz is supported, but 60 Hz is **strongly recommended**.   You **cannot** use an MJPEG camera.  The setup I found to work best was using a Mira capture card and a DSLR I have on long-term loan from a friend.  This means you can only use a USB 3.0 enabled camera.  Mirabox capture cards just happen to work out very well and are the least expensive capture cards.  Other more expensive ones may work.
+
 
 ## TODO
 
