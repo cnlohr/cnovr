@@ -38,7 +38,7 @@ git clone https://github.com/cnlohr/cnovr --recurse-submodules
 cd cnovr
 cp openvr/lib/linux64/libopenvr_api.so .
 make -j4
-./main ovrball/ovrball.json
+./main ovrball
 ```
 
 ### On Windows
