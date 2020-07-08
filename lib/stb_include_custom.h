@@ -200,7 +200,7 @@ char *stb_include_string(char *str, char *inject, char *path_to_includes, char *
          #else
          strcat(temp, "\"");
          if (inc_list[i].filename == 0)
-            ;//strcmp(temp, "INJECT"); 		//XXX??? No effect??
+            strcat(temp, "INJECT");
          else
             strcat(temp, inc_list[i].filename);
          strcat(temp, "\"");
