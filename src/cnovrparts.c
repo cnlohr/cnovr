@@ -285,7 +285,12 @@ static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, co
 			compstr[9+i] = c;
 		}
 	}
-	
+
+//Shader debug print exactly what gets sent into OpenGL
+#if 0
+	printf( "FULL SHADER TEXT:\n%s\n", compstr );
+#endif
+
 	GLuint nShader = glCreateShader( shader_type );
 	glShaderSource( nShader, 1, (const char**)&compstr, NULL );
 	glCompileShader( nShader );
