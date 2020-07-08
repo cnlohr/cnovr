@@ -285,6 +285,18 @@ void CNOVRUpdate()
 			struct TrackedDevicePose_t * trenderpose = &cnovrstate->openvr_renderposes[i];
 			struct TrackedDevicePose_t * ttrackedpose = &cnovrstate->openvr_trackedposes[i];
 
+#if 0
+			//Enable this code for pose debugging.
+			if( i == 0 )
+			{
+				int j;
+				printf( "HMD valid: %d %d\n", trenderpose->bPoseIsValid, trenderpose->bPoseIsValid );
+				float * p = &trenderpose->mDeviceToAbsoluteTracking.m[0][0];
+				for( j = 0; j < 3; j++ )
+					printf( "%f %f %f %f\n", p[j*4+0], p[j*4+1], p[j*4+2], p[j*4+3] );
+			}
+#endif
+
 			if( ( cnovrstate->bRenderPosesValid[i] = trenderpose->bPoseIsValid ) )
 			{
 				CNOVRPoseFromHMDMatrix( &cnovrstate->pRenderPoses[i], &trenderpose->mDeviceToAbsoluteTracking );
