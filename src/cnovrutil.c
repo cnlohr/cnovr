@@ -31,7 +31,20 @@ struct casprintfmt
 	int sizeback;
 	char * bufferback;
 };
+
 static og_tls_t casprintftls;
+
+void CNOVRInternalClosePrintfBuffer()
+{
+	struct casprintfmt * ca  = OGGetTLS( casprintftls );
+	if( !ca )
+	{
+		free( ca->buffer );
+		free( ca->bufferback );
+		free( ca );
+	}
+	OGSetTLS( ca, 0 );
+}
 
 static struct casprintfmt * GetOrInitCASPRINTFMT()
 {
@@ -39,11 +52,14 @@ static struct casprintfmt * GetOrInitCASPRINTFMT()
 	struct casprintfmt * ca  = OGGetTLS( casprintftls );
 	if( !ca )
 	{
-		ca = CNOVRThreadMalloc( sizeof( struct casprintfmt ) );
+		//For now, we just malloc this junk.  I don't know why.
+		//But, if we CNOVRThreadMalloc this buffer and other data, everything
+		//seems to come to a flaming halt.
+		ca = malloc( sizeof( struct casprintfmt ) );
 		ca->size = 128;
-		ca->buffer = CNOVRThreadMalloc( ca->size );
+		ca->buffer = malloc( ca->size );
 		ca->sizeback = 128;
-		ca->bufferback = CNOVRThreadMalloc( ca->sizeback );
+		ca->bufferback = malloc( ca->sizeback );
 		OGSetTLS( casprintftls, ca );
 	}
 	return ca;
@@ -1568,4 +1584,5 @@ void InternalThreadMallocClose()
 	}
 	cnptrset_destroy( set );
 	OGSetTLS( casthreadmalloc, 0 ); //Just in case.
+	CNOVRInternalClosePrintfBuffer();
 }
