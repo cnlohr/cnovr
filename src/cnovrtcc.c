@@ -26,6 +26,9 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	TCCInstance * tce = (TCCInstance *)opaquev;
 //	printf( "Reloading: %p %p\n", tag, tce );
 	printf( "Reloading: %s [%p %p]\n", tce->tccfilename, tag, tce );
+
+	double StartRecompileTime = OGGetAbsoluteTime();
+
 	OGLockMutex( tccmutex );
 	if( tce->bDontCompile )
 	{
@@ -114,7 +117,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	if( !tce->start && tce->basefilename )
 		tce->start = (tcccbfn)tcc_get_symbol( tce->state, trprintf( "%sstart", tce->basefilename ) );
 
-	printf( "INIT / START: %p %p\n", tce->init, tce->start );
+	double EndRecompileTime = OGGetAbsoluteTime();
+	printf( "INIT / START: %p %p (Took %4.3f ms)\n", tce->init, tce->start, EndRecompileTime - StartRecompileTime );
 
 	OGUnlockMutex( tccmutex );
 
