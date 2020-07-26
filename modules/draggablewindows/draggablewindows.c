@@ -478,7 +478,7 @@ void * GetTextureThread( void * v )
 		int taint = 0;
 		if( attribs.width != dw->width ) taint = 1;
 		if( attribs.height != dw->height ) taint = 1;
-		if( attribs.width > 1920 ) attribs.width = 1920;
+//		if( attribs.width > 1920 ) attribs.width = 1920;
 		int width = dw->width = attribs.width;
 		int height = dw->height = attribs.height;
 

@@ -1,0 +1,29 @@
+{
+	"searchfolders" : [
+		"projects/oct4vr"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "oct4vr.c",
+			"identifier" : "oct4vr",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/camera/camera.c",
+			"identifier" : "advanced,preview",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe",
+			"comment":"lineify",
+			"disabled" : false,
+		},
+	]
+}
+

@@ -27,7 +27,7 @@
 		{
 			"cfile" : "modules/camera/camera.c",
 			"identifier" : "advanced,preview",
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "ovrball.c",
