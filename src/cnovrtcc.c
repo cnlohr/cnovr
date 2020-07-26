@@ -118,7 +118,7 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 		tce->start = (tcccbfn)tcc_get_symbol( tce->state, trprintf( "%sstart", tce->basefilename ) );
 
 	double EndRecompileTime = OGGetAbsoluteTime();
-	printf( "INIT / START: %p %p (Took %4.3f ms)\n", tce->init, tce->start, EndRecompileTime - StartRecompileTime );
+	printf( "INIT / START: %p %p (Took %4.3f ms)\n", tce->init, tce->start, (EndRecompileTime - StartRecompileTime)*1000. );
 
 	OGUnlockMutex( tccmutex );
 
