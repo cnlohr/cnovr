@@ -20,9 +20,13 @@ cnovr_model * bean;
 
 cnovr_shader * shaderBasic;
 cnovr_shader * shaderUV;
-cnovr_model * pointer_tile_place[2];
+//cnovr_model * pointer_tile_place[2];
 cnovr_model * pointer_tile[NUM_TEMPLATES];
-cnovr_model * our_model;
+
+int nr_models;
+cnovr_model ** our_models;
+cnovr_pose ** our_model_poses;
+cnovrfocus_capture ** our_focuses;
 
 
 cnovr_pose    eightiessunpose;
@@ -63,14 +67,51 @@ void glSampleMaski( 	GLuint maskNumber,
 
 #define GL_SAMPLE_MASK 0x8E51
 	glEnable(GL_SAMPLE_MASK);
-	glSampleMaski(0, 0x3);
+	glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+//	glSampleMaski(0, 0x3);
 
-	CNOVRModelRenderWithPose( pointer_tile_place[0], &playareapose );
-	CNOVRModelRenderWithPose( pointer_tile_place[1], &playareapose );
+	CNOVRModelRenderWithPose( pointer_tile[which_template], shadow_pose + 0 );
+	CNOVRModelRenderWithPose( pointer_tile[which_template], shadow_pose + 1 );
 
-	CNOVRModelRenderWithPose( our_model, &playareapose );
+	int i;
+	for( i = 0; i < nr_models; i++ )
+	{
+		CNOVRModelRenderWithPose( our_models[i], &our_model_poses[i] );
+	}
+
 	glDisable(GL_SAMPLE_MASK);
 }
+
+int BlockFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+{
+	int mid = (int)cap->opaque;
+	cnovr_model * m = our_models[mid];
+	int id = m->iOpaque;
+
+	switch( event )
+	{
+		case CNOVRF_DOWNNOFOCUS:
+			//if( buttoninfo == 0 ) { store->zapped[id] = .999; return 0; } //Catpured event
+			break;
+		case CNOVRF_LOSTFOCUS:
+			//CNOVRNamedPtrSave( "examplecodestore" );
+			break;
+		case CNOVRF_ACQUIREDFOCUS:
+			//store->zapped[id] = 1;
+			break;
+	}
+
+	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
+
+	if( event == CNOVRF_DRAG )
+	{
+		//cnovr_pose * dragout = &store->modelpose[id];
+		//Do something with drag?
+	}
+
+	return 0;
+}
+
 
 void UpdateFunction( void * tag, void * opaquev )
 {
@@ -84,7 +125,7 @@ void UpdateFunction( void * tag, void * opaquev )
 	{
 		static int last_mask[2];
 		cnovrfocus_properties * prop = CNOVRFocusGetPropsForDev( controller + 1 );
-
+/*
 		//Warp the thinger?
 		{
 			cnovr_model * pt = pointer_tile[which_template];
@@ -130,14 +171,6 @@ void UpdateFunction( void * tag, void * opaquev )
 			CNOVRModelTaintIndices( ptp );
 		}
 
-		uint64_t mask = prop->buttonmask[0];
-		memcpy( &shadow_pose[controller], &prop->poseTip, sizeof( cnovr_pose ) );
-		int Adown = mask & 2;
-		if( Adown && !(last_mask[controller] & 2 ) )
-		{
-			which_template = (which_template+1)%NUM_TEMPLATES;
-		}
-
 		int down = mask & 1;
 		if( down && !(last_mask[controller] & 1) )
 		{
@@ -157,7 +190,67 @@ void UpdateFunction( void * tag, void * opaquev )
 			CNOVRVBOTaint( our_model->pGeos[1] );
 			CNOVRModelTaintIndices( our_model );
 		}
+*/
+		memcpy( &shadow_pose[controller], &prop->poseTip, sizeof( cnovr_pose ) );
+
+		uint64_t mask = prop->buttonmask[0];
+		int Adown = mask & 2;
+		if( Adown && !(last_mask[controller] & 2 ) )
+		{
+			which_template = (which_template+1)%NUM_TEMPLATES;
+		}
+
+
+		int down = mask & 1;
+		if( down && !(last_mask[controller] & 1) )
+		{
+			our_models = realloc( our_models,           sizeof( cnovr_model * ) * ( nr_models + 1 ) );
+			our_model_poses = realloc( our_model_poses, sizeof( cnovr_pose * ) * ( nr_models + 1 ) );
+			our_focuses = realloc( our_focuses,         sizeof( cnovrfocus_capture * ) * ( nr_models + 1 ) );
+			
+			cnovrfocus_capture * focus = our_focuses[nr_models] = malloc( sizeof( cnovrfocus_capture ) );
+			cnovr_pose * pose = our_model_poses[nr_models] = malloc( sizeof( cnovr_pose ) );
+			cnovr_model * om  = our_models[nr_models] = CNOVRModelCreate( 0, GL_TRIANGLES );
+
+			om->pose = pose;
+
+			memset( focus, 0, sizeof( *focus ) );
+			focus->opaque = nr_models;
+			focus->cb = BlockFocusEvent;
+			CNOVRModelSetInteractable( om, focus );
+
+			memcpy( pose, &prop->poseTip, sizeof( cnovr_pose ) );
+			nr_models++;
+
+			CNOVRModelClearMeshes( om );
+			CNOVRModelSetNumVBOsWithStrides( om, 3, 3, 3, 3 );
+			CNOVRModelSetNumIndices( om, 0 );
+			CNOVRModelResetMarks( om );
+			CNOVRDelinateGeometry( om, "placed" );
+
+			cnovr_model * ptp = pointer_tile[which_template];
+
+			int i;
+			for( i = 0; i < ptp->iIndexCount; i++ )
+			{
+				CNOVRModelTackIndex( om, 1, ptp->pIndices[i] );
+			}
+
+			for( i = 0; i < ptp->pGeos[0]->iVertexCount; i++ )
+			{
+				CNOVRVBOTackv( om->pGeos[0], 3, (ptp->pGeos[0]->pVertices) + i*3 );
+				CNOVRVBOTackv( om->pGeos[1], 3, &ptp->pGeos[1]->pVertices[i*3] );
+				CNOVRVBOTackv( om->pGeos[2], 3, &ptp->pGeos[2]->pVertices[i*3] );
+			}
+
+			CNOVRVBOTaint( om->pGeos[0] );
+			CNOVRVBOTaint( om->pGeos[1] );
+			CNOVRModelTaintIndices( om );
+		}
+
+
 		last_mask[controller] = mask;
+
 	}
 }
 
@@ -196,11 +289,11 @@ static void example_scene_setup( void * tag, void * opaquev )
 	shaderUV = CNOVRShaderCreate( "projects/oct4vr/surfaces" );
 
 	cnovr_point3d vv1[] = { { 0, 0, 0 }, { 0.22, 0.39, 0 }, { -0.22, 0.39, 0 } };
-	const float scale1 = 0.07;
+	const float scale1 = .3;
 	cnovr_point3d vv2[] = { { 0, 0, 0 }, { 0.43, 0.65, 0 }, { 0.22, 1.05, 0 }, { -0.22, 1.05, 0 }, { -0.43, 0.65, 0 } };
-	const float scale2 = 0.07;
+	const float scale2 = .3;
 	cnovr_point3d vv3[] = { { 1.0, 0.0, 0 }, { 0.5, 0.866, 0 }, { -0.5, 0.866, 0 }, { -1.0, 0.0, 0 }, { -0.5, -0.866, 0 }, { 0.5, -0.866, 0 } };
-	const float scale3 = 0.07;
+	const float scale3 = .3;
 
 	int vvct[3];
 	cnovr_point3d * vvs[3] = { vv1, vv2, vv3 };
@@ -213,7 +306,9 @@ static void example_scene_setup( void * tag, void * opaquev )
 		for( i = 0; i < vvct[j]; i++ ) scale3d( vvs[j][i], vvs[j][i], scales[j] );
 
 	printf( "VVCT: %d\n", vvct );
+
 	int pl;
+/*
 	for( pl = 0; pl < 2; pl++ )
 	{
 		cnovr_model * m = pointer_tile_place[pl] = CNOVRModelCreate( 0, GL_TRIANGLES );
@@ -226,13 +321,13 @@ static void example_scene_setup( void * tag, void * opaquev )
 		CNOVRVBOTaint( m->pGeos[1] );
 		CNOVRModelTaintIndices( m );
 	}
-
+*/
 	for( pl = 0; pl < NUM_TEMPLATES; pl++ )
 	{
 		cnovr_model * ptp = pointer_tile[pl] = CNOVRModelCreate( 0, GL_TRIANGLES );
 		int vvctl = vvct[pl];
 		CNOVRModelClearMeshes( ptp );
-		CNOVRModelSetNumVBOsWithStrides( ptp, 2, 3, 3 );
+		CNOVRModelSetNumVBOsWithStrides( ptp, 3, 3, 3, 3 );
 		CNOVRModelSetNumIndices( ptp, 0 );
 		CNOVRModelResetMarks( ptp );
 		CNOVRDelinateGeometry( ptp, "cube" );
@@ -241,6 +336,7 @@ static void example_scene_setup( void * tag, void * opaquev )
 		for( i = 0; i < vvctl;i++ )
 		{
 			CNOVRVBOTackv( ptp->pGeos[0], 3, vvs[pl][i] );
+			CNOVRVBOTackv( ptp->pGeos[2], 3, (float[3]){ 0, 0, 1 } );
 		}
 
 		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 1, 0, 0 } );
@@ -255,12 +351,14 @@ static void example_scene_setup( void * tag, void * opaquev )
 		CNOVRModelTaintIndices( ptp );
 	}
 
+/*
 	our_model = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelClearMeshes( our_model );
 	CNOVRModelSetNumVBOsWithStrides( our_model, 2, 3, 3 );
 	CNOVRModelSetNumIndices( our_model, 0 );
 	CNOVRModelResetMarks( our_model );
 	CNOVRDelinateGeometry( our_model, "our_model" );
+*/
 
 	//CNOVRVBOTackm->pGeos[0]
 
