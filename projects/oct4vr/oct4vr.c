@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define NUM_TEMPLATES 3
+int which_template;
 
 cnovr_model * playareacollide;
 cnovr_shader * shaderLines;
@@ -14,11 +16,12 @@ cnovr_pose    playareapose;
 cnovr_shader * rendermodelshader;
 cnovr_pose    shadow_pose[2];
 
+cnovr_model * bean;
 
 cnovr_shader * shaderBasic;
 cnovr_shader * shaderUV;
 cnovr_model * pointer_tile_place[2];
-cnovr_model * pointer_tile;
+cnovr_model * pointer_tile[NUM_TEMPLATES];
 cnovr_model * our_model;
 
 
@@ -40,26 +43,33 @@ struct staticstore
 
 void RenderFunction( void * tag, void * opaquev )
 {
+	glDisable(GL_CULL_FACE);
+
 	CNOVRRender( shaderLines );
+
+	CNOVRRender( playareacollide );
 
 	CNOVRRender( rendermodelshader );
 	CNOVRRender( eightiessun );
 
-	glDisable(GL_CULL_FACE);
 
+	glLineWidth(10.);
 	CNOVRRender( shaderUV );
+
+	CNOVRRender( bean );
+
+void glSampleMaski( 	GLuint maskNumber,
+  	GLbitfield mask);
+
+#define GL_SAMPLE_MASK 0x8E51
+	glEnable(GL_SAMPLE_MASK);
+	glSampleMaski(0, 0x3);
 
 	CNOVRModelRenderWithPose( pointer_tile_place[0], &playareapose );
 	CNOVRModelRenderWithPose( pointer_tile_place[1], &playareapose );
 
-//	CNOVRModelRenderWithPose( pointer_tile_place, &shadow_pose[0] );
-//	CNOVRModelRenderWithPose( pointer_tile_place, &shadow_pose[1] );
-//		CNOVRVBOTaint( m->pGeos[0] );
-//		CNOVRVBOTaint( m->pGeos[1] );
-//		CNOVRModelTaintIndices( m );
-
-
 	CNOVRModelRenderWithPose( our_model, &playareapose );
+	glDisable(GL_SAMPLE_MASK);
 }
 
 void UpdateFunction( void * tag, void * opaquev )
@@ -72,11 +82,12 @@ void UpdateFunction( void * tag, void * opaquev )
 	int controller = 0;
 	for( controller = 0; controller < 2; controller++ )
 	{
-		static int was_down[2];
+		static int last_mask[2];
 		cnovrfocus_properties * prop = CNOVRFocusGetPropsForDev( controller + 1 );
 
 		//Warp the thinger?
 		{
+			cnovr_model * pt = pointer_tile[which_template];
 			cnovr_model * ptp = pointer_tile_place[controller];
 			CNOVRModelClearMeshes( ptp );
 			CNOVRModelSetNumVBOsWithStrides( ptp, 2, 3, 3 );
@@ -86,22 +97,22 @@ void UpdateFunction( void * tag, void * opaquev )
 
 			int i;
 			int iStartIndex = ptp->pGeos[0]->iVertexCount;
-			for( i = 0; i < pointer_tile->iIndexCount; i++ )
+			for( i = 0; i < pt->iIndexCount; i++ )
 			{
-				CNOVRModelTackIndex( ptp, 1, pointer_tile->pIndices[i] + iStartIndex );
+				CNOVRModelTackIndex( ptp, 1, pt->pIndices[i] + iStartIndex );
 			}
-			for( i = 0; i < pointer_tile->pGeos[0]->iVertexCount; i++ )
+			for( i = 0; i < pt->pGeos[0]->iVertexCount; i++ )
 			{
 				cnovr_point3d xformedvert;
 				cnovr_pose p;
 				memcpy( &p, &prop->poseTip, sizeof( cnovr_pose ) );
 				
-				apply_pose_to_point( xformedvert, &p, (pointer_tile->pGeos[0]->pVertices) + i*3 );
+				apply_pose_to_point( xformedvert, &p, (pt->pGeos[0]->pVertices) + i*3 );
 
 				//Awful snap mode.
 				//Find out if there's any other points nearby.
 				int j;
-				float bestdist = .05;
+				float bestdist = (1./4.) * .0254;
 				for( j = 0; j < our_model->pGeos[0]->iVertexCount; j++ )
 				{
 					cnovr_point3d * trypt = (cnovr_point3d*)( our_model->pGeos[0]->pVertices + j * 3 );
@@ -112,17 +123,23 @@ void UpdateFunction( void * tag, void * opaquev )
 					}
 				}
 				CNOVRVBOTackv( ptp->pGeos[0], 3, xformedvert );
-				CNOVRVBOTackv( ptp->pGeos[1], 3, &pointer_tile->pGeos[1]->pVertices[i*3] );
+				CNOVRVBOTackv( ptp->pGeos[1], 3, &pt->pGeos[1]->pVertices[i*3] );
 			}
 			CNOVRVBOTaint( ptp->pGeos[0] );
 			CNOVRVBOTaint( ptp->pGeos[1] );
 			CNOVRModelTaintIndices( ptp );
 		}
 
+		uint64_t mask = prop->buttonmask[0];
 		memcpy( &shadow_pose[controller], &prop->poseTip, sizeof( cnovr_pose ) );
+		int Adown = mask & 2;
+		if( Adown && !(last_mask[controller] & 2 ) )
+		{
+			which_template = (which_template+1)%NUM_TEMPLATES;
+		}
 
-		int down = prop->buttonmask[0] & 1;
-		if( down && !was_down[controller] )
+		int down = mask & 1;
+		if( down && !(last_mask[controller] & 1) )
 		{
 			cnovr_model * ptp = pointer_tile_place[controller];
 			int i;
@@ -134,19 +151,20 @@ void UpdateFunction( void * tag, void * opaquev )
 			for( i = 0; i < ptp->pGeos[0]->iVertexCount; i++ )
 			{
 				CNOVRVBOTackv( our_model->pGeos[0], 3, (ptp->pGeos[0]->pVertices) + i*3 );
-				CNOVRVBOTackv( our_model->pGeos[1], 3, &pointer_tile->pGeos[1]->pVertices[i*3] );
+				CNOVRVBOTackv( our_model->pGeos[1], 3, &ptp->pGeos[1]->pVertices[i*3] );
 			}
 			CNOVRVBOTaint( our_model->pGeos[0] );
 			CNOVRVBOTaint( our_model->pGeos[1] );
 			CNOVRModelTaintIndices( our_model );
 		}
-		was_down[controller] = down;
+		last_mask[controller] = mask;
 	}
 }
 
 
 static void example_scene_setup( void * tag, void * opaquev )
 {
+	int i, j;
 	printf( "+++ Example scene setup\n" );
 
 	shaderLines = CNOVRShaderCreateWithPrefix( "fakelines", "#define OPAQUIFY" );
@@ -156,6 +174,10 @@ static void example_scene_setup( void * tag, void * opaquev )
 	pose_make_identity( &playareapose );
 	CNOVRModelLoadFromFileAsync( playareacollide, "playarea.obj:barytc" );
 	playareacollide->iRenderMesh = 0;
+
+	bean = CNOVRModelCreate( 0, GL_LINES );
+	bean->pose = &playareapose;
+	CNOVRModelLoadFromFileAsync( bean, "bean.obj:lineify" );
 
 	rendermodelshader = CNOVRShaderCreate( "assets/rendermodelnearestaa" );
 
@@ -171,40 +193,26 @@ static void example_scene_setup( void * tag, void * opaquev )
 
 
 	shaderBasic = CNOVRShaderCreate( "basic" );
-	shaderUV = CNOVRShaderCreate( "uvcolors" );
+	shaderUV = CNOVRShaderCreate( "projects/oct4vr/surfaces" );
 
-#if 0
-	float v1[] = { 0, 0, 0 };
-	float v2[] = { 1.69, 2.53, 0 };
-	float v3[] = { 0.87, 4.06, 0 };
-	float v4[] = { -0.87, 4.06, 0 };
-	float v5[] = { -1.69, 2.53, 0 };
-	scale3d( v1, v1, .07 );
-	scale3d( v2, v2, .07 );
-	scale3d( v3, v3, .07 );
-	scale3d( v4, v4, .07 );
-	scale3d( v5, v5, .07 );
-#endif
-//(1.0,0.0), (0.5, 0.866), ( -0.5, 0.866), (-1.0, 0.0), (-0.5, -0.866), (0.5, -0.866)
-	float v1[] = { 1.0, 0.0, 0 };
-	float v2[] = { 0.5, 0.866, 0 };
-	float v3[] = { -0.5, 0.866, 0 };
-	float v4[] = { -1.0, 0.0, 0 };
-	float v5[] = { -0.5, -0.866, 0 };
-	float v6[] = { 0.5, -0.866, 0 };
+	cnovr_point3d vv1[] = { { 0, 0, 0 }, { 0.22, 0.39, 0 }, { -0.22, 0.39, 0 } };
+	const float scale1 = 0.07;
+	cnovr_point3d vv2[] = { { 0, 0, 0 }, { 0.43, 0.65, 0 }, { 0.22, 1.05, 0 }, { -0.22, 1.05, 0 }, { -0.43, 0.65, 0 } };
+	const float scale2 = 0.07;
+	cnovr_point3d vv3[] = { { 1.0, 0.0, 0 }, { 0.5, 0.866, 0 }, { -0.5, 0.866, 0 }, { -1.0, 0.0, 0 }, { -0.5, -0.866, 0 }, { 0.5, -0.866, 0 } };
+	const float scale3 = 0.07;
 
+	int vvct[3];
+	cnovr_point3d * vvs[3] = { vv1, vv2, vv3 };
+	float scales[] = { scale1, scale2, scale3 };
+	vvct[0] = sizeof(vv1) / sizeof( vv1[0] );
+	vvct[1] = sizeof(vv2) / sizeof( vv2[0] );
+	vvct[2] = sizeof(vv3) / sizeof( vv3[0] );
 
-//0,0, 0,-1, 0.95,-0.31, 0.72,0.81, -0.72,0.81, -0.95,-0.31
+	for( j = 0; j < 3; j++ )
+		for( i = 0; i < vvct[j]; i++ ) scale3d( vvs[j][i], vvs[j][i], scales[j] );
 
-	//0, 1, 2; 0, 2, 3, 0, 4, 5
-
-	scale3d( v1, v1, .2 );
-	scale3d( v2, v2, .2 );
-	scale3d( v3, v3, .2 );
-	scale3d( v4, v4, .2 );
-	scale3d( v5, v5, .2 );
-	scale3d( v6, v6, .2 );
-
+	printf( "VVCT: %d\n", vvct );
 	int pl;
 	for( pl = 0; pl < 2; pl++ )
 	{
@@ -219,33 +227,33 @@ static void example_scene_setup( void * tag, void * opaquev )
 		CNOVRModelTaintIndices( m );
 	}
 
-	pointer_tile = CNOVRModelCreate( 0, GL_TRIANGLES );
-	CNOVRModelClearMeshes( pointer_tile );
-	CNOVRModelSetNumVBOsWithStrides( pointer_tile, 2, 3, 3 );
-	CNOVRModelSetNumIndices( pointer_tile, 0 );
-	CNOVRModelResetMarks( pointer_tile );
-	CNOVRDelinateGeometry( pointer_tile, "cube" );
-	CNOVRModelTackIndex( pointer_tile, 12, 0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5 );
+	for( pl = 0; pl < NUM_TEMPLATES; pl++ )
+	{
+		cnovr_model * ptp = pointer_tile[pl] = CNOVRModelCreate( 0, GL_TRIANGLES );
+		int vvctl = vvct[pl];
+		CNOVRModelClearMeshes( ptp );
+		CNOVRModelSetNumVBOsWithStrides( ptp, 2, 3, 3 );
+		CNOVRModelSetNumIndices( ptp, 0 );
+		CNOVRModelResetMarks( ptp );
+		CNOVRDelinateGeometry( ptp, "cube" );
+		CNOVRModelTackIndex( ptp, (vvctl-2)*3, 0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6 );
 
-	CNOVRVBOTackv( pointer_tile->pGeos[0], 3, v1 );
-	CNOVRVBOTackv( pointer_tile->pGeos[0], 3, v2 );
-	CNOVRVBOTackv( pointer_tile->pGeos[0], 3, v3 );
-	CNOVRVBOTackv( pointer_tile->pGeos[0], 3, v4 );
-	CNOVRVBOTackv( pointer_tile->pGeos[0], 3, v5 );
-	CNOVRVBOTackv( pointer_tile->pGeos[0], 3, v6 );
+		for( i = 0; i < vvctl;i++ )
+		{
+			CNOVRVBOTackv( ptp->pGeos[0], 3, vvs[pl][i] );
+		}
 
+		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 1, 0, 0 } );
+		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 0, 1, 0 } );
+		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 0, 0, 1 } );
+		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 1, 0, 1 } );
+		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 0, 1, 1 } );
+		CNOVRVBOTackv( ptp->pGeos[1], 3, (float[3]){ 1, 1, 0 } );
 
-		CNOVRVBOTackv( pointer_tile->pGeos[1], 3, (float[3]){ 1, 0, 0 } );
-		CNOVRVBOTackv( pointer_tile->pGeos[1], 3, (float[3]){ 0, 1, 0 } );
-		CNOVRVBOTackv( pointer_tile->pGeos[1], 3, (float[3]){ 0, 0, 1 } );
-		CNOVRVBOTackv( pointer_tile->pGeos[1], 3, (float[3]){ 1, 0, 1 } );
-		CNOVRVBOTackv( pointer_tile->pGeos[1], 3, (float[3]){ 0, 1, 1 } );
-		CNOVRVBOTackv( pointer_tile->pGeos[1], 3, (float[3]){ 1, 1, 0 } );
-
-	CNOVRVBOTaint( pointer_tile->pGeos[0] );
-	CNOVRVBOTaint( pointer_tile->pGeos[1] );
-	CNOVRModelTaintIndices( pointer_tile );
-
+		CNOVRVBOTaint( ptp->pGeos[0] );
+		CNOVRVBOTaint( ptp->pGeos[1] );
+		CNOVRModelTaintIndices( ptp );
+	}
 
 	our_model = CNOVRModelCreate( 0, GL_TRIANGLES );
 	CNOVRModelClearMeshes( our_model );
