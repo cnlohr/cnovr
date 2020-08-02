@@ -399,6 +399,14 @@ void CNOVRUpdate()
 				apply_pose_to_pose( &eye_in_worldspace, &cnovrstate->pRenderPoses[0], &cnovrstate->pEyeToHead[i] );
 				pose_invert( &eye_in_worldspace, &eye_in_worldspace );
 				pose_to_matrix44( cnovrstate->mView, &eye_in_worldspace );
+//				int row;
+//				float * fvm = cnovrstate->mView;
+//				for( row = 0; row < 4; row++ ) printf( "%f %f %f %f\n",
+//					fvm[row*4+0],
+//					fvm[row*4+1],
+//					fvm[row*4+2],
+//					fvm[row*4+3] );
+//				printf( "\n" );
 				matrix44identity( cnovrstate->mModel );
 			}
 

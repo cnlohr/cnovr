@@ -1,0 +1,29 @@
+{
+	"searchfolders" : [
+		"projects/raytracetest"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable",
+			"disabled" : true,
+		},
+		{
+			"cfile" : "raytracetest.c",
+			"identifier" : "raytracetest",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "modules/camera/camera.c",
+			"identifier" : "advanced,preview",
+			"disabled" : true,
+		},
+		{
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe,nodetail",
+			"comment":"lineify",
+			"disabled" : true,
+		},
+	]
+}
+
