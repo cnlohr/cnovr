@@ -77,11 +77,12 @@ void main()
 	CameraOffset = mod( (FloorCameraPos * msize), 1.0 ) + lshw;
 	dir = normalize(RayDirection);
 
+
 	vec4 Position = texture( Pass1A, PosInTex );
 	vec4 Normal = texture( Pass1B, PosInTex );
 
 	daytime = mod( time*.01, 6.28318 );
-	SunPos = vec3( -cos( daytime ), 0., sin( daytime ) );
+	SunPos = vec3( cos( daytime ), 0, -sin( daytime ) );
 
 	//Night time
 	NightAmount = -SunPos.z + .1;
@@ -207,6 +208,7 @@ void main()
 	noise = abs( noise );
 	OutColor = BaseColor.rgb + NoiseOut;
 
+
 	//Lighting color
 	vec3 Sunamt = max( dot(Normal.xyz, SunPos),  0. ) * SunColor;
 	vec3 Moonamt = max( dot(Normal.xyz, MoonPos),  0. ) * MoonColor;
@@ -232,8 +234,6 @@ void main()
 
 	float skylight = pow( floor(mod(LightCell.g*16.,16.))/16., 2. );
 	float blocklight = pow( mod( LightCell.g*255., 16. )/16., 2.) ;
-//gl_FragColor = blocklight;
-//return;
 	Lighting = Lighting * skylight*0.8 + blocklight*.4;
 
 //	Lighting = mix( Lighting, vec3(1.), BaseColor.a );

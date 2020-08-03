@@ -50,7 +50,8 @@ struct staticstore
 
 void RenderFunction( void * tag, void * opaquev )
 {
-	CNOVRFBufferDeactivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
+	if( cnovrstate->eyeTarget < 2 )
+		CNOVRFBufferDeactivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
@@ -264,8 +265,8 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRFBufferDeactivate( Pass3Buffer );
 	CNOVRFBufferBlitResolve( Pass3Buffer );
 
-
-	CNOVRFBufferActivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
+	if( cnovrstate->eyeTarget < 2 )
+		CNOVRFBufferActivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
 
 
 	CNOVRRender( DebugPass );
@@ -431,7 +432,7 @@ void noeuclidteststart( const char * identifier )
 					sizeof( float[8*4] ) );
 
 				memcpy( tileparams[7], 
-					(float[4]){ 1, 1, 0, 0 }, sizeof( float[4] ) );
+					(float[4]){ 1, 1, 1, 1 }, sizeof( float[4] ) );
 
 				for( m = 4; m < readct; m++ )
 				{
@@ -454,15 +455,21 @@ void noeuclidteststart( const char * identifier )
 	}
 
 	{
+		int blkid = 10;
+
 		int x, y, z;
 		for( z = 0; z < ARRAYSIZE; z++ )
 		for( y = 0; y < ARRAYSIZE; y++ )
 		for( x = 0; x < ARRAYSIZE; x++ )
 		{
-			MovData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 50;	//ID
+			MovData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 50;
 			MovData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][1] = 200;
 			MovData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][2] = 100;
 			MovData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][3] = 255;
+
+			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = blkid;	//ID
+			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][1] = 255;	//METADATA
+			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][3] = blkid;	//ID
 		}
 
 		for( z = 0; z < ARRAYSIZE; z++ )
@@ -470,10 +477,9 @@ void noeuclidteststart( const char * identifier )
 		{
 			int y = 127;
 			int density = (x+z)&1;
-			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 2;	//ID
-			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][1] = 0;	//METADATA
-			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][2] = density?100:0;	//Density to draw.
-			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][3] = 0;	//"Actual Cell to Draw"
+			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = blkid;	//ID
+			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][2] = density?103:0;	//Density to draw.
+			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][3] = blkid;	//"Actual Cell to Draw"
 			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 255;	//Density (Does it exist)
 			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][1] = 0;		//???
 			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][2] = 0;		//Used for jump maps
