@@ -345,9 +345,9 @@ static void TCCOGDeleteTLS( og_tls_t key )
 	MARKOGUnlockMutex( tccinterfacemutex );
 }
 
-static cnovr_rf_buffer * TCCCNOVRRFBufferCreate( int w, int h, int multisample )
+static cnovr_rf_buffer * TCCCNOVRRFBufferCreate( int w, int h, int multisample, int iColorBuffers )
 {
-	cnovr_rf_buffer * ret = CNOVRRFBufferCreate( w, h, multisample );
+	cnovr_rf_buffer * ret = CNOVRRFBufferCreate( w, h, multisample, iColorBuffers );
 	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );

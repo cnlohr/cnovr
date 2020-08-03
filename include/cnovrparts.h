@@ -53,24 +53,29 @@ void CNOVRDeleteBase( cnovr_base * b );
 
 //////////////////////////////////////////////////////////////////////////////
 
+#define MAX_COLOR_BUFFERS 4
+
 typedef struct cnovr_rf_buffer_t
 {
 	cnovr_base base;
 	GLuint nRenderFramebufferId;
 	GLuint nResolveFramebufferId;
-	GLuint nResolveTextureId;
+	GLuint nResolveTextureId[MAX_COLOR_BUFFERS];
 	GLuint nDepthBufferId;
-	GLuint nColorBufferId;
-	GLuint nRenderTextureId;
+//	GLuint nColorBufferId[MAX_COLOR_BUFFERS];
+	GLuint nRenderTextureId[MAX_COLOR_BUFFERS];
+
+	GLuint nOldRenderFramebufferId;
 
 	struct cnovr_shader_t *resolveshader;
 	struct cnovr_model_t * resolvegeo;  
 	int width, height;
 	int origw, origh; //For holding while activating buffer.
 	int multisample;
+	int iColorBuffers;
 } cnovr_rf_buffer;
 
-cnovr_rf_buffer * CNOVRRFBufferCreate( int w, int h, int multisample );
+cnovr_rf_buffer * CNOVRRFBufferCreate( int w, int h, int multisample, int nrColorBuffers ); //If multisampling is on, nrColorBuffers must be 1.
 void CNOVRFBufferActivate( cnovr_rf_buffer * b );
 void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
 void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b );

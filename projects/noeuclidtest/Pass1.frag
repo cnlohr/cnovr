@@ -319,7 +319,6 @@ void main()
 {
 	vec3 npos;
 
-
 	//maxdist += .866; //0.5, 0.5, 0.5 offset.
 
 	//Configure all variables as described in the beginning.

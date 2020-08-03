@@ -14,9 +14,12 @@ int shutting_down;
 cnovr_shader * Pass1;
 cnovr_shader * Pass2;
 cnovr_shader * Pass3;
+cnovr_shader * DebugPass;
 cnovr_shader * basic;
 cnovr_shader * test;
 cnovr_model * square;
+cnovr_rf_buffer * Pass1Buffer;
+cnovr_rf_buffer * Pass2Buffer;
 
 #define ARRAYSIZE 128
 uint8_t GeoData[ARRAYSIZE*ARRAYSIZE*ARRAYSIZE][4];
@@ -42,9 +45,33 @@ struct staticstore
 
 void RenderFunction( void * tag, void * opaquev )
 {
+	CNOVRFBufferDeactivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
+
 	glDisable(GL_CULL_FACE);
-	CNOVRRender( Pass1 );
-	//umModel = 4
+	glDisable(GL_DEPTH_TEST);
+
+	if( !Pass1Buffer || Pass1Buffer->width != cnovrstate->iEyeRenderWidth ||
+		Pass1Buffer->height != cnovrstate->iEyeRenderHeight )
+	{
+		if( Pass1Buffer )
+		{
+			CNOVRDelete( Pass1Buffer );
+		}
+		Pass1Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+	}
+
+	if( !Pass2Buffer || Pass2Buffer->width != cnovrstate->iEyeRenderWidth ||
+		Pass2Buffer->height != cnovrstate->iEyeRenderHeight )
+	{
+		if( Pass2Buffer )
+		{
+			CNOVRDelete( Pass2Buffer );
+		}
+		Pass2Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+	}
+
+	cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
+	cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
 
 	GLfloat matrix[16];
 	memset( matrix, 0, sizeof( matrix ) );
@@ -55,6 +82,12 @@ void RenderFunction( void * tag, void * opaquev )
 	int uniform;
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( UNIFORMSLOT_MODEL ) ) != INVALIDUNIFORM )
 		glUniformMatrix4fv( uniform, 1, 1, matrix );
+
+
+	CNOVRFBufferActivate( Pass1Buffer );
+
+	CNOVRRender( Pass1 );
+	//umModel = 4
 
 	glEnable( GL_TEXTURE_3D );
 	glEnable( GL_TEXTURE_2D );
@@ -97,6 +130,39 @@ void RenderFunction( void * tag, void * opaquev )
 		glUniform1f( uniform, 1.0 );
 
 	CNOVRRender( square );
+
+	CNOVRFBufferDeactivate( Pass1Buffer );
+	CNOVRFBufferBlitResolve( Pass1Buffer );
+	CNOVRRender( Pass2 );
+	CNOVRRender( square );
+
+	CNOVRFBufferActivate( Pass2Buffer );
+
+
+	CNOVRFBufferDeactivate( Pass2Buffer );
+	CNOVRFBufferBlitResolve( Pass2Buffer );
+
+
+
+	CNOVRFBufferActivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
+
+
+	CNOVRRender( DebugPass );
+	glEnable( GL_TEXTURE_2D );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 15 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM MarkTex 15
+		glUniform1i( uniform, 1 );
+
+	//printf( "%d %d %d\n", Pass1Buffer->nResolveTextureId[0], Pass1Buffer->nResolveTextureId[1], Pass1Buffer->nResolveTextureId[2] );
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[1] );
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[1] );
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[2] );
+	CNOVRRender( square );
+
+	glDisable(GL_CULL_FACE);
+	
 }
 
 void UpdateFunction( void * tag, void * opaquev )
@@ -162,6 +228,7 @@ void noeuclidteststart( const char * identifier )
 		store->initialized = 1;
 	}
 
+	DebugPass = CNOVRShaderCreateWithPrefix( "DebugPass", "#define SOMETHING_SOMETHING" );
 	Pass1 = CNOVRShaderCreateWithPrefix( "Pass1", "#define SOMETHING_SOMETHING" );
 	Pass2 = CNOVRShaderCreateWithPrefix( "Pass2", "#define SOMETHING_SOMETHING" );
 	Pass3 = CNOVRShaderCreateWithPrefix( "Pass3", "#define SOMETHING_SOMETHING" );
@@ -278,11 +345,14 @@ void noeuclidteststart( const char * identifier )
 			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][1] = 0;	//METADATA
 			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][2] = density?100:0;	//Density to draw.
 			GeoData[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][3] = 0;	//"Actual Cell to Draw"
-			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 255;	//Density
+			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 255;	//Density (Does it exist)
 			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][1] = 0;		//???
 			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][2] = 0;		//Used for jump maps
 			AddTex[x+y*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][3] = 0;		//Used for jump maps
 			//MovData is unused until we have jump maps running.  OR NOT! Apparently this is important?
+
+
+			AddTex[x+(0)*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 255;	//Density (Does it exist)
 		}
 	}
 

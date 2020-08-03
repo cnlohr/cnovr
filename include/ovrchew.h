@@ -149,6 +149,8 @@ CHEWTYPEDEF( void *, glMapBuffer, return, (target,access), GLenum target, GLenum
 CHEWTYPEDEF( void *, glMapNamedBuffer, return, (buffer,access), GLuint buffer, GLenum access )
 CHEWTYPEDEF( void *, glMapBufferRange, return, (buffer,offset,length,access), GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access )
 
+CHEWTYPEDEF( void, glDrawBuffers, , (n,bufs), GLsizei n, const GLenum *bufs )
+
 CHEWTYPEDEF( GLboolean, glUnmapBuffer, return, (target), GLenum target )
 
 #if defined( WINDOWS ) || defined( WIN32 ) || defined( WIN64 )

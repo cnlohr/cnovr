@@ -35,10 +35,14 @@ static void CNOVRRenderFrameBufferDelete( cnovr_rf_buffer * ths )
 	//Tricky - render and resolve may be the same if no multisampling is used.
 	if( ths->nResolveFramebufferId && ths->nResolveFramebufferId != ths->nRenderFramebufferId ) glDeleteFramebuffers( 1, &ths->nResolveFramebufferId );
 	if( ths->nRenderFramebufferId ) glDeleteFramebuffers( 1, &ths->nRenderFramebufferId );
-	if( ths->nResolveTextureId ) glDeleteTextures( 1, &ths->nResolveTextureId );
 	if( ths->nDepthBufferId ) glDeleteRenderbuffers( 1, &ths->nDepthBufferId );
-	if( ths->nColorBufferId ) glDeleteRenderbuffers( 1, &ths->nColorBufferId );
-	if( ths->nRenderTextureId ) glDeleteTextures( 1, &ths->nRenderTextureId );
+	int i;
+	for( i = 0; i < ths->iColorBuffers; i++ )
+	{
+		if( ths->nResolveTextureId[i] ) glDeleteTextures( 1, &ths->nResolveTextureId[i] );
+		if( ths->nRenderTextureId[i] && ths->nResolveTextureId[i] != ths->nRenderTextureId[i] )
+			glDeleteTextures( 1, &ths->nRenderTextureId[i] );
+	}
 	CNOVRListDeleteTag( ths );
 
 	CNOVRFreeLater( ths );
@@ -50,14 +54,23 @@ cnovr_header cnovr_rf_buffer_header = {
 	TYPE_RFBUFFER,
 };
 
-cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample )
+cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample, int nrResolveBuffers )
 {
 	cnovr_rf_buffer * ret = malloc( sizeof( cnovr_rf_buffer ) );
 	memset( ret, 0, sizeof( *ret ) );
 	ret->base.header = &cnovr_rf_buffer_header;
 	ret->base.tccctx = TCCGetTag();
-
+	ret->iColorBuffers = nrResolveBuffers;
 	ret->multisample = multisample;
+	ret->width = nWidth;
+	ret->height = nHeight;
+
+	if( ret->iColorBuffers != 1 && ret->multisample )
+	{
+		ovrprintf( "WARNING: Multiple resolve buffers specified with multisampling on.\n" );
+		ret->iColorBuffers = 1;
+	}
+
 	//printf( "CNOVRRFBufferCreate %d (%d,%d)\n", multisample, nWidth, nHeight );
 
 	//XXX TODO: Figure out why we can't use depth buffers with multisamples.
@@ -78,39 +91,36 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, nWidth, nHeight );
 	}
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,	ret->nDepthBufferId );
-	glGenTextures(1, &ret->nRenderTextureId );
-	glBindTexture(texmul, ret->nRenderTextureId );
-	if( !multisample )
+
+	int i;
+	for( i = 0; i < ret->iColorBuffers; i++ )
 	{
-		glTexParameterf(texmul, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterf(texmul, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameterf(texmul, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameterf(texmul, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glGenTextures(1, &ret->nRenderTextureId[i] );
+		glBindTexture(texmul, ret->nRenderTextureId[i] );
+		if( !multisample )
+		{
+			glTexParameterf(texmul, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameterf(texmul, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameterf(texmul, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameterf(texmul, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		}
+
+		//glTexParameteri(texmul, GL_GENERATE_MIPMAP, GL_TRUE);
+
+		if( multisample )
+		{
+			glTexImage2DMultisample(texmul, multisample, GL_RGBA8, nWidth, nHeight, GL_TRUE);
+		}
+		else
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+		}
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, texmul, ret->nRenderTextureId[i], 0);
 	}
-	//glTexParameteri(texmul, GL_GENERATE_MIPMAP, GL_TRUE);
-
-	if( multisample )
-	{
-		glTexImage2DMultisample(texmul, multisample, GL_RGBA8, nWidth, nHeight, GL_TRUE);
-	}
-	else
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	}
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texmul, ret->nRenderTextureId, 0);
-
-
-//	glGenRenderbuffers(1, &ret->nColorBufferId);
-//	glBindRenderbuffer(GL_RENDERBUFFER, ret->nColorBufferId);
-//	if( multisample )
-//		glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_RGBA8, nWidth, nHeight );
-//	else
-//		glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, nWidth, nHeight );
-//	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, ret->nColorBufferId );
 
 	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status != GL_FRAMEBUFFER_COMPLETE)
@@ -121,18 +131,21 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample 
 	if( !multisample )
 	{
 		ret->nResolveFramebufferId = 0;
-		ret->nResolveTextureId = ret->nRenderTextureId;
+		for( i = 0; i < ret->iColorBuffers; i++ )
+		{
+			ret->nResolveTextureId[i] = ret->nRenderTextureId[i];
+		}
 	}
 	else
 	{
 		glGenFramebuffers(1, &ret->nResolveFramebufferId );
 		glBindFramebuffer(GL_FRAMEBUFFER, ret->nResolveFramebufferId);
-		glGenTextures(1, &ret->nResolveTextureId );
-		glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId );
+		glGenTextures(1, &ret->nResolveTextureId[0] );
+		glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId[0] );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId[0], 0);
 	}
 
 	// check FBO status
@@ -171,7 +184,14 @@ void CNOVRFBufferActivate( cnovr_rf_buffer * b )
 	int w = cnovrstate->iRTWidth = b->width;
 	int h = cnovrstate->iRTHeight = b->height;
 	if( b->multisample )  glEnable( GL_MULTISAMPLE );
+
 	glBindFramebuffer( GL_FRAMEBUFFER, b->nRenderFramebufferId );
+
+	static const GLenum buffers[8] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_COLOR_ATTACHMENT2_EXT,
+		GL_COLOR_ATTACHMENT3_EXT, GL_COLOR_ATTACHMENT4_EXT, GL_COLOR_ATTACHMENT5_EXT,
+		GL_COLOR_ATTACHMENT6_EXT, GL_COLOR_ATTACHMENT7_EXT};
+    glDrawBuffers( b->iColorBuffers, buffers );
+
  	glViewport(0, 0, w, h );
 	if( CNOVRCheck() ) ovrprintf( "POST ACTIVATE\n" );
 }
@@ -206,7 +226,7 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 		//glEnable( GL_MULTISAMPLE );
 		glBindFramebuffer( GL_FRAMEBUFFER, b->nResolveFramebufferId);
 		glActiveTextureCHEW( GL_TEXTURE0 );
-		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, b->nRenderTextureId );
+		glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, b->nRenderTextureId[0] );
 		if( CNOVRCheck() ) ovrprintf( "MIDDLE RESOLVE\n" );
 		glDisable( GL_BLEND ); // XXX TODO: Want to be in for a wild ride?  With multisample on in mixed reality, enable blending here! HAHAHAHAH
 		CNOVRRender( b->resolveshader );

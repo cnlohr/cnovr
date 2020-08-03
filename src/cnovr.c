@@ -167,8 +167,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->iEyeRenderHeight = -1;
 		cnovrstate->iPreviewWidth = -1;
 		cnovrstate->iPreviewHeight = -1;
-		cnovrstate->sterotargets[0] = 0;
-		cnovrstate->sterotargets[1] = 0;
+		cnovrstate->stereotargets[0] = 0;
+		cnovrstate->stereotargets[1] = 0;
 		cnovrstate->fPreviewFOV = 100;
 		cnovrstate->iMultisample = DEFAULT_MULTISAMPLE;
 
@@ -348,12 +348,12 @@ void CNOVRUpdate()
 		cnovrstate->oSystem->GetRecommendedRenderTargetSize( &iEyeRenderWidth, &iEyeRenderHeight );
 		if( iEyeRenderWidth != cnovrstate->iEyeRenderWidth || iEyeRenderHeight != cnovrstate->iEyeRenderHeight )
 		{
-			CNOVRDelete( cnovrstate->sterotargets[0] );
-			CNOVRDelete( cnovrstate->sterotargets[1] );
+			CNOVRDelete( cnovrstate->stereotargets[0] );
+			CNOVRDelete( cnovrstate->stereotargets[1] );
 	 
 			//Resize the render targets.
-			cnovrstate->sterotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->iMultisample );
-			cnovrstate->sterotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->iMultisample );
+			cnovrstate->stereotargets[0] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->iMultisample, 1 );
+			cnovrstate->stereotargets[1] = CNOVRRFBufferCreate( iEyeRenderWidth, iEyeRenderHeight, cnovrstate->iMultisample, 1 );
 			cnovrstate->iEyeRenderWidth = iEyeRenderWidth;
 			cnovrstate->iEyeRenderHeight = iEyeRenderHeight;
 		}
@@ -410,10 +410,10 @@ void CNOVRUpdate()
 				matrix44identity( cnovrstate->mModel );
 			}
 
-			if( !cnovrstate->sterotargets[i] ) continue;
+			if( !cnovrstate->stereotargets[i] ) continue;
 
 			//This is a balance:  We could render both eyes simultaneously, or we could do this. 
-			CNOVRFBufferActivate( cnovrstate->sterotargets[i] );
+			CNOVRFBufferActivate( cnovrstate->stereotargets[i] );
 			int width = cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
 			int height = cnovrstate->iRTHeight = cnovrstate->iEyeRenderHeight;
 			glViewport(0, 0, width, height );
@@ -424,15 +424,15 @@ void CNOVRUpdate()
 			CNOVRListCall( cnovrLRender2, 0, 0); 
 			CNOVRListCall( cnovrLRender3, 0, 0); 
 			CNOVRListCall( cnovrLRender4, 0, 0); 
-			//CNOVRFBufferDeactivate( cnovrstate->sterotargets[i] );
-			CNOVRFBufferBlitResolve( cnovrstate->sterotargets[i] );
+			//CNOVRFBufferDeactivate( cnovrstate->stereotargets[i] );
+			CNOVRFBufferBlitResolve( cnovrstate->stereotargets[i] );
 		}
 		for( i = 0; i < 2; i++ )
 		{
 
 			Texture_t t;
-		//	t.handle = (void*)(uintptr_t)cnovrstate->sterotargets[i]->nRenderTextureId;
-			t.handle = (void*)(uintptr_t)cnovrstate->sterotargets[i]->nResolveTextureId;
+		//	t.handle = (void*)(uintptr_t)cnovrstate->stereotargets[i]->nRenderTextureId;
+			t.handle = (void*)(uintptr_t)cnovrstate->stereotargets[i]->nResolveTextureId[0];
 			t.eType = ETextureType_TextureType_OpenGL;
 			t.eColorSpace = EColorSpace_ColorSpace_Auto;
 			cnovrstate->oCompositor->Submit( EVREye_Eye_Left + i, &t, 0, 0 ); 

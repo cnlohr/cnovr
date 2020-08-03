@@ -31,7 +31,7 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap );
 struct cnovrstate_t
 {
 	//Current rendertarget
-	cnovr_rf_buffer * sterotargets[2];	//Left and right eyes.
+	cnovr_rf_buffer * stereotargets[2];	//Left and right eyes.
 
 	//GL State Stuff (in the "renderprops" array)
 	float iRTWidth;
