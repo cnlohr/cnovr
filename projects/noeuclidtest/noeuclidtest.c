@@ -20,6 +20,7 @@ cnovr_shader * test;
 cnovr_model * square;
 cnovr_rf_buffer * Pass1Buffer;
 cnovr_rf_buffer * Pass2Buffer;
+cnovr_rf_buffer * Pass3Buffer;
 
 #define ARRAYSIZE 128
 uint8_t GeoData[ARRAYSIZE*ARRAYSIZE*ARRAYSIZE][4];
@@ -28,11 +29,15 @@ uint8_t MovData[ARRAYSIZE*ARRAYSIZE*ARRAYSIZE][4];
 uint8_t AdditionalData[ARRAYSIZE*ARRAYSIZE*ARRAYSIZE][4];
 float AttribData[128*256][4];
 
+#define NOISESIZE 16
+float NoiseData[NOISESIZE*NOISESIZE][4];
+
 GLuint geoDataTextureId;
 GLuint addDataTextureId;
 GLuint movDataTextureId;
 GLuint additionalDataTextureId;
 GLuint attribDataTextureId;
+GLuint noiseDataTextureId;
 
 struct staticstore
 {
@@ -68,6 +73,16 @@ void RenderFunction( void * tag, void * opaquev )
 			CNOVRDelete( Pass2Buffer );
 		}
 		Pass2Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+	}
+
+	if( !Pass3Buffer || Pass3Buffer->width != cnovrstate->iEyeRenderWidth ||
+		Pass3Buffer->height != cnovrstate->iEyeRenderHeight )
+	{
+		if( Pass3Buffer )
+		{
+			CNOVRDelete( Pass3Buffer );
+		}
+		Pass3Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
 	}
 
 	cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
@@ -130,18 +145,124 @@ void RenderFunction( void * tag, void * opaquev )
 		glUniform1f( uniform, 1.0 );
 
 	CNOVRRender( square );
-
 	CNOVRFBufferDeactivate( Pass1Buffer );
 	CNOVRFBufferBlitResolve( Pass1Buffer );
-	CNOVRRender( Pass2 );
-	CNOVRRender( square );
+
+
 
 	CNOVRFBufferActivate( Pass2Buffer );
 
+	CNOVRRender( Pass2 );
 
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 14 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM GeoTex 14
+		glUniform1i( uniform, 0 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 15 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM AddTex 15
+		glUniform1i( uniform, 1 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 16 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM MovTex 16
+		glUniform1i( uniform, 2 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 17 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM AdditionalInformationMap 17
+		glUniform1i( uniform, 3 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 18 ) ) != INVALIDUNIFORM )  //#MAPUNIFORM AttribMap 18
+		glUniform1i( uniform, 4 );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 27 ) ) != INVALIDUNIFORM )   //#MAPUNIFORM Pass1A 27
+		glUniform1i( uniform, 5 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 28 ) ) != INVALIDUNIFORM )  //#MAPUNIFORM Pass1B 28
+		glUniform1i( uniform, 6 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 29 ) ) != INVALIDUNIFORM )  //#MAPUNIFORM NoiseMap 29
+		glUniform1i( uniform, 7 );
+
+	glActiveTexture(GL_TEXTURE5);
+	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[0] );
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[1] );
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture( GL_TEXTURE_2D, noiseDataTextureId );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 19 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msX 19
+		glUniform1f( uniform, ARRAYSIZE );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 20 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msY 20
+		glUniform1f( uniform, ARRAYSIZE );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
+		glUniform1f( uniform, ARRAYSIZE );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
+		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 26 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM do_subtrace 26
+		glUniform1f( uniform, 1.0 );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 30 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM ScreenX 30
+		glUniform1f( uniform, cnovrstate->iEyeRenderWidth );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 31 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM ScreenY 31
+		glUniform1f( uniform, cnovrstate->iEyeRenderHeight );
+
+	CNOVRRender( square );
 	CNOVRFBufferDeactivate( Pass2Buffer );
 	CNOVRFBufferBlitResolve( Pass2Buffer );
 
+
+
+
+
+
+
+
+
+	CNOVRFBufferActivate( Pass3Buffer );
+
+	CNOVRRender( Pass3 );
+
+
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture( GL_TEXTURE_3D, geoDataTextureId);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture( GL_TEXTURE_3D, addDataTextureId);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture( GL_TEXTURE_2D, attribDataTextureId);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[0] );
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[1] );
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture( GL_TEXTURE_2D, noiseDataTextureId );
+    glActiveTexture(GL_TEXTURE6);
+    glBindTexture( GL_TEXTURE_2D, Pass2Buffer->nResolveTextureId[0] );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 23 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM GeoTex 23
+		glUniform1i( uniform, 0 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 24 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM AddTex 24
+		glUniform1i( uniform, 1 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 25 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM AttribMap 25
+		glUniform1i( uniform, 2 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 26 ) ) != INVALIDUNIFORM )  //#MAPUNIFORM Pass1A 26
+		glUniform1i( uniform, 3 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 27 ) ) != INVALIDUNIFORM )   //#MAPUNIFORM Pass1B 27
+		glUniform1i( uniform, 4 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 28 ) ) != INVALIDUNIFORM )  //#MAPUNIFORM NoiseMap 28
+		glUniform1i( uniform, 5 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 29 ) ) != INVALIDUNIFORM )  //#MAPUNIFORM Pass2 29
+		glUniform1i( uniform, 6 );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 19 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msX 19
+		glUniform1f( uniform, ARRAYSIZE );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 20 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msY 20
+		glUniform1f( uniform, ARRAYSIZE );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
+		glUniform1f( uniform, ARRAYSIZE );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
+		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 18 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM do_subtrace 18
+		glUniform1f( uniform, 1.0 );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 30 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM ScreenX 30
+		glUniform1f( uniform, cnovrstate->iEyeRenderWidth );
+	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 31 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM ScreenY 31
+		glUniform1f( uniform, cnovrstate->iEyeRenderHeight );
+
+	CNOVRRender( square );
+	CNOVRFBufferDeactivate( Pass3Buffer );
+	CNOVRFBufferBlitResolve( Pass3Buffer );
 
 
 	CNOVRFBufferActivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
@@ -154,9 +275,9 @@ void RenderFunction( void * tag, void * opaquev )
 
 	//printf( "%d %d %d\n", Pass1Buffer->nResolveTextureId[0], Pass1Buffer->nResolveTextureId[1], Pass1Buffer->nResolveTextureId[2] );
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[1] );
+	glBindTexture( GL_TEXTURE_2D, Pass3Buffer->nResolveTextureId[0] );
 	glActiveTexture(GL_TEXTURE1);
-	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[1] );
+	glBindTexture( GL_TEXTURE_2D, Pass3Buffer->nResolveTextureId[1] );
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture( GL_TEXTURE_2D, Pass1Buffer->nResolveTextureId[2] );
 	CNOVRRender( square );
@@ -208,6 +329,14 @@ static void example_scene_setup( void * tag, void * opaquev )
     glBindTexture(GL_TEXTURE_2D, 0);
 
 
+	glGenTextures( 1, &noiseDataTextureId );
+	glBindTexture( GL_TEXTURE_2D, noiseDataTextureId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, NOISESIZE, NOISESIZE, 0, GL_RGBA, GL_FLOAT, NoiseData );
+    glBindTexture(GL_TEXTURE_2D, 0);
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
@@ -354,6 +483,12 @@ void noeuclidteststart( const char * identifier )
 
 			AddTex[x+(0)*ARRAYSIZE+z*ARRAYSIZE*ARRAYSIZE][0] = 255;	//Density (Does it exist)
 		}
+	}
+
+	int i;
+	for( i = 0; i < NOISESIZE*NOISESIZE*4; i++ )
+	{
+		((float*)NoiseData[0])[i] = (rand() % 16384) / 16384.0f;
 	}
 
 /*	memset( GeoData, 0xff, sizeof( GeoData ) );

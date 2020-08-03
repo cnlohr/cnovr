@@ -1,3 +1,6 @@
+#version AUTOVER
+#include "cnovr.glsl"
+
 //#define SUBTRACE_OVERRIDE
 //#define ATI
 
@@ -18,32 +21,32 @@ const vec3 lshw = vec3( 0. );
 #ifdef SUBTRACE_OVERRIDE
 const float do_subtrace = false;
 #else
-uniform float do_subtrace;
+uniform float do_subtrace; //#MAPUNIFORM do_subtrace 26
 #endif
 
 //Size of voxel texture in pixels.
-uniform float msX;
-uniform float msY;
-uniform float msZ;
+uniform float msX; //#MAPUNIFORM msX 19
+uniform float msY; //#MAPUNIFORM msY 20
+uniform float msZ; //#MAPUNIFORM msZ 21
 
 //Multiplier to convert from world space coordinates into voxel map coordinates
 vec3 msize = vec3( 1./msX, 1./msY, 1./msZ );
 
 //total elapsed time.  Don't be shocked if this resets to zero. Considering
 //this because over time, it could accumulate floating point error.
-uniform float time;
+uniform float time;	//#MAPUNIFORM time 22
 
 
-varying vec3 RayDirection;
-varying vec3 InitialCamera;
-varying vec2 PosInTex;
+in vec3 RayDirection;
+in vec3 InitialCamera;
+in vec2 PosInTex;
 
-uniform sampler3D GeoTex;
-uniform sampler3D AddTex;
-uniform sampler2D AttribMap;
-uniform sampler2D Pass1A;
-uniform sampler2D Pass1B;
-uniform sampler2D NoiseMap;
+uniform sampler3D GeoTex;   //#MAPUNIFORM GeoTex 14
+uniform sampler3D AddTex;   //#MAPUNIFORM AddTex 15
+uniform sampler2D AttribMap; //#MAPUNIFORM AttribMap 18
+uniform sampler2D Pass1A;    //#MAPUNIFORM Pass1A 27
+uniform sampler2D Pass1B;	//#MAPUNIFORM Pass1B 28
+uniform sampler2D NoiseMap;	//#MAPUNIFORM NoiseMap 29
 
 //Variables and functions for Olano-like Perlin noise generation
 vec4 gNoise2( vec2 idata );
@@ -55,8 +58,8 @@ float pNoise2( vec2 PLoc );
 
 vec3 dir, ptr, CameraOffset,FloorCameraPos,CurrentCamera;
 
-uniform float ScreenX;
-uniform float ScreenY;
+uniform float ScreenX; //#MAPUNIFORM ScreenX 30
+uniform float ScreenY; //#MAPUNIFORM ScreenY 31
 
 vec3 SunPos;
 vec3 SunColor;
@@ -74,8 +77,8 @@ void main()
 	CameraOffset = mod( (FloorCameraPos * msize), 1.0 ) + lshw;
 	dir = normalize(RayDirection);
 
-	vec4 Position = texture2D( Pass1A, PosInTex );
-	vec4 Normal = texture2D( Pass1B, PosInTex );
+	vec4 Position = texture( Pass1A, PosInTex );
+	vec4 Normal = texture( Pass1B, PosInTex );
 
 	daytime = mod( time*.01, 6.28318 );
 	SunPos = vec3( -cos( daytime ), 0., sin( daytime ) );
@@ -112,8 +115,9 @@ void main()
 */
 	if( Normal.a < .5 )
 	{
-//		gl_FragColor = vec4( CalcSky(), 1. );
-		discard;
+		//XXX Departure
+		gl_FragColor = vec4( 1., 1., 0., 1. );
+//		discard;
 		return;
 	}
 
@@ -123,6 +127,7 @@ void main()
 	vec3 ppmod = 1.-mod(ptr.xyz ,1.)/1.;
 	vec3 GlobalPos = FloorCameraPos + ptr;
 
+
 	//This may look unusual - but it's needed to find the actual cell we should draw
 	//onto this location.  The reason for this is because sometimes the cell you draw
 	//is physically in the 'wrong' place - but we want this effect.  Additionally, this
@@ -130,14 +135,14 @@ void main()
 	if( do_subtrace >= 0.5 )
 	{
 		vec3 texptr = floor( ptr.xyz );
-		float ptA = texture3D( GeoTex, ( texptr - vec3(0.0,0.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptB = texture3D( GeoTex, ( texptr - vec3(1.0,0.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptC = texture3D( GeoTex, ( texptr - vec3(0.0,1.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptD = texture3D( GeoTex, ( texptr - vec3(1.0,1.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptE = texture3D( GeoTex, ( texptr - vec3(0.0,0.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptF = texture3D( GeoTex, ( texptr - vec3(1.0,0.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptG = texture3D( GeoTex, ( texptr - vec3(0.0,1.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
-		float ptH = texture3D( GeoTex, ( texptr - vec3(1.0,1.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptA = texture( GeoTex, ( texptr - vec3(0.0,0.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptB = texture( GeoTex, ( texptr - vec3(1.0,0.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptC = texture( GeoTex, ( texptr - vec3(0.0,1.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptD = texture( GeoTex, ( texptr - vec3(1.0,1.0,0.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptE = texture( GeoTex, ( texptr - vec3(0.0,0.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptF = texture( GeoTex, ( texptr - vec3(1.0,0.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptG = texture( GeoTex, ( texptr - vec3(0.0,1.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
+		float ptH = texture( GeoTex, ( texptr - vec3(1.0,1.0,1.0) + 0.0 )*msize + CameraOffset ).r>0.?1.:0.;
 
 		vec4 PN1 = vec4( pNoise3( GlobalPos.xyz + 1.0 ), pNoise3( GlobalPos.xyz + 2.0 ),
 				 pNoise3( GlobalPos.xyz + 3.0 ), pNoise3( GlobalPos.xyz + 4.0 ) );
@@ -166,7 +171,7 @@ void main()
 	}
 
 	ppmod = mod( ppmod -(do_subtrace*.5), 1.0 );
-	vec4 ExtraData = texture3D( GeoTex, floor( ptr - CellPoint)*msize + CameraOffset );
+	vec4 ExtraData = texture( GeoTex, floor( ptr - CellPoint)*msize + CameraOffset );
 
 	//Discard 0xFF. It's a "Done" flag.
 	if( ExtraData.a >= 1.0 ) 
@@ -196,11 +201,11 @@ void main()
 	float core = length( (ppmod.xyz-.5) * vec3( 1., 1., CoreData.y ) ) * CoreData.x;
 	core = mod( core+noise, CoreData.z ) * CoreData.a;
 
+
 	noise = noise+core;
 	vec3 NoiseOut = noise * ((noise<Speckles.a)?Speckles.rgb:NoiseColor.rgb);
 	noise = abs( noise );
 	OutColor = BaseColor.rgb + NoiseOut;
-
 
 	//Lighting color
 	vec3 Sunamt = max( dot(Normal.xyz, SunPos),  0. ) * SunColor;
@@ -221,9 +226,9 @@ void main()
 */
 	//the idea is to use the normal to step back to the previous block to get the light info
 	vec3 backPedal = normalize(Normal.xyz);
-//	vec4 LightCell = texture3D( AddTex, floor( ptr +.5 + nrmady*.4 )*msize + CameraOffset );
-	vec4 LightCell = texture3D( GeoTex, floor( ptr + backPedal )*msize + CameraOffset );
-//	vec4 LightCell = texture3D( AddTex, floor( ptr )*msize  + CameraOffset );
+//	vec4 LightCell = texture( AddTex, floor( ptr +.5 + nrmady*.4 )*msize + CameraOffset );
+	vec4 LightCell = texture( GeoTex, floor( ptr + backPedal )*msize + CameraOffset );
+//	vec4 LightCell = texture( AddTex, floor( ptr )*msize  + CameraOffset );
 
 	float skylight = pow( floor(mod(LightCell.g*16.,16.))/16., 2. );
 	float blocklight = pow( mod( LightCell.g*255., 16. )/16., 2.) ;

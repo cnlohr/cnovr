@@ -1,3 +1,6 @@
+#version AUTOVER
+#include "cnovr.glsl"
+
 //#define SUBTRACE_OVERRIDE
 //#define ATI
 
@@ -18,33 +21,33 @@ const vec3 lshw = vec3( 0. );
 #ifdef SUBTRACE_OVERRIDE
 const float do_subtrace = false;
 #else
-uniform float do_subtrace;
+uniform float do_subtrace; //#MAPUNIFORM do_subtrace 18
 #endif
 
 //Size of voxel texture in pixels.
-uniform float msX;
-uniform float msY;
-uniform float msZ;
+uniform float msX; //#MAPUNIFORM msX 19
+uniform float msY; //#MAPUNIFORM msY 20
+uniform float msZ; //#MAPUNIFORM msZ 21
 
 //Multiplier to convert from world space coordinates into voxel map coordinates
 vec3 msize = vec3( 1./msX, 1./msY, 1./msZ );
 
 //total elapsed time.  Don't be shocked if this resets to zero. Considering
 //this because over time, it could accumulate floating point error.
-uniform float time;
+uniform float time;	//#MAPUNIFORM time 22
 
 
-varying vec3 RayDirection;
-varying vec3 InitialCamera;
-varying vec2 PosInTex;
+in vec3 RayDirection;
+in vec3 InitialCamera;
+in vec2 PosInTex;
 
-uniform sampler3D GeoTex;
-uniform sampler3D AddTex;
-uniform sampler2D AttribMap;
-uniform sampler2D Pass1A;
-uniform sampler2D Pass1B;
-uniform sampler2D NoiseMap;
-uniform sampler2D Pass2;
+uniform sampler3D GeoTex; //#MAPUNIFORM GeoTex 23
+uniform sampler3D AddTex; //#MAPUNIFORM AddTex 24
+uniform sampler2D AttribMap; //#MAPUNIFORM AttribMap 25
+uniform sampler2D Pass1A; //#MAPUNIFORM Pass1A 26
+uniform sampler2D Pass1B; //#MAPUNIFORM Pass1B 27
+uniform sampler2D NoiseMap; //#MAPUNIFORM NoiseMap 28
+uniform sampler2D Pass2; //#MAPUNIFORM Pass2 29
 
 //Variables and functions for Olano-like Perlin noise generation
 vec4 gNoise2( vec2 idata );
@@ -56,8 +59,8 @@ float pNoise2( vec2 PLoc );
 
 vec3 dir, ptr, CameraOffset,FloorCameraPos,CurrentCamera;
 
-uniform float ScreenX;
-uniform float ScreenY;
+uniform float ScreenX; //#MAPUNIFORM ScreenX 30
+uniform float ScreenY; //#MAPUNIFORM ScreenY 31
 
 vec3 SunPos;
 vec3 SunColor;
@@ -71,8 +74,8 @@ vec3 CalcSky();
 float skybright;
 vec3 SkyBrightPos;
 
-varying mat4 toss;
-varying vec4 BasePosition; //Initial ray direction (currently unused)
+in mat4 toss;
+in vec4 BasePosition; //Initial ray direction (currently unused)
 
 void main()
 {
@@ -86,7 +89,7 @@ void main()
 	vec4 Pass2Data = texture2D( Pass2, vec2( PosInTex.x, 1.-PosInTex.y ) );
 
 	daytime = mod( time*.01, 6.28318 );
-	SunPos = vec3( -cos( daytime ), 0., sin( daytime ) );
+	SunPos = vec3( cos( daytime ), 0, -sin( daytime ) );
 
 	//Night time
 	NightAmount = -SunPos.z + .1;
@@ -145,11 +148,12 @@ void main()
 
 vec3 CalcSky()
 {
-	float dz = dir.z+.1;//(dir.z>0.1)?dir.z:0.1;
+	vec3 ldir = dir.xzy;
+	float dz = ldir.z+.1;//(dir.z>0.1)?dir.z:0.1;
 	vec3 clouds = vec3( 0.1, 0.12, .8 )*2.;
 	if( dz > 0.02)
 	{
-		vec2 skypos = vec2( dir.x/dz, dir.y/dz )/20. + dir.xy*.1;
+		vec2 skypos = vec2( ldir.x/dz, ldir.y/dz )/20. + ldir.xy*.1;
 		skypos/=2.;
 		skypos += vec2(time*.001);
 
@@ -162,7 +166,7 @@ vec3 CalcSky()
 	}
 
 	//Sunsize controlled by middle two terms, last term controls sun glaze
-	float sunqty = max( pow( (1.0 - length((dir - SunPos)))*1.1, 20.5 ), 0. );
+	float sunqty = max( pow( (1.0 - length((ldir - SunPos)))*1.1, 20.5 ), 0. );
 	sunqty = (sunqty<1.)?(sunqty*.8):1.;
 	vec3 suncolor = vec3( 1., .9, .2 ) * sunqty;
 
@@ -174,8 +178,8 @@ vec3 CalcSky()
 
 	//a little yucky...  need to rotate view direction about day time for stars
 //-cos( daytime ), 0., sin( daytime )
-	vec3 StarOrientation = vec3( dir.z * sin(daytime) - dir.x * cos(daytime), dir.y, dir.z*cos(daytime) + dir.x*sin(daytime) );
-	float StarNoise = pNoise3( vec3( StarOrientation )/10. )*1.0 + pNoise3( vec3( StarOrientation ) * ScreenY/32. )*5. -2.;
+	vec3 StarOrientation = vec3( ldir.z * sin(daytime) - ldir.x * cos(daytime), ldir.y, ldir.z*cos(daytime) + ldir.x*sin(daytime) );
+	float StarNoise = pNoise3( vec3( StarOrientation )/10. )*1.0 + pNoise3( vec3( StarOrientation ) * ScreenY/128. )*5. -2.;
 	StarNoise -= 1.2;
 
 	StarNoise = max(0.,StarNoise);
@@ -183,12 +187,12 @@ vec3 CalcSky()
 
 	StarNoise = clamp( StarNoise, 0., 2. );
 	//Sunsize controlled by middle two terms, last term controls sun glaze
-	float moonqty = max( pow( (1.00 - length((dir - MoonPos)))*1.15, 9.5 ), 0. );
+	float moonqty = max( pow( (1.00 - length((ldir - MoonPos)))*1.15, 9.5 ), 0. );
 	if(moonqty<1.)
 		moonqty *= .5;
 	else
 	{
-		vec2 moont = (dir.bg-MoonPos.bg)*5.;
+		vec2 moont = (ldir.bg-MoonPos.bg)*5.;
 
 		moont = tan( moont * 3.14159/2. )/6.;
 		moonqty = pNoise2( moont )+pNoise2( moont*2. )*.5+pNoise2( moont*4. )*.25;
