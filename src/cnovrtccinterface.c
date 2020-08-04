@@ -808,6 +808,9 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( glBufferData )
 	TCCExportS( glMapBuffer )
 	TCCExportS( glUniform4fv )
+	TCCExportS( glUniform1i )
+	TCCExportS( glUniformMatrix4fv )
+	TCCExportS( glUniform1f )
 	TCCExportS( glUniform4f )
 	TCCExportS( glUniform4fvCHEW )
 	TCCExportS( glBindTexture )
@@ -826,6 +829,13 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( glViewport )
 	TCCExportS( glClearColor )
 	TCCExportS( glClear )
+
+
+	TCCExportS( CNOVRFBufferDeactivate )
+	TCCExportS( glActiveTexture )
+	TCCExportS( glGenTextures )
+	TCCExportS( glTexImage3D )
+	TCCExportS( atof )
 	
 	TCCExportS( glDisable )
 

@@ -52,6 +52,8 @@ void RenderFunction( void * tag, void * opaquev )
 {
 	double EuclidTime = 100.; OGGetAbsoluteTime()-StartTime;
 
+	if( cnovrstate->eyeTarget == 2 ) return;
+	
 	if( cnovrstate->eyeTarget < 2 )
 		CNOVRFBufferDeactivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
 
