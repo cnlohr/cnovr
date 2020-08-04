@@ -145,7 +145,7 @@ vec3 normal = vec3( 0., 0., 1. );
 int step;
 
 //Maximum steps we're permitted
-const int maxsteps = 190;
+const int maxsteps = 50;
 
 //Maximum distance from camera we can go before it's treated as a "forever"
 //const float maxdist = 256.;

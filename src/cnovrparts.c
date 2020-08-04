@@ -54,8 +54,11 @@ cnovr_header cnovr_rf_buffer_header = {
 	TYPE_RFBUFFER,
 };
 
-cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample, int nrResolveBuffers )
+cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int flags, int nrResolveBuffers )
 {
+	int multisample  =  flags & RFBUFFER_FLAGS_MULTISAMPLE_MASK;
+	int is_rgba32f = !!(flags & RFBUFFER_FLAGS_RGBA32F);
+
 	cnovr_rf_buffer * ret = malloc( sizeof( cnovr_rf_buffer ) );
 	memset( ret, 0, sizeof( *ret ) );
 	ret->base.header = &cnovr_rf_buffer_header;
@@ -113,7 +116,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample,
 		}
 		else
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTexImage2D(GL_TEXTURE_2D, 0, is_rgba32f?GL_RGBA32F:GL_RGBA, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
