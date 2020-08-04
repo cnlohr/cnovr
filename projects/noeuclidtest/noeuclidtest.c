@@ -50,6 +50,8 @@ struct staticstore
 
 void RenderFunction( void * tag, void * opaquev )
 {
+	double EuclidTime = 100.; OGGetAbsoluteTime()-StartTime;
+
 	if( cnovrstate->eyeTarget < 2 )
 		CNOVRFBufferDeactivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
 
@@ -63,7 +65,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRDelete( Pass1Buffer );
 		}
-		Pass1Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+		Pass1Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, RFBUFFER_FLAGS_RGBA32F, 4 );
 	}
 
 	if( !Pass2Buffer || Pass2Buffer->width != cnovrstate->iEyeRenderWidth ||
@@ -73,7 +75,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRDelete( Pass2Buffer );
 		}
-		Pass2Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+		Pass2Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, RFBUFFER_FLAGS_RGBA32F, 4 );
 	}
 
 	if( !Pass3Buffer || Pass3Buffer->width != cnovrstate->iEyeRenderWidth ||
@@ -83,7 +85,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRDelete( Pass3Buffer );
 		}
-		Pass3Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+		Pass3Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, RFBUFFER_FLAGS_RGBA32F, 4 );
 	}
 
 	cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;
@@ -136,7 +138,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
 		glUniform1f( uniform, ARRAYSIZE );
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
-		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+		glUniform1f( uniform, EuclidTime );
 
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 23 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM mixval 23
 		glUniform1f( uniform, .9 );
@@ -187,7 +189,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
 		glUniform1f( uniform, ARRAYSIZE );
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
-		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+		glUniform1f( uniform, EuclidTime );
 
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 26 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM do_subtrace 26
 		glUniform1f( uniform, 1.0 );
@@ -252,7 +254,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
 		glUniform1f( uniform, ARRAYSIZE );
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
-		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+		glUniform1f( uniform, EuclidTime );
 
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 18 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM do_subtrace 18
 		glUniform1f( uniform, 1.0 );
