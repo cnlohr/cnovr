@@ -77,6 +77,19 @@ Add `-DSTB_INCLUDE_LINE_NONE` to the end of line 2 in `winbuild.bat`.
 
 #### No OSX Support planned because there are no VR platforms for OSX. 
 
+## Controller support
+As of now it supports the following controllers natively:
+	* Vive
+	* Knucles
+	* Oculus Touch
+
+#### Adding support:
+To add support for your controllers you need to:
+	* Create a default_<controller_name>.json
+	* Add it to default_actions.json
+
+You can find steamVR's default configuration files for each controller supported in SteamVR\drivers\CONTROLLER\resources\input . They are useful to find the internal name of both the controllers and their functions.
+
 ## Mixed reality
 
 You will need Linux to do mixed reality.  There is currently no windows driver supported by cnv4l2.  There is a camera widget you can see from within VR that will help you configure your camera if you enable advanced camera settings in your JSON.  There are a few weird restrictions.  Your camera **must** be 1920x1080, and **must** be YUYV.  30 or 60 Hz is supported, but 60 Hz is **strongly recommended**.   You **cannot** use an MJPEG camera.  The setup I found to work best was using a Mira capture card and a DSLR I have on long-term loan from a friend.  This means you can only use a USB 3.0 enabled camera.  Mirabox capture cards just happen to work out very well and are the least expensive capture cards.  Other more expensive ones may work.

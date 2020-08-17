@@ -1,7 +1,14 @@
 {
   "default_bindings": [
     { "controller_type": "vive_controller", "binding_url": "default_vive.json" },
-    { "controller_type": "knuckles", "binding_url": "default_knuckles.json" }
+    {
+      "controller_type": "knuckles",
+      "binding_url": "default_knuckles.json"
+    },
+    {
+      "controller_type": "oculus_touch",
+      "binding_url": "default_touch.json"
+    }
   ],
   "action_sets": [
     {

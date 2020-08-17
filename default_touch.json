@@ -1,0 +1,154 @@
+{
+  "action_manifest_version": 0,
+  "alias_info": {},
+  "bindings": {
+    "/actions/m": {
+      "poses": [
+        {
+          "output": "/actions/m/in/tipleft",
+          "path": "/user/hand/left/pose/tip"
+        },
+        {
+          "output": "/actions/m/in/tipright",
+          "path": "/user/hand/right/pose/tip"
+        },
+        {
+          "output": "/actions/m/in/modelleft",
+          "path": "/user/hand/left/pose/raw"
+        },
+        {
+          "output": "/actions/m/in/modelright",
+          "path": "/user/hand/right/pose/raw"
+        },
+        {
+          "output": "none",
+          "path": "/user/hand/left/pose/handgrip"
+        },
+        {
+          "output": "none",
+          "path": "/user/hand/right/pose/handgrip"
+        },
+        {
+          "output": "/actions/m/in/modelleft",
+          "path": "/user/hand/left/pose/base"
+        },
+        {
+          "output": "/actions/m/in/modelright",
+          "path": "/user/hand/right/pose/base"
+        }
+      ],
+      "sources": [
+        {
+          "inputs": {
+            "touch": {
+              "output": "/actions/m/in/pinchclickright"
+            }
+          },
+          "mode": "joystick",
+          "path": "/user/hand/right/input/joystick"
+        },
+        {
+          "inputs": {
+            "touch": {
+              "output": "/actions/m/in/pinchclickleft"
+            }
+          },
+          "mode": "joystick",
+          "path": "/user/hand/left/input/joystick"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/buttonaright"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/right/input/a"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/buttonbright"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/right/input/b"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/graspclickright"
+            }
+          },
+          "mode": "trigger",
+          "path": "/user/hand/right/input/grip"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/trigclickright"
+            },
+            "pull": {
+              "output": "/actions/m/in/trigright"
+            }
+          },
+          "mode": "trigger",
+          "path": "/user/hand/right/input/trigger"
+        },
+        {
+          "inputs": {},
+          "mode": "none",
+          "path": "/user/hand/left/input/system"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/trigclickleft"
+            },
+            "pull": {
+              "output": "/actions/m/in/trigleft"
+            }
+          },
+          "mode": "trigger",
+          "path": "/user/hand/left/input/trigger"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/graspclickleft"
+            },
+            "pull": {
+              "output": "/actions/m/in/trigleft"
+            }
+          },
+          "mode": "trigger",
+          "path": "/user/hand/left/input/grip"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/buttonaleft"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/left/input/x"
+        },
+        {
+          "inputs": {
+            "click": {
+              "output": "/actions/m/in/buttonbleft"
+            }
+          },
+          "mode": "button",
+          "path": "/user/hand/left/input/y"
+        }
+      ]
+    }
+  },
+  "category": "steamvr_input",
+  "controller_type": "oculus_touch",
+  "description": "cnovr Oculus Touch controller bindings",
+  "name": "cnovr Oculus Touch controller bindings",
+  "options": {},
+  "simulated_actions": []
+}

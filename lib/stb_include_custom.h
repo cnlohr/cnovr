@@ -196,7 +196,7 @@ char *stb_include_string(char *str, char *inject, char *path_to_includes, char *
          stb_include_itoa(temp+6, 1);
          strcat(temp, " ");
          #ifdef STB_INCLUDE_LINE_GLSL
-         stb_include_itoa(temp+15, i+1);
+         //stb_include_itoa(temp+15, i+1);
          #else
          strcat(temp, "\"");
          if (inc_list[i].filename == 0)
