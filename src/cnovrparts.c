@@ -292,7 +292,7 @@ static GLuint CNOVRShaderCompilePart( cnovr_shader * ths, GLuint shader_type, co
 {
 	//Tricky - see if we want to autoversion this.
 #ifndef TARGET_SHADER_VERSION
-#define TARGET_SHADER_VERSION "410"
+#define TARGET_SHADER_VERSION "330"
 #endif
 
 	if( strncmp( compstr, "#version AUTOVER", 16 ) == 0 )
