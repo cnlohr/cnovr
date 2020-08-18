@@ -1,10 +1,10 @@
 {
 	"searchfolders" : [
-		"projects/minimal"
+		"projects/barebones"
 	],
 	"cfiles" : [
 		{
-			"cfile" : "minimal.c",
+			"cfile" : "barebones.c",
 			"identifier" : "",
 			"disabled" : false,
 		},
