@@ -64,7 +64,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRDelete( Pass1Buffer );
 		}
-		Pass1Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+		Pass1Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, CNOVRRFBUFFER_FLAG_USE_FLOAT_TEXTURES, 4 );
 	}
 
 	if( !Pass2Buffer || Pass2Buffer->width != cnovrstate->iEyeRenderWidth ||
@@ -74,7 +74,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRDelete( Pass2Buffer );
 		}
-		Pass2Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+		Pass2Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, CNOVRRFBUFFER_FLAG_USE_FLOAT_TEXTURES, 4 );
 	}
 
 	if( !Pass3Buffer || Pass3Buffer->width != cnovrstate->iEyeRenderWidth ||
@@ -84,7 +84,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRDelete( Pass3Buffer );
 		}
-		Pass3Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, 0, 4 );
+		Pass3Buffer = CNOVRRFBufferCreate( cnovrstate->iEyeRenderWidth, cnovrstate->iEyeRenderHeight, CNOVRRFBUFFER_FLAG_USE_FLOAT_TEXTURES, 4 );
 	}
 
 	cnovrstate->iRTWidth = cnovrstate->iEyeRenderWidth;

@@ -75,7 +75,11 @@ typedef struct cnovr_rf_buffer_t
 	int iColorBuffers;
 } cnovr_rf_buffer;
 
-cnovr_rf_buffer * CNOVRRFBufferCreate( int w, int h, int multisample, int nrColorBuffers ); //If multisampling is on, nrColorBuffers must be 1.
+
+#define CNOVRRFBUFFER_FLAG_MULTISAMPLE_MASK (0xff)
+#define CNOVRRFBUFFER_FLAG_USE_FLOAT_TEXTURES 0x100
+
+cnovr_rf_buffer * CNOVRRFBufferCreate( int w, int h, int flags, int nrColorBuffers ); //If multisampling is on, nrColorBuffers must be 1.
 void CNOVRFBufferActivate( cnovr_rf_buffer * b );
 void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
 void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b );

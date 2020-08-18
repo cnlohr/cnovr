@@ -54,8 +54,12 @@ cnovr_header cnovr_rf_buffer_header = {
 	TYPE_RFBUFFER,
 };
 
-cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample, int nrResolveBuffers )
+cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int flags, int nrResolveBuffers )
 {
+	int multisample = flags & CNOVRRFBUFFER_FLAG_MULTISAMPLE_MASK;
+	int use_float_textures = flags & CNOVRRFBUFFER_FLAG_USE_FLOAT_TEXTURES;
+	GLuint colorstorage = use_float_textures?GL_RGBA32F:GL_RGBA8;
+
 	cnovr_rf_buffer * ret = malloc( sizeof( cnovr_rf_buffer ) );
 	memset( ret, 0, sizeof( *ret ) );
 	ret->base.header = &cnovr_rf_buffer_header;
@@ -109,11 +113,11 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample,
 
 		if( multisample )
 		{
-			glTexImage2DMultisample(texmul, multisample, GL_RGBA8, nWidth, nHeight, GL_TRUE);
+			glTexImage2DMultisample(texmul, multisample, colorstorage, nWidth, nHeight, GL_TRUE);
 		}
 		else
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+			glTexImage2D(GL_TEXTURE_2D, 0, colorstorage, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
@@ -144,7 +148,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int multisample,
 		glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId[0] );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glTexImage2D(GL_TEXTURE_2D, 0, colorstorage, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId[0], 0);
 	}
 
