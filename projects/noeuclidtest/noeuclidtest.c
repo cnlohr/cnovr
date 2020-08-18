@@ -50,6 +50,7 @@ struct staticstore
 
 void RenderFunction( void * tag, void * opaquev )
 {
+	double TimeNow = 1.0;
 	if( cnovrstate->eyeTarget < 2 )
 		CNOVRFBufferDeactivate( cnovrstate->stereotargets[cnovrstate->eyeTarget] );
 
@@ -136,7 +137,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
 		glUniform1f( uniform, ARRAYSIZE );
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
-		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+		glUniform1f( uniform, TimeNow );
 
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 23 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM mixval 23
 		glUniform1f( uniform, .9 );
@@ -187,7 +188,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
 		glUniform1f( uniform, ARRAYSIZE );
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
-		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+		glUniform1f( uniform, TimeNow );
 
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 26 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM do_subtrace 26
 		glUniform1f( uniform, 1.0 );
@@ -252,7 +253,7 @@ void RenderFunction( void * tag, void * opaquev )
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 21 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM msZ 21
 		glUniform1f( uniform, ARRAYSIZE );
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 22 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM time 22
-		glUniform1f( uniform, OGGetAbsoluteTime()-StartTime );
+		glUniform1f( uniform, TimeNow );
 
 	if( ( uniform = CNOVRMAPPEDUNIFORMPOS( 18 ) ) != INVALIDUNIFORM ) //#MAPUNIFORM do_subtrace 18
 		glUniform1f( uniform, 1.0 );
