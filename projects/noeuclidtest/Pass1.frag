@@ -163,8 +163,8 @@ vec4 vectop = vec4( 0., 0., 0., 0. );
 //axis before we must consider checking to see if we hit something
 vec3 dists;
 
-const float linearstep = .1;
-const int binaryRefinements = 8;
+const float linearstep = .05;
+const int binaryRefinements = 6;
 
 #ifdef PHYSICS
 in float doPhysics;
