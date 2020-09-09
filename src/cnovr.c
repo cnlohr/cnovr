@@ -201,6 +201,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->bRenderPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
+		cnovrstate->is_submodule = CNOVRFileSearch( "cnovr/assets/cnovr.glsl" );
 	}
 
 	CNOVRInternalSetupFreeLaterSet();
