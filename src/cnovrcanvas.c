@@ -253,6 +253,7 @@ void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int
 	int place = 0;
 	unsigned short index;
 	int bQuit = 0;
+
 	while( text[place] )
 	{
 		unsigned char ch = text[place];
@@ -275,16 +276,29 @@ void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int
 			}
 
 			lmap = &RawdrawFontCharData[index];
+			short penx, peny;
+			unsigned char start_seg = 1;
 			do
 			{
-				int x1 = (int)((((*lmap) & 0x70)>>4)*scale + iox);
-				int y1 = (int)(((*lmap) & 0x0f)*scale + ioy);
-				int x2 = (int)((((*(lmap+1)) & 0x70)>>4)*scale + iox);
-				int y2 = (int)(((*(lmap+1)) & 0x0f)*scale + ioy);
-				lmap++;
-				CNOVRCanvasTackSegment( c, x1, y1, x2, y2 );
-				bQuit = *lmap & 0x80;
-				lmap++;
+				unsigned char data = (*(lmap++));
+				short x1 = (short)(((data >> 4) & 0x07)*scale + iox);
+				short y1 = (short)((data        & 0x07)*scale + ioy);
+				if( start_seg )
+				{
+					penx = x1;
+					peny = y1;
+					start_seg = 0;
+					if( data & 0x08 )
+						CNOVRCanvasTackPixel( c, x1, y1 );
+				}
+				else
+				{
+					CNOVRCanvasTackSegment( c, penx, peny, x1, y1 );
+					penx = x1;
+					peny = y1;
+				}
+				if( data & 0x08 ) start_seg = 1;
+				bQuit = data & 0x80;
 			} while( !bQuit );
 
 			iox += 3 * scale;
