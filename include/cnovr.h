@@ -76,6 +76,7 @@ struct cnovrstate_t
 	uint8_t  has_ovr;
 	uint8_t  has_preview;
 	uint8_t  iMultisample; //If 0, use direct path, otherwise, use 2+.
+	uint8_t  is_submodule;
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )

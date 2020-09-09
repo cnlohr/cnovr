@@ -359,8 +359,14 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							{
 								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
 								char * tmp = CNOVRFileSearch( tmporig );
-								if( !tmp ) { printf( "Can't find file: %s\n", tmporig ); }
-								cfile = strdup( tmp );
+								if( !tmp )
+								{
+									ovrprintf( "Can't find file: %s\n", tmporig );
+								}
+								else
+								{
+									cfile = strdup( tmp );
+								}
 							}
 							else goto failout;
 						}
@@ -419,7 +425,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 							if( t->type == JSMN_STRING || t->type == JSMN_PRIMITIVE ) //TODO: Consider removing this check.
 							{
 								jsmnstrsn( tmporig, CNOVR_MAX_PATH, filestr, t->start, t->end );
-								printf( "Assigning tag: %s = %s\n", oiindex, tmporig );
+								ovrprintf( "Assigning tag: %s = %s\n", oiindex, tmporig );
 								if( !otherproperties ) otherproperties = cnstrstrmap_create();
 								char ** v = &(cnstrstrmap_insert( otherproperties, oiindex )->data);
 								if( *v ) free( *v );
@@ -437,7 +443,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 
 					if( !cfile || !identifier )
 					{
-						printf( "Invalid JSON: cfile + identifier not available for recent identifier.\n" );
+						ovrprintf( "Invalid JSON: Either cfile or identifier invalid. You need both.\n" );
 						goto failout;
 					}
 

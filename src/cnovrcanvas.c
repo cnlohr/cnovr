@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-extern const unsigned short FontCharMap[];
-extern const unsigned char FontCharData[];
+extern const unsigned short RawdrawFontCharMap[];
+extern const unsigned char RawdrawFontCharData[];
 
 
 static void CNOVRCanvasDelete( cnovr_canvas * ths )
@@ -267,14 +267,14 @@ void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int
 			ioy += 6 * scale;
 			break;
 		default:
-			index = FontCharMap[ch];
+			index = RawdrawFontCharMap[ch];
 			if( index == 65535 )
 			{
 				iox += 3 * scale;
 				break;
 			}
 
-			lmap = &FontCharData[index];
+			lmap = &RawdrawFontCharData[index];
 			do
 			{
 				int x1 = (int)((((*lmap) & 0x70)>>4)*scale + iox);

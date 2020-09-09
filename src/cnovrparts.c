@@ -421,20 +421,23 @@ static void CNOVRShaderFileChangePrerender( void * tag, void * opaquev )
 	char includeerrors2[256];
 	includeerrors1[0] = 0;
 	includeerrors2[0] = 0;
+
+	const char * assetsfolder = "assets";
+
 	//printf( "THS: %p\n", ths );
 	sprintf( stfbGeo, "%s.geo", ths->shaderfilebase );
 	char * found = CNOVRFileSearch( stfbGeo ); if( found ) strcpy( stfbGeo, found );
 	if( found )
-		filedataGeo = stb_include_file( stfbGeo, ths->prefix, "assets", includeerrors1, CNOVRShaderFileTackInclude, tag );
+		filedataGeo = stb_include_file( stfbGeo, ths->prefix, assetsfolder, includeerrors1, CNOVRShaderFileTackInclude, tag );
 	//XXX TODO: Do we care about odd errors on geo?
 	sprintf( stfbFrag, "%s.frag", ths->shaderfilebase );
 	found = CNOVRFileSearch( stfbFrag ); if( found ) strcpy( stfbFrag, found );
 	if( found )
-		filedataFrag = stb_include_file( stfbFrag, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
+		filedataFrag = stb_include_file( stfbFrag, ths->prefix, assetsfolder, includeerrors2, CNOVRShaderFileTackInclude, tag );
 	sprintf( stfbVert, "%s.vert", ths->shaderfilebase );
 	found = CNOVRFileSearch( stfbVert ); if( found ) strcpy( stfbVert, found );
 	if( found )
-		filedataVert = stb_include_file( stfbVert, ths->prefix, "assets", includeerrors2, CNOVRShaderFileTackInclude, tag );
+		filedataVert = stb_include_file( stfbVert, ths->prefix, assetsfolder, includeerrors2, CNOVRShaderFileTackInclude, tag );
 	if( includeerrors2[0] )
 	{
 		CNOVRAlert( ths->base.tccctx, 1, "Shader preprocessor errors: %s\n", includeerrors2 );

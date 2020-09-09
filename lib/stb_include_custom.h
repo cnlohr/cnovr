@@ -51,6 +51,9 @@ char *stb_include_file(char *filename, char *inject, char *path_to_includes, cha
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef OVERRIDE_STB_INCLUDE_LOAD_FILE
+#define stb_include_load_file OVERRIDE_STB_INCLUDE_LOAD_FILE
+#else
 static char *stb_include_load_file(char *filename, size_t *plen)
 {
    char *text;
@@ -68,6 +71,7 @@ static char *stb_include_load_file(char *filename, size_t *plen)
    text[len] = 0;
    return text;
 }
+#endif
 
 typedef struct
 {

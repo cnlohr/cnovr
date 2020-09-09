@@ -353,7 +353,7 @@ char ** CNOVRFolderListing( const char * path, int * elements )
 
 char * CNOVRFileToString( const char * fname, int * length )
 {
-	const char * rfn = fname;//CNOVRFileSearch( fname );
+	const char * rfn = CNOVRFileSearch( fname );
 	if( !rfn ) return 0;
 	FILE * f = fopen( rfn, "rb" );
 	if( !f ) return 0;
