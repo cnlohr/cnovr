@@ -50,6 +50,15 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	tcc_define_symbol( tce->state, "cidval", cts );
 
 	tcc_add_library( tce->state, "m" );
+
+	//In case we're a subproject.
+	tcc_add_include_path( tce->state, "cnovr/include" );
+	tcc_add_include_path( tce->state, "cnovr/lib/tinycc/include" );
+	tcc_add_include_path( tce->state, "cnovr/lib/systemheaders" );
+	tcc_add_include_path( tce->state, "cnovr/rawdraw" );
+	tcc_add_include_path( tce->state, "cnovr/openvr/headers" );
+	tcc_add_include_path( tce->state, "cnovr" );
+
 	tcc_add_include_path( tce->state, "include" );
 	tcc_add_include_path( tce->state, "lib/tinycc/include" );
 	tcc_add_include_path( tce->state, "lib/systemheaders" );
@@ -66,6 +75,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 //	tcc_add_include_path( tce->state, "C:/tcc/include" );
 	tcc_add_include_path( tce->state, "lib/tinycc/win32/include" );
 	tcc_add_include_path( tce->state, "lib/tinycc/win32/include/winapi" );
+	tcc_add_include_path( tce->state, "cnovr/lib/tinycc/win32/include" );
+	tcc_add_include_path( tce->state, "cnovr/lib/tinycc/win32/include/winapi" );
 	tcc_define_symbol( tce->state, "_MATH_H_", "1" );
 	tcc_define_symbol( tce->state, " __STDC_VERSION__", "199901L" ); //Ugh... Long story.
 #ifdef WIN32

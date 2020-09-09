@@ -108,6 +108,12 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	CNOVRFileSearchAddPath( "assets" ); //Base fallback (also initializes file search system)
 	CNOVRFileSearchAddPath( "modules" ); //Base fallback (also initializes file search system)
 
+	//In case we are being used as a submodule.
+	CNOVRFileSearchAddPath( "cnovr/assets" );
+	CNOVRFileSearchAddPath( "cnovr/modules" );
+
+	CNOVRFileSearchAddPath( "cnovr" );
+
 	ovrprintf( "Initializing Window.\n" );
 
 	//Create Companion Window.
