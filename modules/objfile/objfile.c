@@ -50,20 +50,23 @@ static void objfile_scene_setup( void * tag, void * opaquev )
 	int i;
 
 	cnstrstrmap * map = (cnstrstrmap*)GetOtherTCCProperties();
-
-	shaderBasic = CNOVRShaderCreate( RBHAS( map, "shader" )?RBA( map, "shader" ):"assets/basic" );
+	shaderBasic = CNOVRShaderCreateWithPrefix( (map && RBHAS( map, "shader" ))?RBA( map, "shader" ):"assets/basic",
+		(map && RBHAS( map, "shaderprefix" ))?RBA( map, "shaderprefix" ):"" );
 	modelobj = CNOVRModelCreate( 0, GL_TRIANGLES );
 	modelobj->pose = &modelpose;
 	pose_make_identity( &modelpose );
-	CNOVRModelLoadFromFileAsync( modelobj, RBHAS( map, "model" )?RBA( map, "model" ):"isosphere.obj" );
+	CNOVRModelLoadFromFileAsync( modelobj, (map && RBHAS( map, "model" ))?RBA( map, "model" ):"isosphere.obj" );
 	modelcapture.tag = 0;
 	modelcapture.opaque = modelobj;
 	modelcapture.cb = CNOVRFocusDefaultFocusEvent;
 	CNOVRModelSetInteractable( modelobj, &modelcapture );
 
 
+	modelobj->iRenderMesh = 0;//(map && RBHAS( map, "rendermesh" ))?atoi(RBA( map, "rendermesh" )):-1;
+
+
 	texture = CNOVRTextureCreate( 0, 0, 0 ); //Set to all 0 to have the load control these details.
-	CNOVRTextureLoadFileAsync( texture, RBHAS( map, "texture" )?RBA( map, "texture" ):"test.png" );
+	CNOVRTextureLoadFileAsync( texture, (map && RBHAS( map, "texture" ))?RBA( map, "texture" ):"test.png" );
 
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );

@@ -232,8 +232,6 @@ void UpdateMenuStatuses()
 	}
 	sprintf( colorpropstext[6], "Frame lag: %d", store->frame_latency );
 
-
-
 	cnovr_euler_angle euler;
 	quattoeuler(euler, store->paired_relative_offset_pose.Rot );
 	sprintf( angleXsettext, "X: %3.1f", euler[0]*180./3.14159 );
