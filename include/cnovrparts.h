@@ -54,8 +54,6 @@ typedef struct cnovr_rf_buffer_t
 //	GLuint nColorBufferId[MAX_COLOR_BUFFERS];
 	GLuint nRenderTextureId[MAX_COLOR_BUFFERS];
 
-	GLuint nOldRenderFramebufferId;
-
 	struct cnovr_shader_t *resolveshader;
 	struct cnovr_model_t * resolvegeo;  
 	int width, height;

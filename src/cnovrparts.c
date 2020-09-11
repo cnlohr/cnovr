@@ -112,7 +112,7 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int flags, int n
 
 		if( multisample )
 		{
-			glTexImage2DMultisample(texmul, multisample, GL_RGBA8, nWidth, nHeight, GL_TRUE);
+			glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, multisample, GL_RGBA8, nWidth, nHeight, GL_TRUE);
 		}
 		else
 		{
@@ -121,7 +121,6 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int flags, int n
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 		}
-
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0+i, texmul, ret->nRenderTextureId[i], 0);
 	}
 
@@ -146,6 +145,9 @@ cnovr_rf_buffer * CNOVRRFBufferCreate( int nWidth, int nHeight, int flags, int n
 		glGenTextures(1, &ret->nResolveTextureId[0] );
 		glBindTexture(GL_TEXTURE_2D, ret->nResolveTextureId[0] );
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, nWidth, nHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, ret->nResolveTextureId[0], 0);
@@ -213,17 +215,6 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 {
 	if( CNOVRCheck() ) ovrprintf( "PRE RESOLVE\n" );
 
-#if 0
-	//Broken???!?
-	glBindFramebuffer( GL_FRAMEBUFFER, 0);
-	if( b->multisample ) glDisable( GL_MULTISAMPLE );
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, b->nRenderFramebufferId );
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, b->nResolveFramebufferId );
-	glBlitFramebuffer(0, 0, b->width, b->height, 0, 0, b->width, b->height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
- 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );	
-#else
-
 	if( b->multisample )
 	{
 		//glEnable( GL_MULTISAMPLE );
@@ -237,7 +228,6 @@ void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b )
 		if( CNOVRCheck() ) ovrprintf( "MIDDLE2 RESOLVE\n" );
 		CNOVRRender( b->resolvegeo );
 	}
-#endif
 
 	glBindFramebuffer( GL_FRAMEBUFFER, 0);
 

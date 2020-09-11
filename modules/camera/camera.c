@@ -1,7 +1,7 @@
 /*
 	A basic draggable camera as well as an advanced camera for live compositing.
 
-	Ok, I wrote that comment a long time ago.  Now, abandon all hope ye who entere here.
+	Ok, I wrote that comment a long time ago.  Now, it's no longer basic and abandon all hope ye who entere here.
 */
 
 #include <cnovrtcc.h>
@@ -23,6 +23,11 @@
 #define PREVIEWFRAMEHIST 20
 
 //#define SECTIONDEBUG
+
+#ifdef OBS
+#error OBS is not implemented correctly.
+#endif
+
 
 #if defined( LINUX ) && defined( OBS )
 //If in Linux we can do the .obsglshm thing.
@@ -731,7 +736,6 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	#endif
 
 	if( cnovrstate->iPreviewHeight == 0 || cnovrstate->iPreviewWidth == 0 ) return;
-
 	if( advanced_view && 1 )	//This IF loop determines if you FORCE the output to video width.
 	{
 		if( previewframehisthead == -1 && videoW > 0 && videoH > 0 )
@@ -747,13 +751,13 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
 				if( advanced_view )
 				{
-					previewtarget[ih][0] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample );
-					previewtarget[ih][1] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample );
-					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, 0 );
+					previewtarget[ih][0] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample, 1 );
+					previewtarget[ih][1] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample, 1 );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, 0, 1 );
 				}
 				else
 				{
-					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( videoW, videoH, cnovrstate->iMultisample, 1 );
 					CNOVRCheck(); //Check for errors.
 				}
 				previewframehisthead = 0;
@@ -789,13 +793,13 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 				if( previewtarget[ih][2] ) CNOVRDelete( previewtarget[ih][2] );
 				if( advanced_view )
 				{
-					previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample );
-					previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample );
-					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0 );
+					previewtarget[ih][0] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample, 1 );
+					previewtarget[ih][1] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample, 1 );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, 0, 1 );
 				}
 				else
 				{
-					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample );
+					previewtarget[ih][2] = CNOVRRFBufferCreate( previewW, previewH, cnovrstate->iMultisample, 1 );
 					CNOVRCheck(); //Check for errors.
 				}
 				previewframehisthead = 0;
@@ -825,10 +829,14 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 		int i;
 		float distancecut = fPreviewForegroundSplitDistance;
+
 		for( i = 0; i < 2; i++ ) //Foreground then background
 		{
 			int ihprev = (previewframehisthead - store->frame_latency - 1 + PREVIEWFRAMEHIST)%PREVIEWFRAMEHIST;
-			CNOVRFBufferActivate( previewtarget[ihprev][i] );
+			cnovr_rf_buffer * pt = previewtarget[ihprev][i];
+
+			//printf( "%d %d %d %d %d\n", pt->nRenderFramebufferId, pt->nResolveFramebufferId, pt->nResolveTextureId[0], pt->nDepthBufferId, pt->nRenderTextureId[0] );
+			CNOVRFBufferActivate( pt );
 			matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, i?cnovrstate->fNear:distancecut, i?distancecut:cnovrstate->fFar );
 			glViewport(0, 0, width, height );
 			glClearColor( 0., 0., 0., 0. );
@@ -838,25 +846,28 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 			CNOVRListCall( cnovrLRender2, 0, 0); 
 			CNOVRListCall( cnovrLRender3, 0, 0); 
 			CNOVRListCall( cnovrLRender4, 0, 0); 
-			CNOVRFBufferBlitResolve( previewtarget[ihprev][i] );
+			CNOVRFBufferBlitResolve( pt );
 		}
 		glDisable( GL_DEPTH_TEST );
 		CNOVRFBufferActivate( previewtarget[previewframehisthead][2] );
 		glViewport(0, 0, width, height );
 		glClearColor( 1., 0., 0., 1. );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 		glEnable( GL_TEXTURE_2D );
 		glActiveTextureCHEW( GL_TEXTURE0 + 0 );
-		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][0]->nResolveTextureId );
+		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][0]->nResolveTextureId[0] );
 		glActiveTextureCHEW( GL_TEXTURE0 + 1 );
-		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][1]->nResolveTextureId );
+		glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][1]->nResolveTextureId[0] );
 		glActiveTextureCHEW( GL_TEXTURE0 + 2 );
 		glBindTexture( GL_TEXTURE_2D, canvasvideo->model->pTextures[0]->nTextureId );
 		CNOVRRender( previewcomposite );
 		glUniform4fv( CNOVRUniform( &previewwindow_colorprops1 ), 1, store->colorcalprops + 0 );
 		glUniform4fv( CNOVRUniform( &previewwindow_colorprops2 ), 1, store->colorcalprops + 4 );
 		CNOVRRender( cnovrstate->fullscreengeo );
+
 #if defined( OBS ) && defined( LINUX )
+		#error OBS Does not work for Linux.
 		//Pull the OBS texture off.
 		if( obs_shared_data && obs_shared_data !=  (void*) -1 && previewframehisthead_download < 0  )
 		{
@@ -886,7 +897,6 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		}
 #endif
 		CNOVRFBufferBlitResolve( previewtarget[previewframehisthead][2] );
-
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 	}
 	else
@@ -923,7 +933,7 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 	CNOVRRender( previewbasic );
 	glEnable( GL_TEXTURE_2D );
 	glActiveTextureCHEW( GL_TEXTURE0 + 0 );
-	glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][2]->nResolveTextureId );
+	glBindTexture( GL_TEXTURE_2D, previewtarget[previewframehisthead][2]->nResolveTextureId[0]  );
 	CNOVRRender( cnovrstate->fullscreengeo );
 
 #if defined( LINUX ) && defined( OBS )
@@ -1019,7 +1029,7 @@ void RenderFunction( void * tag, void * opaquev )
 		{
 			CNOVRRender( shaderrendermodelnearestaa );
 			if( canvaspreview->model )
-				canvaspreview->model->pTextures[0]->nTextureId = previewtarget[previewframehisthead][2]->nResolveTextureId;
+				canvaspreview->model->pTextures[0]->nTextureId = previewtarget[previewframehisthead][2]->nResolveTextureId[0];
 			CNOVRRender( canvaspreview->model );
 		}
 	}
