@@ -62,6 +62,9 @@ void * OGGetTLS( og_tls_t key );
 void OGSetTLS( og_tls_t key, void * data );
 
 
+//Force a pointer to be disconnected from the TCC deletion tree.
+void RemoveTCCDeleteTag( void * v );
+
 void * GetTCCTag();
 
 //Actually a cnstrstrmap * but, we don't cast it here to make it so users don't need cnhash.

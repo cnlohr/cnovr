@@ -448,7 +448,7 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Render Check\n" );
 
-	cnovrstate->oCompositor->PostPresentHandoff();
+	if( cnovrstate->oCompositor ) cnovrstate->oCompositor->PostPresentHandoff();
 
 	int did_advanced_preview = 1;
 	if( cnovrstate->has_preview )

@@ -746,7 +746,7 @@ static void CNOVRTextureDelete( cnovr_texture * ths )
 		glDeleteTextures( 1, &ths->nTextureId );
 	}
 
-	if( ths->data ) free( ths->data );
+	if( ths->data && !ths->bDisableTextureDataFree ) free( ths->data );
 	if( ths->texfile ) free( ths->texfile );
 	OGDeleteMutex( ths->mutProtect );
 	CNOVRFreeLater( ths );
@@ -784,6 +784,7 @@ cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan )
 	ret->bTaintData = 0;
 	ret->bLoading = 0;
 	ret->bFileChangeFlag = 0;
+	ret->bDisableTextureDataFree = 0;
 	memset( ret->data, 255, 4 );
 
 
@@ -825,7 +826,7 @@ int CNOVRTextureLoadDataNow( cnovr_texture * tex, int w, int h, int chan, int is
 	OGLockMutex( tex->mutProtect );
 	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );
 
-	if( tex->data ) free( tex->data );
+	if( tex->data && !tex->bDisableTextureDataFree ) free( tex->data );
 	tex->data = data;
 
 	CNOVRTextureUploadCallback( tex, 0 );
@@ -847,7 +848,7 @@ int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int 
 	//We don't want to confuse the second part of the loader.
 	CNOVRJobCancel( cnovrQPrerender, CNOVRTextureUploadCallback, tex, 0, 1 );
 
-	if( tex->data && data != tex->data ) free( tex->data );
+	if( tex->data && data != tex->data && !tex->bDisableTextureDataFree ) free( tex->data );
 	tex->data = data;
 
 	InternalCNOVRTextureLoadSetup( tex, w, h, chan, is_float );

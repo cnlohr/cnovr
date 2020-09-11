@@ -9,17 +9,6 @@
 #include <os_generic.h>
 #include <cnovrfocus.h>
 
-typedef struct cnovr_collide_results_t
-{
-	float t;
-	float sndist; //amount "embedded" in surface by geonorm.  Think "t" but normal to the surface.
-	int whichmesh;
-	int whichvert;
-	cnovr_point3d collidepos;
-	cnovr_point3d geonorm;
-	float collidevs[4];
-	float collidens[4];
-} cnovr_collide_results;
 
 struct cnovr_shader_t;
 struct cnovr_model_t;
@@ -85,7 +74,30 @@ void CNOVRFBufferDeactivate( cnovr_rf_buffer * b );
 void CNOVRFBufferBlitResolve( cnovr_rf_buffer * b );
 
 ///////////////////////////////////////////////////////////////////////////////
+
 #define SHADER_MAX_UNIFORM_MAP 32
+
+/* There's a few ways to do uniform mapping.
+	All of these methods require that you do this in your shader:
+
+		uniform vec4 paramdata; //#MAPUNIFORM paramdata 19
+
+	The varous methods are as follows:
+
+	1) With a uniform mapper.
+
+		In global space:
+			cnovr_shader_uniform my_uniform_paramdata = { "paramdata" };
+
+		Where it's used:
+			CNOVRRender( shader );
+			glUniform1f( CNOVRUniform( &my_uniform_paramdata ), value );
+
+	2) Using the uniform model slot.
+
+			CNOVRRender( shader );
+			glUniform1f( CNOVRMAPPEDUNIFORMPOS( 19 ), value );
+*/
 
 typedef struct cnovr_shader_t
 {
@@ -142,7 +154,7 @@ typedef struct cnovr_texture_t
 	uint8_t bFileChangeFlag;
 	uint8_t bCalculateMipMaps;
 	uint8_t bBypassTextureID;
-
+	uint8_t bDisableTextureDataFree;
 	og_mutex_t mutProtect;
 } cnovr_texture;
 

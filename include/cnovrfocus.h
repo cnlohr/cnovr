@@ -74,6 +74,10 @@ typedef struct cnovrfocus_capture_t
 	CNOVRFocusEvent cb;
 } cnovrfocus_capture;
 
+
+struct cnovr_collide_results_t;
+struct cnovr_model_t;
+
 typedef struct cnovrfocus_properties_t
 {
 	int devid;
@@ -82,6 +86,10 @@ typedef struct cnovrfocus_properties_t
 	cnovrfocus_capture * capturedFocus;
 	cnovrfocus_capture * capturedPassive;
 	float capturedPassiveDistance;
+
+	//These are only valid for down, up and motion events.
+	struct cnovr_collide_results_t collide_results;
+	struct cnovr_model_t * which_model;
 
 	//This is transitory information stored when excuting the collision list.  Don't mess with it unless you know what you're doing.
 	cnovrfocus_capture * NewCapturedPassive;

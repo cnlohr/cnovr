@@ -269,6 +269,18 @@ og_thread_t TCCOGCreateThread( void * (routine)( void * ), void * parameter )
 	return ret;
 }
 
+void RemoveTCCDeleteTag( void * v )
+{
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_remove( c->threads, v );
+	if( c ) cnptrset_remove( c->mallocedram, v );
+	if( c ) cnptrset_remove( c->tccobjects, v );
+	if( c ) cnptrset_remove( c->mutices, v );
+	if( c ) cnptrset_remove( c->semaphores, v );
+	if( c ) cnptrset_remove( c->tlses, v );
+}
+
+
 void * TCCOGJoinThread( og_thread_t ot )
 {
 	og_thread_t ret = OGJoinThread( ot );
@@ -627,6 +639,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( tasprintf )
 	TCCExportS( trprintf )
 
+	TCCExportS( RemoveTCCDeleteTag )
 	TCCExportS( OGSleep )
 	TCCExportS( OGUSleep )
 	TCCExportS( OGGetAbsoluteTime )
@@ -807,6 +820,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( glUnmapBuffer )
 	TCCExportS( glBufferData )
 	TCCExportS( glMapBuffer )
+	TCCExportS( glUniform4iv )
 	TCCExportS( glUniform4fv )
 	TCCExportS( glUniform1i )
 	TCCExportS( glUniformMatrix4fv )

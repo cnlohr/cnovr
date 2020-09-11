@@ -430,6 +430,8 @@ static void ModelFocusCollideFunction(void * tag, void * opaquev )
 	int r = CNOVRModelCollide( m, start, direction, &res, 0, 0 );
 	if( r >= 0 && res.t > 0 )
 	{
+		p->which_model = m;
+		memcpy( &p->collide_results, &res, sizeof(res) );
 		CNOVRFocusRespond( fc->focusevent, res.t, res.collidevs );
 	}
 }

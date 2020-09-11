@@ -283,6 +283,22 @@ void matrix444transform(FLT *kout, const FLT *kin, const FLT *f);
 //As one does.
 FLT cnovr_perlin(FLT x, FLT y);
 
+
+
+//Yes, an odd place for this, but it is actually used across various things.
+
+typedef struct cnovr_collide_results_t
+{
+	float t;
+	float sndist; //amount "embedded" in surface by geonorm.  Think "t" but normal to the surface.
+	int whichmesh;
+	int whichvert;
+	cnovr_point3d collidepos;
+	cnovr_point3d geonorm;
+	float collidevs[4];
+	float collidens[4];
+} cnovr_collide_results;
+
 #ifdef __cplusplus
 }
 #endif
