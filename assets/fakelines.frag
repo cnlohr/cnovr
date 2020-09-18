@@ -25,7 +25,8 @@ void main()
 #ifndef OPAQUIFY
 	if( baryo < .5 ) discard;
 #else
-	if( baryo < .5 ) colorOut = vec4( 0., 0., 0., 1. ); 
+	//if( baryo < .5 ) colorOut = vec4( 0., 0., 0., 1. ); 
+	colorOut = vec4( mix( vec3(0.0,0.0,0.0), colorOut.xyz, baryo), 1.0 );
 #endif
 }
 
