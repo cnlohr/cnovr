@@ -1151,7 +1151,6 @@ void example_scene_setup( void * tag, void * opaquev )
 	previewbasic = CNOVRShaderCreate( "assets/previewbasic" );
 	alphawash = CNOVRShaderCreate( "alphawash" );
 
-
 	modelcameralines = CNOVRModelCreate( 0, GL_LINES );
 	modelcamerasolid = CNOVRModelCreate( 0, GL_TRIANGLES );
 	modelcameralines->pose = &store->posecamera;
@@ -1184,13 +1183,15 @@ void example_scene_setup( void * tag, void * opaquev )
 		CNOVRCanvasSwapBuffers( canvasvideo );
 		canvasvideo->overrideshd = CNOVRShaderCreate( "modules/camera/previewyuyv" );
 	}
+
 	if( preview_view )
 	{
 		canvaspreview = CNOVRCanvasCreate( "PreviewCameraView", 0, 0, 0 );
 	}
 	if( canvascontrol ) canvascontrol->overrideshd = shaderrendermodelnearestaa;
 
-	printf( "ASSIGNING SHADER OVVRIDE %p %p\n", canvaspreview, canvaspreview->overrideshd );
+	if( canvaspreview )
+		printf( "ASSIGNING SHADER OVVRIDE %p %p\n", canvaspreview, canvaspreview->overrideshd );
 
 	//if( advanced_view )
 	//{

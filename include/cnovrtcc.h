@@ -104,6 +104,13 @@ typedef struct TCCInstance_t
 void CNOVRTCCLog( void * data, const char * tolog );
 void CNOVRStartTCCSystem( const char * systemname );
 
+//Note: This "consumes" cfile, identifier and additionalfiles.  It will free them.
+TCCInstance * TCCInterfaceAddCFileInstance( char * cfile, char ** additionalfiles,
+	char * identifier, cnstrstrmap * otherproperties );
+
+void TCCInstanceDestroy( TCCInstance * tcc );
+
+
 #endif
 
 #endif

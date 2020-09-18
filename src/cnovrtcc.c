@@ -243,7 +243,7 @@ TCCInstance * CreateOrRefreshTCCInstance( TCCInstance * tccold, char * tccfilena
 	return ret;
 }
 
-void DestroyTCCInstance( TCCInstance * tcc )
+void TCCInstanceDestroy( TCCInstance * tcc )
 {
 	if( !tccmutex ) tccmutex = OGCreateMutex();
 	CNOVRFileTimeRemoveTagged( tcc, 1 );
@@ -447,19 +447,7 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 						goto failout;
 					}
 
-					sb_push( cnovrtccsystem.instances, 
-						CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, otherproperties, 0 ) );
-
-					if( additionalfiles )
-					{
-						int i;
-						for( i = 0; i < sb_count( additionalfiles ); i++ )
-						{
-							free( additionalfiles[i] );
-						}
-						sb_free( additionalfiles );
-					}
-					additionalfiles = 0;
+					TCCInterfaceAddCFileInstance( cfile, additionalfiles, identifier, otherproperties );
 				}
 			}
 			t = tokens + i++;
@@ -478,6 +466,32 @@ failout:
 			ovrprintf( "Couldn't begin JSON parsing\n" );
 	}
 	free( filestr );
+}
+
+
+TCCInstance * TCCInterfaceAddCFileInstance( char * cfile, char ** additionalfiles, char * identifier, cnstrstrmap * otherproperties )
+{
+	if( !cfile ) return 0;
+
+	TCCInstance * ret = CreateOrRefreshTCCInstance( 0, cfile, additionalfiles, identifier, otherproperties, 0 );
+
+	if( !ret ) return 0;
+
+	sb_push( cnovrtccsystem.instances, ret );
+
+	if( additionalfiles )
+	{
+		int i;
+		for( i = 0; i < sb_count( additionalfiles ); i++ )
+		{
+			free( additionalfiles[i] );
+		}
+		sb_free( additionalfiles );
+	}
+	additionalfiles = 0;
+
+	if( identifier ) free( identifier );
+	return ret;
 }
 
 void CNOVRStartTCCSystem( const char * tccsuitefile )
@@ -516,7 +530,7 @@ void CNOVRStopTCCSystem()
 		for( i = 0; i < count; i++ )
 		{
 			if( cnovrtccsystem.instances[i] )
-				DestroyTCCInstance( cnovrtccsystem.instances[i] );
+				TCCInstanceDestroy( cnovrtccsystem.instances[i] );
 		}
 	
 		sb_free( cnovrtccsystem.instances );

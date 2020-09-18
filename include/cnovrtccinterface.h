@@ -59,11 +59,9 @@ struct ImportList
 extern const struct ImportList ILSYMS[];	//List ends with 0, 0
 
 //User apps should not include this file.
-
 void InternalShutdownTCC( TCCInstance * tcc );
 void InternalPopulateTCC( TCCInstance * tcc );
 void InternalInterfaceCreationDone( TCCInstance * tce );
-
 
 //For a thread-safe malloc/free
 void *TCCmalloc(size_t size);
