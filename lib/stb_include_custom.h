@@ -33,14 +33,14 @@
 #define STB_INCLUDE_STB_INCLUDE_H
 
 // Do include-processing on the string 'str'. To free the return value, pass it to free()
-char *stb_include_string(char *str, char *inject, char *path_to_includes, char *filename_for_line_directive, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque );
+char *stb_include_string(char *str, char *inject, const char *path_to_includes, char *filename_for_line_directive, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque );
 
 // Concatenate the strings 'strs' and do include-processing on the result. To free the return value, pass it to free()
-char *stb_include_strings(char **strs, int count, char *inject, char *path_to_includes, char *filename_for_line_directive, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque );
+char *stb_include_strings(char **strs, int count, char *inject, const char *path_to_includes, char *filename_for_line_directive, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque );
 
 // Load the file 'filename' and do include-processing on the string therein. note that
 // 'filename' is opened directly; 'path_to_includes' is not used. To free the return value, pass it to free()
-char *stb_include_file(char *filename, char *inject, char *path_to_includes, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque );
+char *stb_include_file(char *filename, char *inject, const char *path_to_includes, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque );
 
 #endif
 
@@ -180,7 +180,7 @@ static char *stb_include_append(char *str, size_t *curlen, char *addstr, size_t 
    return str;
 }
 
-char *stb_include_string(char *str, char *inject, char *path_to_includes, char *filename, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque )
+char *stb_include_string(char *str, char *inject, const char *path_to_includes, char *filename, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque )
 {
    char temp[4096];
    include_info *inc_list;
@@ -250,7 +250,7 @@ char *stb_include_string(char *str, char *inject, char *path_to_includes, char *
    return text;
 }
 
-char *stb_include_strings(char **strs, int count, char *inject, char *path_to_includes, char *filename, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque )
+char *stb_include_strings(char **strs, int count, char *inject, const char *path_to_includes, char *filename, char error[256], void(*includecallback)( void * opaque, const char * filename ), void * opaque )
 {
    char *text;
    char *result;
@@ -269,7 +269,7 @@ char *stb_include_strings(char **strs, int count, char *inject, char *path_to_in
    return result;   
 }
 
-char *stb_include_file(char *filename, char *inject, char *path_to_includes, char error[256], void(*includecallback)( void * opaque1, const char * filename ), void * opaque )
+char *stb_include_file(char *filename, char *inject, const char *path_to_includes, char error[256], void(*includecallback)( void * opaque1, const char * filename ), void * opaque )
 {
    size_t len;
    char *result;
