@@ -490,7 +490,7 @@ TCCInstance * TCCInterfaceAddCFileInstance( char * cfile, char ** additionalfile
 	}
 	additionalfiles = 0;
 
-	if( identifier ) free( identifier );
+	//Identifier and cfile are consumed by CreateOrRefreshTCCInstance
 	return ret;
 }
 

@@ -114,7 +114,7 @@ void start( const char * identifier )
 	midentifier = strdup(identifier);
 	ptrname = strdup( trprintf( "objloader%s", identifier ) );
 	store = CNOVRNamedPtrData( ptrname, 0, sizeof( *store ) * 2 );
-	printf( "=== Initializing %p (%s) INITIALIZED:%d\n", store, ptrname, store->initialized );
+	printf( "=== Initializing %p (%s) INITIALIZED:%d %f\n", store, ptrname, store->initialized, store->modelpose.Scale );
 //	store->initialized = 0;
 	if( !store->initialized )
 	{
