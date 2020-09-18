@@ -10,7 +10,8 @@ OBJS+=rawdraw/CNFG.o
 
 OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
-	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o
+	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o \
+	./libopenvr_api.so
 
 
 CFLAGS := -Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
@@ -25,7 +26,7 @@ CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONL
 #Linux
 CC=gcc
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen 
-LDFLAGS+=./libopenvr_api.so
+LDFLAGS+=
 
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
 

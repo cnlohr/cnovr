@@ -1,7 +1,7 @@
 #version 430
 #include "cnovr.glsl"
 
-layout(location = 19) uniform vec4 props;
+uniform vec4 props; //#MAPUNIFORM props 19
 
 out vec4 colorOut;
 
