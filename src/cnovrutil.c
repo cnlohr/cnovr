@@ -689,7 +689,7 @@ static int InternalCheckFileExists( const char * fname )
 		stbuff[i+4] = c;
 		if( c == 0 ) break;
 	}
-	uint8_t * v = dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
+	uint8_t * v = tcccrash_symaddr( 0, stbuff ); //dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
 	if( v )
 		return 1;
 	else
@@ -719,7 +719,7 @@ FILE * __wrap_fopen( const char * fname, const char * mode )
 			stbuff[i+4] = c;
 			if( c == 0 ) break;
 		}
-		uint8_t * v = dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
+		uint8_t * v = tcccrash_symaddr( 0, stbuff ); //dlsym( 0/*RTLD_DEFAULT?*/, stbuff );
 		if( v )
 		{
 			int size = v[0] | (v[1]<<8) | (v[2]<<16) | (v[3]<<24);
@@ -1261,7 +1261,7 @@ void CNOVRJobTack( cnovrQueueType q, cnovr_cb_fn fn, void * tag, void * opaquev,
 	CNOVRJobQueue * jq = &CNOVRJEQ[q];
 
 	TCCInstance * te = TCCGetTag();
-//	printf( "TCE: %p %d\n", te, te?te->bClosing:0 );
+	//printf( "TCE: %p %d\n", te, te?te->bClosing:0 );
 	if( te && te->bClosing ) goto fail;
 
 	//printf( "%d %p %p\n", jq->deletingnow, jq->deletingtag, tag );

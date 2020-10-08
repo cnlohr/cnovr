@@ -1,4 +1,5 @@
-all : main overlay offlinetests headless minimal openvrless fullres
+all : main overlay offlinetests headless minimal openvrless fullres \
+	compiledintest
 
 #slowest, get in queue first for performance in parallel compiles.
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
@@ -27,7 +28,7 @@ CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONL
 #Linux
 CC=gcc
 LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen 
-LDFLAGS+=
+LDFLAGS+= -Wl,-rpath,.
 
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
 
@@ -65,6 +66,19 @@ minimal : $(OBJS) src/minimal.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 offlinetests : $(OBJS) src/offlinetests.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+compiledintest : src/compiledintest.o \
+	lib/stb_include_custom.o lib/stb_image.o \
+	lib/cnrbtree.o lib/cnhash_link.o lib/jsmn.o \
+	lib/os_generic_link.o cntools/vlinterm/vlinterm.o \
+	rawdraw/CNFG.o src/disable_tcc.o \
+	lib/tcccrash_link.o lib/symbol_enumerator_link.o \
+	src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
+	src/cnovrindexedlist.o src/cnovropenvr.o \
+	src/cnovrfocus.o src/cnovrcanvas.o \
+	src/cnovrterminal.o \
+	./libopenvr_api.so
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 clean :

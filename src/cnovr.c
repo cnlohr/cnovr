@@ -340,9 +340,7 @@ void CNOVRUpdate()
 
 	//Scene Graph Pre-Render
 	CNOVRListCall( cnovrLUpdate, 0, 0 );
-
 	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
-
 	CNOVRListCall( cnovrLPrerender, 0, 0 );
 
 	//Waste some time...

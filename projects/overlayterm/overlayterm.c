@@ -45,11 +45,8 @@ void init( const char * identifier )
 
 void UpdateFunction( void * tag, void * opaquev )
 {
-
 	CNOVRTerminalUpdate( terminal );
-
 	CNOVRTerminalFlipTex( terminal );
-
 
 	struct VRTextureBounds_t vbOverlayTextureBounds;
 	vbOverlayTextureBounds.uMin = 0;
@@ -66,7 +63,6 @@ void UpdateFunction( void * tag, void * opaquev )
 	cnovrstate->oOverlay->SetOverlayTexture( ulOverlayHandle, &t );
 	FLT m44[16];	pose_to_matrix44( m44, &store->pOverlayLocation );
 	cnovrstate->oOverlay->SetOverlayTransformAbsolute( ulOverlayHandle, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
-
 }
 
 
