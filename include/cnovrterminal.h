@@ -1,20 +1,34 @@
-#ifndef _CNOVR_TERMINAL_H
-#define _CNOVR_TERMINAL_H
+#ifndef _CNOVRTERMINAL_H
+#define _CNOVRTERMINAL_H
 
-#include <vlinterm.h>
-///////////////////////////////////////////////////////////////////////////////
+#include "cnovrcanvas.h"
+#include "vlinterm.h"
 
 typedef struct cnovr_terminal_t
 {
-	cnovr_header header;
-	cnovr_model * model;
+	cnovr_base base;
+	cnovr_canvas * canvas;
 	struct TermStructure ts;
+	char * title;
+	int last_scrollback;
+	int last_curx, last_cury;
+	og_thread_t apprxthread;
+	uint8_t tainted;
+	uint8_t quit;
 } cnovr_terminal;
 
-//Terminal features XXX TODO Think about relationship between models and things like terminals.
+cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows );
 
-	cnovr_header * assoc_dev;	//XXX TODO: Think about relationship between models and things like terminals.
-cnovr_model * CNOVRTerminalCreate();
+void CNOVRTerminalRunCommand( cnovr_terminal * term, int argc, char ** argv );
+
+//For writing directly to terminal output.
+void CNOVRTerminalEmitStr( cnovr_terminal * term, const uint8_t * strs, int len );
+
+//For writing to the app you are connected to.
+void CNOVRTerminalFeedback( cnovr_terminal * term, const uint8_t * strs, int len );
+
+void CNOVRTerminalUpdate( cnovr_terminal * term );
+void CNOVRTerminalFlipTex( cnovr_terminal * term );
 
 #endif
 

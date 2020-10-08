@@ -93,7 +93,7 @@ void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 }
 
 
-int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr_mode )
+int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_mode eInitMode )
 {
 	int r;
 
@@ -125,15 +125,15 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 	ovrprintf( "Initializing OpenVR.\n" );
 
 	int has_vr = 0;
-	if( allow_init_without_vr_mode != 2 )
+	if( eInitMode != CNOVR_INIT_OPENVR_DISABLED )
 	{
 		EVRInitError e;
 		uint32_t vrtoken;
-		vrtoken = VR_InitInternal( &e, EVRApplicationType_VRApplication_Scene );
+		vrtoken = VR_InitInternal( &e, (eInitMode==CNOVR_INIT_OPENVR_OVERLAY)?EVRApplicationType_VRApplication_Overlay:EVRApplicationType_VRApplication_Scene );
 		if( !vrtoken )
 		{
 			ovrprintf( "Error calling VR_InitInternal: %d (%s)\n", e, VR_GetVRInitErrorAsEnglishDescription( e ) );
-			if( !allow_init_without_vr_mode )
+			if( eInitMode == CNOVR_INIT_OPENVR_REQUIRED )
 				return -e;
 		}
 		else
@@ -147,7 +147,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 			if ( ! VR_IsInterfaceVersionValid(IVRSystem_Version) )
 			{
 				ovrprintf( "OpenVR Interface Invalid.\n" );
-				if( !allow_init_without_vr_mode )
+				if( eInitMode == CNOVR_INIT_OPENVR_REQUIRED )
 					return -1;
 				has_vr = 0;
 			}
@@ -167,7 +167,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		memset( cnovrstate, 0, sizeof( *cnovrstate ) );
 		cnovrstate->fNear = 0.01;
 		cnovrstate->fFar = 1000.0;
-		cnovrstate->has_ovr = has_vr;
+		cnovrstate->bHasOvr = has_vr;
 		cnovrstate->has_preview = screenx!=0 && screeny != 0;
 		cnovrstate->iEyeRenderWidth = -1;
 		cnovrstate->iEyeRenderHeight = -1;
@@ -191,6 +191,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 			cnovrstate->oSystem = (struct VR_IVRSystem_FnTable *)CNOVRGetOpenVRFunctionTable( IVRSystem_Version );
 			cnovrstate->oRenderModels = (struct VR_IVRRenderModels_FnTable *)CNOVRGetOpenVRFunctionTable( IVRRenderModels_Version );
 			cnovrstate->oCompositor = (struct VR_IVRCompositor_FnTable *)CNOVRGetOpenVRFunctionTable( IVRCompositor_Version );
+			cnovrstate->oOverlay = (struct VR_IVROverlay_FnTable *)CNOVRGetOpenVRFunctionTable( IVROverlay_Version );
 			cnovrstate->oInput = (struct VR_IVRInput_FnTable *)CNOVRGetOpenVRFunctionTable( IVRInput_Version );
 		}
 
@@ -200,8 +201,9 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_wi
 		cnovrstate->pTrackedPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->bRenderPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
+		cnovrstate->bIsOverlay = eInitMode == CNOVR_INIT_OPENVR_OVERLAY;
 		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
-		cnovrstate->is_submodule = CNOVRFileSearch( "cnovr/assets/cnovr.glsl" );
+		cnovrstate->is_submodule = !!CNOVRFileSearch( "cnovr/assets/cnovr.glsl" );
 	}
 
 	CNOVRInternalSetupFreeLaterSet();
@@ -281,12 +283,12 @@ void CNOVRUpdate()
 //	memcpy( cnovrstate->openvr_renderposes, lastframeposes, sizeof( lastframeposes ) );
 	InternalCNOVRFocusUpdate();
 
-	if( cnovrstate->has_ovr )
+	if( cnovrstate->bHasOvr )
 	{
 		cnovrstate->oCompositor->WaitGetPoses( 
 			cnovrstate->openvr_renderposes, MAX_POSES_TO_PULL_FROM_OPENVR, 
 			cnovrstate->openvr_trackedposes, MAX_POSES_TO_PULL_FROM_OPENVR );
-
+		printf( "\n" );
 		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
 		{
 			struct TrackedDevicePose_t * trenderpose = &cnovrstate->openvr_renderposes[i];
@@ -348,8 +350,7 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Prerender Check\n" );
 
-	//Possibly update stereo target resolutions.
-	if( cnovrstate->has_ovr )
+	if( cnovrstate->bHasOvr && ! cnovrstate->bIsOverlay )
 	{
 		uint32_t iEyeRenderWidth, iEyeRenderHeight;
 		cnovrstate->oSystem->GetRecommendedRenderTargetSize( &iEyeRenderWidth, &iEyeRenderHeight );
@@ -389,7 +390,7 @@ void CNOVRUpdate()
 	glDepthFunc(GL_LESS);
 
 	//Scene Graph Render
-	if( cnovrstate->has_ovr )
+	if( cnovrstate->bHasOvr && !cnovrstate->bIsOverlay )
 	{
 		int i;
 		for( i = 0; i < 2; i++ )
@@ -406,14 +407,6 @@ void CNOVRUpdate()
 				apply_pose_to_pose( &eye_in_worldspace, &cnovrstate->pRenderPoses[0], &cnovrstate->pEyeToHead[i] );
 				pose_invert( &eye_in_worldspace, &eye_in_worldspace );
 				pose_to_matrix44( cnovrstate->mView, &eye_in_worldspace );
-//				int row;
-//				float * fvm = cnovrstate->mView;
-//				for( row = 0; row < 4; row++ ) printf( "%f %f %f %f\n",
-//					fvm[row*4+0],
-//					fvm[row*4+1],
-//					fvm[row*4+2],
-//					fvm[row*4+3] );
-//				printf( "\n" );
 				matrix44identity( cnovrstate->mModel );
 			}
 
@@ -438,7 +431,6 @@ void CNOVRUpdate()
 		{
 
 			Texture_t t;
-		//	t.handle = (void*)(uintptr_t)cnovrstate->stereotargets[i]->nRenderTextureId;
 			t.handle = (void*)(uintptr_t)cnovrstate->stereotargets[i]->nResolveTextureId[0];
 			t.eType = ETextureType_TextureType_OpenGL;
 			t.eColorSpace = EColorSpace_ColorSpace_Auto;
@@ -448,7 +440,7 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Render Check\n" );
 
-	if( cnovrstate->oCompositor ) cnovrstate->oCompositor->PostPresentHandoff();
+	if( cnovrstate->oCompositor && !cnovrstate->bIsOverlay ) cnovrstate->oCompositor->PostPresentHandoff();
 
 	int did_advanced_preview = 1;
 	if( cnovrstate->has_preview )
@@ -461,7 +453,6 @@ void CNOVRUpdate()
 			did_advanced_preview = 0;
 			cnovrstate->eyeTarget = 2;
 			matrix44identity( cnovrstate->mModel );
-//			printf( "%f %f %f   %f %f %f %f   %f\n", PFTHREE( cnovrstate->pPreviewPose.Pos ), PFFOUR( cnovrstate->pPreviewPose.Rot ), cnovrstate->pPreviewPose.Scale );
 			pose_to_matrix44( cnovrstate->mView, &cnovrstate->pPreviewPose );
 			matrix44perspective( cnovrstate->mPerspective, cnovrstate->fPreviewFOV, width/(float)height, cnovrstate->fNear, cnovrstate->fFar );
 			glViewport(0, 0, width, height );

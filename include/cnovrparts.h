@@ -39,6 +39,7 @@ void CNOVRDeleteBase( cnovr_base * b );
 #define TYPE_MODEL    4
 #define TYPE_NODE     5
 #define TYPE_CANVAS   6
+#define TYPE_TERMINAL 7
 
 //////////////////////////////////////////////////////////////////////////////
 

@@ -58,13 +58,16 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	tcc_add_include_path( tce->state, "cnovr/rawdraw" );
 	tcc_add_include_path( tce->state, "cnovr/openvr/headers" );
 	tcc_add_include_path( tce->state, "cnovr" );
+	tcc_add_include_path( tce->state, "cnovr/cntools/vlinterm" );
 
 	tcc_add_include_path( tce->state, "include" );
+	tcc_add_include_path( tce->state, "cntools/vlinterm" );
 	tcc_add_include_path( tce->state, "lib/tinycc/include" );
 	tcc_add_include_path( tce->state, "lib/systemheaders" );
 	tcc_add_include_path( tce->state, "rawdraw" );
 	tcc_add_include_path( tce->state, "openvr/headers" );
 	tcc_add_include_path( tce->state, "." );
+
 
 #ifdef __aarch64__
 	tcc_add_include_path( tce->state, "/usr/include/aarch64-linux-gnu" );

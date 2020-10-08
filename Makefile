@@ -1,22 +1,23 @@
-all : main offlinetests headless minimal openvrless fullres
+all : main overlay offlinetests headless minimal openvrless fullres
 
 #slowest, get in queue first for performance in parallel compiles.
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
 	lib/cnrbtree.o lib/tccengine_link.o lib/tcccrash_link.o \
 	lib/symbol_enumerator_link.o lib/cnhash_link.o lib/jsmn.o \
-	lib/os_generic_link.o
+	lib/os_generic_link.o cntools/vlinterm/vlinterm.o
 
 OBJS+=rawdraw/CNFG.o
 
 OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o \
+	src/cnovrterminal.o \
 	./libopenvr_api.so
 
 
 CFLAGS := -Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
 CFLAGS += -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
-CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONLY
+CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONLY -Icntools/vlinterm
 
 #Note: If you are operating on older OpenGL Implementations, uncomment
 # the following line, this will prevent the #line directive from being
@@ -46,6 +47,9 @@ libopenvr_api.so : openvr/lib/linux64/libopenvr_api.so
 
 
 main : $(OBJS) src/main.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+overlay : $(OBJS) src/overlay.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 fullres : $(OBJS) src/fullres.o

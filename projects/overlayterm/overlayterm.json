@@ -1,0 +1,13 @@
+{
+	"searchfolders" : [
+		"projects/overlayterm"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "overlayterm.c",
+			"identifier" : "overlayterm1",
+			"disabled" : false,
+		},
+	]
+}
+

@@ -1,6 +1,7 @@
 #include <cnovrtccinterface.h>
 #include <cnovrutil.h>
 #include <cnovrcanvas.h>
+#include <cnovrterminal.h>
 #include <cnovrfocus.h>
 #include <tinycc/libtcc.h>
 #include <stdarg.h>
@@ -428,6 +429,16 @@ static cnovr_canvas * TCCCNOVRCanvasCreate( const char * name, int w, int h, int
 	return ret;
 }
 
+static cnovr_terminal * TCCCNOVRTerminalCreate( const char * name, int rows, int cols )
+{
+	cnovr_terminal * ret = CNOVRTerminalCreate( name, rows, cols );
+	MARKOGLockMutex( tccinterfacemutex );
+	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
+	if( c ) cnptrset_insert( c->tccobjects, ret );
+	MARKOGUnlockMutex( tccinterfacemutex );
+	return ret;
+}
+
 static void TCCCNOVRDeleteBase( cnovr_base * b )
 {
 	CNOVRDeleteBase( b );
@@ -690,6 +701,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRFocusGetPropsForDev )
 	TCCExportS( CNOVRModelSetInteractable )
 	TCCExport( CNOVRCanvasCreate )
+	TCCExport( CNOVRTerminalCreate )
 	TCCExportS( CNOVRCanvasResize )
 	TCCExportS( CNOVRCanvasTackPixel )
 	TCCExportS( CNOVRCanvasDrawText )
@@ -727,6 +739,11 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRCanvasSetPhysicalSize )
 	TCCExportS( CNOVRCanvasYFlip )
 	TCCExportS( CNOVRCanvasApplyCannedGUI )
+	TCCExportS( CNOVRTerminalRunCommand )
+	TCCExportS( CNOVRTerminalEmitStr )
+	TCCExportS( CNOVRTerminalFeedback )
+	TCCExportS( CNOVRTerminalFlipTex )
+	TCCExportS( CNOVRTerminalUpdate )
 	TCCExportS( CNOVRCheck )
 	TCCExportS( glActiveTextureCHEW )
 	TCCExportS( cnovr_interpolate )

@@ -18,6 +18,15 @@ int CNOVRAlert( void * tag, int priority, const char * format, ... );
 int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap );
 #define ovrprintf(x...) CNOVRAlert( 0, 5, x)
 
+
+enum cnovr_init_mode
+{
+	CNOVR_INIT_OPENVR_REQUIRED = 0,
+	CNOVR_INIT_OPENVR_DESIRED,
+	CNOVR_INIT_OPENVR_DISABLED,
+	CNOVR_INIT_OPENVR_OVERLAY,
+};
+
 //////////////////////////////////////////////////////////////////////////////
 
 #define UNIFORMSLOT_MODEL       4
@@ -48,6 +57,7 @@ struct cnovrstate_t
 	struct VR_IVRRenderModels_FnTable * oRenderModels;
 	struct VR_IVRCompositor_FnTable * oCompositor;
 	struct VR_IVRInput_FnTable * oInput;
+	struct VR_IVROverlay_FnTable * oOverlay;
 
 	//Will be array of size MAX_POSES_TO_PULL_FROM_OPENVR of const char *
 	char ** asTrackedDeviceSerialStrings;
@@ -73,10 +83,12 @@ struct cnovrstate_t
 	cnovr_model * fullscreengeo;
 
 	uint8_t  eyeTarget;
-	uint8_t  has_ovr;
+	uint8_t  bHasOvr;
 	uint8_t  has_preview;
+	uint8_t  bIsOverlay;
 	uint8_t  iMultisample; //If 0, use direct path, otherwise, use 2+.
 	uint8_t  is_submodule;
+
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )
@@ -86,7 +98,7 @@ extern struct cnovrstate_t * cnovrstate;
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-int CNOVRInit( const char * appname, int screenx, int screeny, int allow_init_without_vr );
+int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_mode allow_init_without_vr );
 void CNOVRShutdown();
 void CNOVRUpdate();
 int CNOVRCheck(); //Check for errors.
