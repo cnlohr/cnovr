@@ -288,7 +288,7 @@ void CNOVRUpdate()
 		cnovrstate->oCompositor->WaitGetPoses( 
 			cnovrstate->openvr_renderposes, MAX_POSES_TO_PULL_FROM_OPENVR, 
 			cnovrstate->openvr_trackedposes, MAX_POSES_TO_PULL_FROM_OPENVR );
-		printf( "\n" );
+
 		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
 		{
 			struct TrackedDevicePose_t * trenderpose = &cnovrstate->openvr_renderposes[i];
