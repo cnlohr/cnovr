@@ -608,17 +608,19 @@ static void TCC__stosb( ) { ovrprintf( "Unsupported function\n" ); }
 
 static float TCCffloor( float x ) { return FLT_FLOOR(x); }
 #else
-//Oddball things
+//Oddball things (Linux, only.)
+#ifndef EGL_LEAN_AND_MEAN
 extern void * CNFGDisplay;
 extern void * CNFGWindow;
 extern void * CNFGPixmap;
 extern void * CNFGGC;	
 extern void * CNFGWindowGC;
 extern void * CNFGVisual;
+void   CNFGSetVSync( int vson );
+#endif
 void XShmCreateImage(); 
 void XShmAttach();
 void XShmGetImage();
-void   CNFGSetVSync( int vson );
 #endif
 
 void CNFGSwapBuffers(void);
@@ -960,18 +962,21 @@ const struct ImportList ILSYMS[] = {
 	//No OS-dependant exports here yet.
 	
 #else
-	TCCExportS( CNFGSetVSync )
 
-	TCCExportS( stat )
-	TCCExportS( XShmCreateImage )
-	TCCExportS( XShmAttach )
-	TCCExportS( XShmGetImage )
+#ifndef EGL_LEAN_AND_MEAN
+	TCCExportS( CNFGSetVSync )
 	TCCExportS( CNFGDisplay )
 	TCCExportS( CNFGWindow )
 	TCCExportS( CNFGPixmap )
 	TCCExportS( CNFGGC )
 	TCCExportS( CNFGWindowGC )
 	TCCExportS( CNFGVisual )
+#endif
+
+	TCCExportS( stat )
+	TCCExportS( XShmCreateImage )
+	TCCExportS( XShmAttach )
+	TCCExportS( XShmGetImage )
 #endif
 	{ 0, 0 }
 };
