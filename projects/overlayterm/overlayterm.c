@@ -187,8 +187,33 @@ static void overlay_scene_setup( void * tag, void * opaquev )
 		ovrprintf( "Failed to bind keyboard socket.\n" );
 	if (listen(keyboard_listen_socket_tcp, 5) < 0) /* allow 5 requests to queue up */ 
 		ovrprintf( "Failed to listen to keyboard socket.\n" );
-
 	keyboard_input_thread = OGCreateThread( KeyboardListenSocketThread, 0 );
+
+	//And on UDP
+	{
+		struct sockaddr_in uservaddr;	
+		memset(&uservaddr, 0, sizeof(uservaddr)); 
+		uservaddr.sin_family    = AF_INET; // IPv4 
+		uservaddr.sin_addr.s_addr = INADDR_ANY; 
+		uservaddr.sin_port = htons(23889); 
+		int usock; 
+		if ( (usock = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+			ovrprintf("UDP socket creation failed"); 
+		} 
+
+		// Bind the socket with the server address 
+		if ( bind(usock, (const struct sockaddr *)&uservaddr,  sizeof(uservaddr)) < 0 ) 
+		{ 
+			ovrprintf("UDP bind failed"); 
+			exit(EXIT_FAILURE); 
+		} 
+    
+		struct listener_socket * ns = malloc( sizeof( struct listener_socket ) );
+		ns->socket = usock;
+		ns->listenerthread = OGCreateThread( KeyboardDataSocketThread, (void*)ns );
+		ns->next = kblhead;
+		kblhead = ns;
+	}
 
 	printf( "+++ overlay scene setup complete\n" );
 }
