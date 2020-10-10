@@ -15,6 +15,7 @@ typedef struct cnovr_terminal_t
 	og_thread_t apprxthread;
 	uint8_t tainted;
 	uint8_t quit;
+	int iUpdateNumber;
 } cnovr_terminal;
 
 cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows );

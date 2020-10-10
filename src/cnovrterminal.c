@@ -214,6 +214,8 @@ void CNOVRTerminalUpdate( cnovr_terminal * term )
 	int w = c->w;
 	int h = c->h;
 
+	term->iUpdateNumber++;
+
 /*
 	XXX TODO - Allow change of terminal size.
 	int newx = screenx/font_w/(CHAR_DOUBLE+1);
@@ -265,6 +267,7 @@ void CNOVRTerminalUpdate( cnovr_terminal * term )
 			uint32_t * fbo =   &framebuffer[x*font_w*(CHAR_DOUBLE+1) + y*font_h*w*(CHAR_DOUBLE+1)];
 			uint32_t * start = &font[atlasx*font_w+atlasy*font_h*charset_w];
 			int is_cursor = (x == TS.curx && ly == TS.cury) && (TS.dec_private_mode & (1<<25));
+			if( ( term->iUpdateNumber & 1 ) && is_cursor ) is_cursor = 0;
 	#if CHAR_DOUBLE==1
 			for( cy = 0; cy < font_h; cy++ )
 			{
@@ -285,7 +288,7 @@ void CNOVRTerminalUpdate( cnovr_terminal * term )
 			{
 				for( cx = 0; cx < font_w; cx++ )
 				{
-					fbo[cx] = (is_cursor?0xffffffff:0)^TermColor( start[cx], color, attrib );
+					fbo[cx] = (is_cursor?0xefffffff:0)^TermColor( start[cx], color, attrib );
 				}
 				fbo += w;
 				start += charset_w;
