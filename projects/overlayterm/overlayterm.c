@@ -200,6 +200,8 @@ static void overlay_scene_setup( void * tag, void * opaquev )
 		if ( (usock = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
 			ovrprintf("UDP socket creation failed"); 
 		} 
+		setsockopt(usock, SOL_SOCKET, SO_REUSEADDR, 
+			(const void *)&optval , sizeof(int));
 
 		// Bind the socket with the server address 
 		if ( bind(usock, (const struct sockaddr *)&uservaddr,  sizeof(uservaddr)) < 0 ) 
