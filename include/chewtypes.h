@@ -15,6 +15,10 @@ typedef struct __GLsync *GLsync;
 typedef intptr_t GLsizeiptr;
 typedef intptr_t GLintptr;
 
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+
 #ifndef GLDEBUGPROC
 typedef void (APIENTRY *GLDEBUGPROC)(
 	GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
