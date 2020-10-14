@@ -95,7 +95,7 @@ void * KeyboardDataSocketThread( void * v )
 			ovrprintf( "Read failed on socket.  Code: %d\n", r );
 			break;
 		}
-		CNOVRTerminalFeedback( terminal, buf, r );
+		CNOVRTerminalFeedback( terminal, (uint8_t*)buf, r );
 	}
 	//Close will happen on cleanup.
 	return 0;
@@ -104,7 +104,7 @@ void * KeyboardDataSocketThread( void * v )
 void * KeyboardListenSocketThread( void * v )
 {
 	struct sockaddr_in clientaddr; /* client addr */
-	int   clientlen = sizeof(clientaddr);
+	socklen_t  clientlen = sizeof(clientaddr);
 	while( !quit )
 	{
 		int  childfd = accept(keyboard_listen_socket_tcp, (struct sockaddr *) &clientaddr, &clientlen);
@@ -225,7 +225,7 @@ void start( const char * lidentifier )
 {
 	identifier = strdup(lidentifier);
 	CNOVRJobTack( cnovrQPrerender, overlay_scene_setup, 0, 0, 0 );
-	printf( "=== overlay start %s(%p) + %p %p\n", identifier, identifier );
+	printf( "=== overlay start %s(%p)\n", identifier, identifier );
 }
 
 void stop( const char * identifier )

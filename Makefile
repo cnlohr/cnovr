@@ -16,7 +16,7 @@ OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
 	./libopenvr_api.so
 
 
-CFLAGS := -Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib
+CFLAGS := -Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib -Wno-address-of-packed-member
 CFLAGS += -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONLY -Icntools/vlinterm
 
