@@ -42,16 +42,19 @@ cnovr_header cnovr_canvas_header = {
 	TYPE_CANVAS,
 };
 
-static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
+int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	cnovr_canvas * c = (cnovr_canvas*)cap->opaque;
 	cnovr_model * m = c->model;
 	int id = m->iOpaque;
 
+	int ret = 0;
+
 	if( event == CNOVRF_LOSTFOCUS )
 	{
 		CNOVRNamedPtrSave( c->canvasname );
 	}
+
 	if( ( event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_MOTION ) && ( c->pCannedGUI ) && buttoninfo == CTRLA_TRIGGER )
 	{
 		int skip = 0;
@@ -59,33 +62,39 @@ static int CanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_pro
 		{
 			if( !( prop->buttonmask[0] & 1 ) ) skip = 1;
 		}
-		if( !skip )
+		int hx = (int)(prop->NewPassiveProps[0] * c->w);
+		int hy = (int)(prop->NewPassiveProps[1] * c->h);
+		cnovr_canvas_canned_gui_element * curcan = c->pCannedGUI;
+		while( curcan->w != 0 || curcan->h != 0 )
 		{
-			int hx = (int)(prop->NewPassiveProps[0] * c->w);
-			int hy = (int)(prop->NewPassiveProps[1] * c->h);
-			const cnovr_canvas_canned_gui_element * curcan = c->pCannedGUI;
-			while( curcan->w != 0 || curcan->h != 0 )
-			{
-				int x = curcan->x;
-				int y = curcan->y;
-				int w = curcan->w;
-				int h = curcan->h;
-				int allowdrag = curcan->allowdrag;
-				if( event == CNOVRF_MOTION && !allowdrag ) { curcan++; continue; }
+			int x = curcan->x;
+			int y = curcan->y;
+			int w = curcan->w;
+			int h = curcan->h;
+			int allowdrag = curcan->allowdrag;
+			curcan->iHasFocus = 0;
 
-				if( curcan->cb && hx >= x && hx <= x + w && hy >= y && hy <= y + h && 
-					( curcan->disabled == 0 || (*curcan->disabled) == 0 ) )
+			if( curcan->cb && hx >= x && hx <= x + w && hy >= y && hy <= y + h && 
+				( curcan->disabled == 0 || (*curcan->disabled) == 0 ) )
+			{
+				if( !skip && (event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS || (event == CNOVRF_MOTION && allowdrag ) ) )
 				{
 					curcan->cb( c, curcan, hx-x, hy-y, event, prop->devid );
+					curcan->iHasFocus = 1;
 				}
-				curcan++;
+				else
+				{
+					curcan->iHasFocus = 2;
+				}
+				ret = 1;
 			}
+			curcan++;
 		}
 	}
 
 //	if( event == CNOVRF_DOWNNOFOCUS && buttoninfo == CTRLA_TRIGGER )
 	CNOVRGeneralHandleFocusEvent( m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_PINCHBTN );
-	return 0;
+	return ret;
 }
 
 
@@ -125,7 +134,7 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int propertie
 		ret->capture.tcctag = TCCGetTag();
 		ret->capture.tag = 0;
 		ret->capture.opaque = ret;
-		ret->capture.cb = CanvasFocusEvent;
+		ret->capture.cb = CNOVRCanvasFocusEvent;
 		CNOVRModelSetInteractable( ret->model, &ret->capture );
 	}
 
@@ -177,9 +186,16 @@ void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_
 	{
 		int x = curcan->x;
 		int y = curcan->y;
+
+		CNOVRCanvasSetLineWidth( c, curcan->iHasFocus?curcan->iHasFocus:1 );
 		if( curcan->cb )
+		{
+			uint32_t backup = c->dialogcolor;
+			c->dialogcolor = curcan->dialogcolor;
 			CNOVRCanvasDrawBox( c, x, y, x + curcan->w, y + curcan->h );
-		CNOVRCanvasDrawText( c, x+2, y+2, curcan->text, 2 );
+			c->dialogcolor = backup;
+		}
+		CNOVRCanvasDrawText( c, x+2, y+2, curcan->text, curcan->textsize?curcan->textsize:2 );
 		curcan++;
 	}
 	c->color = 0xffffffff;
@@ -239,7 +255,8 @@ void CNOVRCanvasTackPixel( cnovr_canvas * c, int x, int y )
 		uint32_t * pd = data + py * cw + minx;
 		for( px = minx; px < maxx; px++ )
 		{
-			(*pd++) = cfgcolor;
+			(*pd) = ((*pd)&c->iOrMask) | cfgcolor;
+			pd++;
 		}
 	}
 }
@@ -310,7 +327,7 @@ void CNOVRCanvasDrawText( cnovr_canvas * c, int x, int y, const char * text, int
 void CNOVRCanvasDrawBox( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 {
 	uint32_t backupcolor = c->color;
-	c->color = c->bgcolor;
+	c->color = c->dialogcolor;
 	CNOVRCanvasTackRectangle( c, x1, y1, x2, y2 );
 	c->color = backupcolor;
 	CNOVRCanvasTackSegment( c, x1, y1, x2, y1 );
@@ -357,7 +374,8 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 			{
 				ty = thisy;
 				if( tx < 0 || ty < 0 || ty >= buffery ) continue;
-				buffer[ty * bufferx + tx] = color;
+				uint32_t * buf = &buffer[ty * bufferx + tx];
+				*buf = ((*buf)&c->iOrMask) | color;
 				thisy += slope;
 			}
 		}
@@ -375,7 +393,8 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 			{
 				tx = thisx;
 				if( ty < 0 || tx < 0 || tx >= bufferx ) continue;
-				buffer[ty * bufferx + tx] = color;
+				uint32_t * buf = &buffer[ty * bufferx + tx];
+				*buf = ((*buf)&c->iOrMask) | color;
 				thisx += slope;
 			}
 		}
@@ -411,7 +430,7 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 					uint32_t * bl = buffer + ly * bufferx;
 					int x = lx;
 					for( ; x <= lmx; x++ )
-						bl[x] = color;
+						bl[x] = (bl[x]&c->iOrMask) | color;
 				}
 
 				thisy += slope;
@@ -445,7 +464,7 @@ void CNOVRCanvasTackSegment( cnovr_canvas * c, int x1, int y1, int x2, int y2 )
 					uint32_t * bl = buffer + ly * bufferx;
 					int x = lx;
 					for( ; x <= lmx; x++ )
-						bl[x] = color;
+						bl[x] = (bl[x] & c->iOrMask) | color;
 				}
 
 				thisx += slope;
@@ -476,7 +495,8 @@ void CNOVRCanvasTackRectangle( cnovr_canvas * c, int x1, int y1, int x2, int y2 
 		uint32_t * bl = buf + y * w + minx;
 		for( x = minx; x <= maxx; x++ )
 		{
-			*(bl++) = col;
+			*(bl) = (*(bl) & c->iOrMask ) | col;
+			bl++;
 		}
 	}
 		
@@ -582,7 +602,8 @@ void CNOVRCanvasTackPoly( cnovr_canvas * c, int * points, int verts )
 		unsigned int * bufferstart = &buffer[y * bufferx + startfillx];
 		for( x = startfillx; x <= endfillx; x++ )
 		{
-			(*bufferstart++) = color;
+			(*bufferstart) =  ((*bufferstart) & c->iOrMask) | color;
+			bufferstart++;
 		}
 	}
 }
@@ -598,6 +619,6 @@ void CNOVRCanvasClearFrame( cnovr_canvas * c )
 	int count = c->w * c->h;
 	uint32_t * end = mark + count;
 	uint32_t bgcolor = c->bgcolor;
-	while( mark != end ) *(mark++) = bgcolor;
+	while( mark != end ) { *(mark) = (*(mark) & c->iOrMask) | bgcolor; mark++; }
 }
 

@@ -88,6 +88,7 @@ struct cnovrstate_t
 	uint8_t  bIsOverlay;
 	uint8_t  iMultisample; //If 0, use direct path, otherwise, use 2+.
 	uint8_t  is_submodule;
+	uint8_t  bCanHMDFocus;
 
 } __attribute__((packed));
 

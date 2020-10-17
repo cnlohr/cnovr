@@ -15,6 +15,7 @@ typedef struct cnovr_terminal_t
 	og_thread_t apprxthread;
 	uint8_t tainted;
 	uint8_t quit;
+	uint8_t taint_all;
 	int iUpdateNumber;
 } cnovr_terminal;
 

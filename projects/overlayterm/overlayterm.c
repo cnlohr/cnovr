@@ -12,6 +12,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include <stdio.h>
+
 const char * identifier;
 
 cnovr_terminal * terminal;
@@ -23,6 +25,16 @@ VROverlayHandle_t ulOverlayHandle;
 int quit;
 int keyboard_listen_socket_tcp;
 og_thread_t keyboard_input_thread;
+
+int menu_up;
+
+struct focusinfo
+{
+	int terminal;
+	float xpx;
+	float ypx;
+	double time;
+} focusdev[3];
 
 struct staticstore
 {
@@ -38,6 +50,77 @@ struct listener_socket
 };
 struct listener_socket * kblhead;
 
+
+void FunctionTop( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	CNOVRTerminalFeedback( terminal, (uint8_t*)"top\n", 4 );
+}
+
+void FunctionCloseSystem( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	printf( "Exiting steamvr\n" );
+	//system( "ps -ef | grep 'vrserver' | grep -v grep | awk '{print $2}' | xargs -r kill -9" );
+}
+
+void FunctionCtrlC( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	CNOVRTerminalFeedback( terminal, (uint8_t*)"\x03", 1 ); //VT-100 ctrl+c
+}
+
+void FunctionCtrlZ( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	CNOVRTerminalFeedback( terminal, (uint8_t*)"\x1a", 1 ); //VT-100 ctrl+z
+}
+
+void FunctionQ( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	CNOVRTerminalFeedback( terminal, (uint8_t*)"q", 1 ); //VT-100 ctrl+z
+}
+
+void FunctionUptime( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	CNOVRTerminalFeedback( terminal, (uint8_t*)"uptime\n", 7 );
+}
+
+#define NUM_HISTORY 8
+#define MAX_HIST_LEN 1024
+char history[NUM_HISTORY][MAX_HIST_LEN];
+
+void FunctionHistory( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	char cmd[MAX_HIST_LEN+4];
+	int len = snprintf( cmd, MAX_HIST_LEN+3, "%s\n", element->vopaque );
+	CNOVRTerminalFeedback( terminal, cmd, len );
+}
+
+void FunctionCloseMenu( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	menu_up = 0;
+}
+
+
+//Canned GUI
+cnovr_canvas_canned_gui_element termgui[] = {
+	{ 900, 45, 200, 50, FunctionCloseMenu, "Close Menu", 0, 0, 0, 0, 7, 0x10101010 },
+
+	{ 190, 90, 200, 100, FunctionUptime, "Uptime", 0, 0, 0, 0, 7, 0x10101010 },
+	{ 190, 90, 200, 200, FunctionTop, "Top", 0, 0, 0, 0, 7, 0x10101010 },
+	{ 190, 45, 200, 300, FunctionCtrlC, "Ctrl+C", 0, 0, 0, 0, 7, 0x10101010 },
+	{ 190, 45, 200, 350, FunctionCtrlZ, "Ctrl+Z", 0, 0, 0, 0, 7, 0x10101010 },
+	{ 190, 45, 200, 400, FunctionQ, "\'Q\'", 0, 0, 0, 0, 7, 0x10101010 },
+
+	{ 690, 45, 400, 100, FunctionHistory, history[0], history[0], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 150, FunctionHistory, history[1], history[1], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 200, FunctionHistory, history[2], history[2], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 250, FunctionHistory, history[3], history[3], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 300, FunctionHistory, history[4], history[4], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 350, FunctionHistory, history[5], history[5], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 400, FunctionHistory, history[6], history[6], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 450, FunctionHistory, history[7], history[7], 0, 0, 0, 7, 0x10101010 },
+
+	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 , 0 },
+};
+
 void init( const char * identifier )
 {
 	ovrprintf( "Example init %s\n", identifier );
@@ -45,8 +128,103 @@ void init( const char * identifier )
 
 void UpdateFunction( void * tag, void * opaquev )
 {
+	cnovrstate->bCanHMDFocus = 1;
+
 	CNOVRTerminalUpdate( terminal );
-	CNOVRTerminalFlipTex( terminal );
+
+	int cursors = 0;
+	cnovr_canvas * canvas = terminal->canvas;
+	int i;
+	for( i = 0; i < sizeof(focusdev)/sizeof(focusdev[0]); i++ )
+	{
+		struct focusinfo * fi = focusdev + i;
+		double elapse = OGGetAbsoluteTime() - fi->time;
+		if( elapse > .2 ) continue;
+		CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, 0, 1.1-elapse*5. ) | 0xf000000 );
+		CNOVRCanvasTackRectangle( canvas, (int)fi->xpx-2, (int)fi->ypx-2, (int)fi->xpx+2, (int)fi->ypx+2 );
+		cursors++;
+
+		if( !menu_up )
+		{
+			if( fi->xpx < 100 && fi->ypx < 100 )
+			{
+				menu_up = 1;
+			}
+		}
+	}
+
+
+	if( cursors )
+	{
+		terminal->taint_all = true;
+		CNOVRCanvasSwapBuffers( canvas );
+	}
+	else
+	{
+		menu_up = false;
+		CNOVRTerminalFlipTex( terminal ); //Does not swap if untainted - not what we want.
+	}
+
+
+	if( menu_up )
+	{
+		char bash_history_path[1024];
+        char *homedir = getenv("HOME");
+		snprintf( bash_history_path, sizeof( bash_history_path ), "%s/.bash_history", homedir ); 
+		FILE * flh = fopen( bash_history_path, "rb" );
+		if( flh )
+		{
+			char * bash_history;
+			fseek( flh, 0, SEEK_END );
+			int len = ftell( flh );
+			fseek( flh, 0, SEEK_SET );
+			bash_history = malloc( len + 1 );
+			fread( bash_history, 1, len, flh );
+	 		bash_history[len] = 0;
+			fclose( flh );
+
+			int bash_count;
+			char ** bash_history_lines = CNOVRSplitStrings( bash_history, "\n", "", 1, &bash_count );
+			int i;
+			int lpl = bash_count-1;
+			memset( history, 0, sizeof(history) );
+			for( i = NUM_HISTORY-1; i >= 0 && lpl >= 0; i-- )
+			{
+				do
+				{
+					int j;
+					if( lpl < 0 ) break;
+					char * hist = bash_history_lines[lpl];
+
+					lpl--;
+
+					for( j = i; j < NUM_HISTORY; j++ )
+						if( strcmp( history[j], hist ) == 0 ) break;
+
+					if( j == NUM_HISTORY )
+					{
+						strncpy( history[i], hist, MAX_HIST_LEN - 1 );
+						history[i][MAX_HIST_LEN-1] = 0;
+						break;
+					}
+				} while( 1 );
+			}
+
+			free(bash_history_lines );
+			free(bash_history);
+		}
+
+		CNOVRCanvasDialogColor( canvas,  CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
+		CNOVRCanvasBGColor( canvas, 0x00000040 );
+		CNOVRCanvasSetOrMask( canvas, 0xff3f3f3f );
+		CNOVRCanvasApplyCannedGUI( canvas, termgui );
+	}
+	else
+	{
+		CNOVRCanvasSetOrMask( canvas, 0xff3f3f3f );
+		CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
+		CNOVRCanvasTackRectangle( canvas, 0, 0, 100, 100 );
+	}
 
 	struct VRTextureBounds_t vbOverlayTextureBounds;
 	vbOverlayTextureBounds.uMin = 0;
@@ -72,13 +250,39 @@ void RenderFunction( void * tag, void * opaquev )
 
 int OverlayFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
-	int r = CNOVRFocusDefaultFocusEvent( event, cap, prop, buttoninfo );
+	int do_regular = 1;
+
 	if( event == CNOVRF_LOSTFOCUS )
 	{
-		printf( "SAVE:%s\n", identifier );
 		CNOVRNamedPtrSave( identifier );
 	}
-	return r;
+	if( event == CNOVRF_MOTION )
+	{
+		int did = prop->devid;
+		if( did < sizeof( focusdev ) / sizeof(focusdev[0]) )
+		{
+			struct focusinfo * fi = focusdev + did;
+			fi->terminal = &overlaycapture == prop->capturedPassive;
+			fi->xpx = (prop->NewPassiveProps[0]) * terminal->canvas->w;
+			prop->NewPassiveProps[1] = 1. - prop->NewPassiveProps[1];
+			fi->ypx = (prop->NewPassiveProps[1]) * terminal->canvas->h;
+			fi->time = OGGetAbsoluteTime();
+			//printf( "%d %d %f %f  %f\n", did, fi->terminal, fi->xpx, fi->ypx, fi->time );
+		}
+	}
+	if( menu_up )
+	{
+		//Dirty, if we're doing the menu, mess with the cap.
+		cap->opaque = terminal->canvas;
+		do_regular = !CNOVRCanvasFocusEvent( event, cap, prop, buttoninfo );
+		cap->opaque = overlaymodel;
+	}
+	if( do_regular )
+	{
+		cnovr_model * m = cap->opaque;
+		CNOVRGeneralHandleFocusEvent(  m->focuscontrol, m->pose, prop, event, buttoninfo, CTRLA_TRIGGER );
+	}
+	return 1;
 }
 
 
@@ -134,7 +338,7 @@ static void overlay_scene_setup( void * tag, void * opaquev )
 		store->initialized = 1;
 	}
 
-	overlaysize[0] = 2.5;
+	overlaysize[0] = 1.75;
 	overlaysize[1] = 1;
 	overlaysize[2] = 0;
 
@@ -160,7 +364,7 @@ static void overlay_scene_setup( void * tag, void * opaquev )
 		return;
 	}
 
-	cnovrstate->oOverlay->SetOverlayWidthInMeters( ulOverlayHandle, 2.5 );
+	cnovrstate->oOverlay->SetOverlayWidthInMeters( ulOverlayHandle, overlaysize[0]*2.0 );
 	cnovrstate->oOverlay->SetOverlayColor( ulOverlayHandle, 1., 1., 1. );
 	cnovrstate->oOverlay->ShowOverlay( ulOverlayHandle );
 

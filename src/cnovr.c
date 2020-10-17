@@ -285,54 +285,66 @@ void CNOVRUpdate()
 
 	if( cnovrstate->bHasOvr )
 	{
-		cnovrstate->oCompositor->WaitGetPoses( 
+
+		EVRCompositorError err = cnovrstate->oCompositor->WaitGetPoses( 
 			cnovrstate->openvr_renderposes, MAX_POSES_TO_PULL_FROM_OPENVR, 
 			cnovrstate->openvr_trackedposes, MAX_POSES_TO_PULL_FROM_OPENVR );
 
-		for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
+		if( err != EVRCompositorError_VRCompositorError_None )
 		{
-			struct TrackedDevicePose_t * trenderpose = &cnovrstate->openvr_renderposes[i];
-			struct TrackedDevicePose_t * ttrackedpose = &cnovrstate->openvr_trackedposes[i];
+			//Need another way to at least get HMD position.
+			cnovrstate->oSystem->GetDeviceToAbsoluteTrackingPose( ETrackingUniverseOrigin_TrackingUniverseStanding, 0, cnovrstate->openvr_renderposes, MAX_POSES_TO_PULL_FROM_OPENVR);
+			cnovrstate->oSystem->GetDeviceToAbsoluteTrackingPose( ETrackingUniverseOrigin_TrackingUniverseStanding, 0, cnovrstate->openvr_trackedposes, MAX_POSES_TO_PULL_FROM_OPENVR);
+		}
+
+		//We assume the worst case succeeds.
+		{
+			for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
+			{
+				struct TrackedDevicePose_t * trenderpose = &cnovrstate->openvr_renderposes[i];
+				struct TrackedDevicePose_t * ttrackedpose = &cnovrstate->openvr_trackedposes[i];
 
 #if 0
-			//Enable this code for pose debugging.
-			if( i == 0 )
-			{
-				int j;
-				printf( "HMD valid: %d %d\n", trenderpose->bPoseIsValid, trenderpose->bPoseIsValid );
-				float * p = &trenderpose->mDeviceToAbsoluteTracking.m[0][0];
-				for( j = 0; j < 3; j++ )
-					printf( "%f %f %f %f\n", p[j*4+0], p[j*4+1], p[j*4+2], p[j*4+3] );
-			}
+				//Enable this code for pose debugging.
+				if( i == 0 )
+				{
+					int j;
+					printf( "HMD valid: %d %d\n", trenderpose->bPoseIsValid, trenderpose->bPoseIsValid );
+					float * p = &trenderpose->mDeviceToAbsoluteTracking.m[0][0];
+					for( j = 0; j < 3; j++ )
+						printf( "%f %f %f %f\n", p[j*4+0], p[j*4+1], p[j*4+2], p[j*4+3] );
+				}
 #endif
 
-			if( ( cnovrstate->bRenderPosesValid[i] = trenderpose->bPoseIsValid ) )
-			{
-				CNOVRPoseFromHMDMatrix( &cnovrstate->pRenderPoses[i], &trenderpose->mDeviceToAbsoluteTracking );
-			}
-
-			if( ( cnovrstate->bTrackedPosesValid[i] = ttrackedpose->bPoseIsValid ) )
-			{
-				CNOVRPoseFromHMDMatrix( &cnovrstate->pTrackedPoses[i], &ttrackedpose->mDeviceToAbsoluteTracking );
-			}
-
-			if( ttrackedpose->bPoseIsValid || trenderpose->bPoseIsValid )
-			{
-				if( !cnovrstate->asTrackedDeviceSerialStrings[i] )
+				if( ( cnovrstate->bRenderPosesValid[i] = trenderpose->bPoseIsValid ) )
 				{
-					const char * rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_SerialNumber_String );
-					if( rv && rv[0] )
+					CNOVRPoseFromHMDMatrix( &cnovrstate->pRenderPoses[i], &trenderpose->mDeviceToAbsoluteTracking );
+				}
+
+				if( ( cnovrstate->bTrackedPosesValid[i] = ttrackedpose->bPoseIsValid ) )
+				{
+					CNOVRPoseFromHMDMatrix( &cnovrstate->pTrackedPoses[i], &ttrackedpose->mDeviceToAbsoluteTracking );
+				}
+
+				if( ttrackedpose->bPoseIsValid || trenderpose->bPoseIsValid )
+				{
+					if( !cnovrstate->asTrackedDeviceSerialStrings[i] )
 					{
-						cnovrstate->asTrackedDeviceSerialStrings[i] = strdup( rv );
-						//We should be able to get model number by now.  If not something crazy happened.
-						rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_ModelNumber_String );
-						cnovrstate->asTrackedDeviceModelStrings[i] = rv?strdup( rv ):strdup("");
-						printf( "Found tracked device %d: %s: %s\n", i, cnovrstate->asTrackedDeviceSerialStrings[i], cnovrstate->asTrackedDeviceModelStrings[i] );
+						const char * rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_SerialNumber_String );
+						if( rv && rv[0] )
+						{
+							cnovrstate->asTrackedDeviceSerialStrings[i] = strdup( rv );
+							//We should be able to get model number by now.  If not something crazy happened.
+							rv = CNOVRGetTrackedDeviceString( i, ETrackedDeviceProperty_Prop_ModelNumber_String );
+							cnovrstate->asTrackedDeviceModelStrings[i] = rv?strdup( rv ):strdup("");
+							printf( "Found tracked device %d: %s: %s\n", i, cnovrstate->asTrackedDeviceSerialStrings[i], cnovrstate->asTrackedDeviceModelStrings[i] );
+						}
 					}
 				}
 			}
 		}
 	}
+
 	FrameStart = OGGetAbsoluteTime();
 
 	//Update + prerender

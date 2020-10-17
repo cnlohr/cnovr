@@ -113,6 +113,10 @@ void * CNOVRThreadMalloc( int size );
 void * CNOVRThreadRealloc( void * initial, int size );
 void CNOVRThreadFree( void * tofree );
 
+//////////////////////////////////////////////////////////////////////////////
+//Random utility functions
+
+uint32_t CNOVRHSVtoHEX( float hue, float sat, float value );
 
 #endif
 

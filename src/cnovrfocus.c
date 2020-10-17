@@ -164,10 +164,11 @@ void InternalCNOVRFocusUpdate()
 
 		if( ctrl == 0 )
 		{
-			bActive = false; //XXX TODO: Make the HMD a focusable thing.
+			bActive = cnovrstate->bCanHMDFocus?true:false; //Assume the HMD is always "active".
 			bPoseIsValid = cnovrstate->bTrackedPosesValid[0];
 			cnovr_pose point_from_mouth = (cnovr_pose){.Rot = {1.0, 0.0, 0.0, 0.0}, .Scale = 1, .Pos = { 0.0, -0.1, 0.0 } };
 			apply_pose_to_pose( &FOCUS.poseTip[ctrl], cnovrstate->pTrackedPoses, &point_from_mouth );
+
 		}
 		else
 		{
@@ -178,7 +179,6 @@ void InternalCNOVRFocusUpdate()
 
 		//Tricky: we rotate 180 out so Z+ is is forward. TODO should this be around X or Y?  Are we switching coordinate systems?
 		quatrotate180X( FOCUS.poseTip[ctrl].Rot );
-
 		if( !ret && bActive && bPoseIsValid )
 		{
 			memcpy( &props->poseTip, &FOCUS.poseTip[ctrl], sizeof( cnovr_pose ) );

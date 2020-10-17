@@ -7,6 +7,9 @@
 struct cnovr_canvas_t;
 struct cnovr_canvas_canned_gui_element_t;
 
+//By default this is applied to the canvas, unless, CANVAS_PROP_NO_INTERACT is flagged.  If you have a custom one, you will need to do that then call this.
+int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo );
+
 typedef void (*canvas_canned_gui_cb)( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid );
 
 typedef struct cnovr_canvas_canned_gui_element_t
@@ -19,6 +22,9 @@ typedef struct cnovr_canvas_canned_gui_element_t
 	int iopaque;
 	int allowdrag;
 	int * disabled;
+	int textsize; //If 0 defaults to 2.
+	uint32_t dialogcolor;
+	int iHasFocus;			//filled in by focus system.
 } cnovr_canvas_canned_gui_element;
 
 typedef struct cnovr_canvas_t
@@ -28,6 +34,7 @@ typedef struct cnovr_canvas_t
 	//Default behavior is to CPU-blit the texture, since that lets it be used from other threads.
 	uint32_t color;
 	uint32_t bgcolor;
+	uint32_t dialogcolor;
 	int w;
 	int h;
 	uint32_t * data;
@@ -37,12 +44,13 @@ typedef struct cnovr_canvas_t
 	cnovr_shader * shd;
 	cnovr_shader * overrideshd;
 	cnovrfocus_capture capture;
-	const cnovr_canvas_canned_gui_element * pCannedGUI;
+	cnovr_canvas_canned_gui_element * pCannedGUI;
 	char * canvasname;
 	int set_filter_type;
 	float presw;
 	float presh;
 	int iOpaque;
+	int iOrMask;
 } cnovr_canvas;
 
 #define CANVAS_PROP_NO_INTERACT 1
@@ -60,6 +68,8 @@ void CNOVRCanvasDrawBox( cnovr_canvas * c, int x1, int y1, int x2, int y2 );
 void CNOVRCanvasTackRectangle( cnovr_canvas * c, int x1, int y1, int x2, int y2 ); //Uses foreground
 #define CNOVRCanvasColor( c, col ) c->color = col
 #define CNOVRCanvasBGColor( c, col ) c->bgcolor = col
+#define CNOVRCanvasDialogColor( c, col ) c->dialogcolor = col
+#define CNOVRCanvasSetOrMask( c, col ) c->iOrMask = col
 void CNOVRCanvasTackPoly( cnovr_canvas * c, int * points, int verts );
 void CNOVRCanvasSwapBuffers( cnovr_canvas * c );
 void CNOVRCanvasClearFrame( cnovr_canvas * c ); //Uses background color.

@@ -94,7 +94,7 @@ typedef struct cnovrfocus_properties_t
 	//This is transitory information stored when excuting the collision list.  Don't mess with it unless you know what you're doing.
 	cnovrfocus_capture * NewCapturedPassive;
 	float NewPassiveRealDistance;
-	float NewPassiveProps[4];
+	float NewPassiveProps[4]; //based on res.collidevs
 } cnovrfocus_properties;
 
 //Ugh this is awkward.  Need to fix.

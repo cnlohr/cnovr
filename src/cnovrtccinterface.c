@@ -863,6 +863,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( glClearColor )
 	TCCExportS( glClear )
 
+	TCCExportS( CNOVRHSVtoHEX )
 
 	TCCExportS( CNOVRFBufferDeactivate )
 	TCCExportS( glActiveTexture )

@@ -1586,3 +1586,84 @@ void InternalThreadMallocClose()
 	OGSetTLS( casthreadmalloc, 0 ); //Just in case.
 	CNOVRInternalClosePrintfBuffer();
 }
+
+
+//0/6: RED
+//1/6: YELLOW
+//2/6: GREEN
+//3/6: CYAN
+//4/6: BLUE
+//5/6: PURPLE
+//6/6: RED
+uint32_t CNOVRHSVtoHEX( float hue, float sat, float value )
+{
+
+	float pr = 0.0;
+	float pg = 0.0;
+	float pb = 0.0;
+
+	short ora = 0.0;
+	short og = 0.0;
+	short ob = 0.0;
+
+	float ro = fmod( hue * 6.0, 6.0 );
+
+	float avg = 0.0;
+
+	ro = fmod( ro + 6.0 + 1.0, 6.0 ); //Hue was 60* off...
+
+	if( ro < 1.0 ) //yellow->red
+	{
+		pr = 1.0;
+		pg = 1.0 - ro;
+	} else if( ro < 2.0 )
+	{
+		pr = 1.0;
+		pb = ro - 1.0;
+	} else if( ro < 3.0 )
+	{
+		pr = 3.0 - ro;
+		pb = 1.0;
+	} else if( ro < 4.0 )
+	{
+		pb = 1.0;
+		pg = ro - 3.0;
+	} else if( ro < 5.0 )
+	{
+		pb = 5.0 - ro;
+		pg = 1.0;
+	} else
+	{
+		pg = 1.0;
+		pr = ro - 5.0;
+	}
+
+	//Actually, above math is backwards, oops!
+	pr *= value;
+	pg *= value;
+	pb *= value;
+
+	avg += pr;
+	avg += pg;
+	avg += pb;
+
+	pr = pr * sat + avg * (1.0-sat);
+	pg = pg * sat + avg * (1.0-sat);
+	pb = pb * sat + avg * (1.0-sat);
+
+	ora = pr * 255;
+	og = pb * 255;
+	ob = pg * 255;
+
+	if( ora < 0 ) ora = 0;
+	if( ora > 255 ) ora = 255;
+	if( og < 0 ) og = 0;
+	if( og > 255 ) og = 255;
+	if( ob < 0 ) ob = 0;
+	if( ob > 255 ) ob = 255;
+
+	return (ob<<16) | (og<<8) | ora;
+}
+
+
+

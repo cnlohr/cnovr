@@ -235,13 +235,14 @@ void CNOVRTerminalUpdate( cnovr_terminal * term )
 	int scrollback = TS.scrollback;
 	if( scrollback >= TS.historyy-TS.chary ) scrollback = TS.historyy-TS.chary-1;
 	if( scrollback < 0 ) scrollback = 0;
-	int taint_all = scrollback != term->last_scrollback;
+	int taint_all = ( scrollback != term->last_scrollback ) || term->taint_all;
 
 	if( term->last_curx != TS.curx || term->last_cury != TS.cury || TS.tainted || taint_all )
 	{
 		OGLockMutex( TS.screen_mutex );
 		uint32_t * tb = TS.termbuffer;
 		TS.tainted = 0;
+		term->taint_all = 0;
 		if( term->last_curx < TS.charx && term->last_cury < TS.chary )
 			tb[term->last_curx+term->last_cury*TS.charx] |= 1<<24;
 		if( TS.curx < TS.charx && TS.cury < TS.chary )

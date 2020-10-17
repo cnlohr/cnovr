@@ -31,7 +31,7 @@
             {
                "inputs" : {
                   "click" : {
-                     "output" : "/actions/m/in/clickhead"
+                     "output" : "/actions/m/in/trigclickhead"
                   }
                },
                "mode" : "button",
