@@ -15,10 +15,10 @@ OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
 	src/cnovrterminal.o \
 	./libopenvr_api.so
 
-
-CFLAGS := -Iopenvr/headers -Irawdraw -DCNFGOGL -Iinclude -g -Icntools/cnhash -Ilib -Wno-address-of-packed-member
+CFLAGS ?= -DCNFGOGL -g -O2  -DOSG_NOSTATIC -DCNFGCONTEXTONLY
+CFLAGS += -Iopenvr/headers -Irawdraw -Iinclude -Icntools/cnhash -Ilib -Wno-address-of-packed-member
 CFLAGS += -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
-CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONLY -Icntools/vlinterm
+CFLAGS += -g -Ilib/tinycc -Icntools/cnrbtree -Icntools/vlinterm
 
 #Note: If you are operating on older OpenGL Implementations, uncomment
 # the following line, this will prevent the #line directive from being
@@ -27,8 +27,7 @@ CFLAGS += -O2 -g -Ilib/tinycc -Icntools/cnrbtree -DOSG_NOSTATIC -DCNFGCONTEXTONL
 
 #Linux
 CC=gcc
-LDFLAGS+=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen 
-LDFLAGS+= -Wl,-rpath,.
+LDFLAGS?=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen -Wl,-rpath,.
 
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
 
