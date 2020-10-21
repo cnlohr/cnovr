@@ -17,7 +17,7 @@ int main( int argc, char ** argv )
 	//cnovrstate->iMultisample = 0;
 	OGSetTLS( tcctlstag, 0 );
 
-	CNOVRFileSearchAddPath( "ovrball" );
+	CNOVRFileSearchAddPath( "projects/ovrball" );
 
 	//openvrobjectsstart( "wireframe,nodetail" );
 	ovrballstart( "ovrball" );
