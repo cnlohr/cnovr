@@ -5,7 +5,7 @@
 #include <cnovrutil.h>
 #include <cnovrtccinterface.h>
 
-#include "../projects/overlayterm/overlayterm.c"
+#include "../modules/overlayterm/overlayterm.c"
 
 int main( int argc, char ** argv )
 {

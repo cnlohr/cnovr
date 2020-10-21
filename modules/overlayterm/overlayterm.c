@@ -27,6 +27,7 @@ int keyboard_listen_socket_tcp;
 og_thread_t keyboard_input_thread;
 
 int menu_up;
+int minified;
 
 struct focusinfo
 {
@@ -93,15 +94,17 @@ void FunctionHistory( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_
 	CNOVRTerminalFeedback( terminal, cmd, len );
 }
 
-void FunctionCloseMenu( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
+void FunctionMinifyTerminal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
 {
 	menu_up = 0;
+	minified = 1;
+	store->pOverlayLocation.Scale *= 0.1;
 }
 
 
 //Canned GUI
 cnovr_canvas_canned_gui_element termgui[] = {
-	{ 900, 45, 200, 50, FunctionCloseMenu, "Close Menu", 0, 0, 0, 0, 7, 0x10101010 },
+	{ 900, 45, 200, 50, FunctionMinifyTerminal, "Minify Terminal", 0, 0, 0, 0, 7, 0x10101010 },
 
 	{ 190, 90, 200, 100, FunctionUptime, "Uptime", 0, 0, 0, 0, 7, 0x10101010 },
 	{ 190, 90, 200, 200, FunctionTop, "Top", 0, 0, 0, 0, 7, 0x10101010 },
@@ -130,7 +133,10 @@ void UpdateFunction( void * tag, void * opaquev )
 {
 	cnovrstate->bCanHMDFocus = 1;
 
-	CNOVRTerminalUpdate( terminal );
+	if( !minified )
+	{
+		CNOVRTerminalUpdate( terminal );
+	}
 
 	int cursors = 0;
 	cnovr_canvas * canvas = terminal->canvas;
@@ -144,7 +150,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		CNOVRCanvasTackRectangle( canvas, (int)fi->xpx-2, (int)fi->ypx-2, (int)fi->xpx+2, (int)fi->ypx+2 );
 		cursors++;
 
-		if( !menu_up )
+		if( !minified &&  !menu_up )
 		{
 			if( fi->xpx < 100 && fi->ypx < 100 )
 			{
@@ -154,93 +160,115 @@ void UpdateFunction( void * tag, void * opaquev )
 	}
 
 
-	if( cursors )
+	if( !minified )
 	{
-		terminal->taint_all = true;
-		CNOVRCanvasSwapBuffers( canvas );
-	}
-	else
-	{
-		menu_up = false;
-		CNOVRTerminalFlipTex( terminal ); //Does not swap if untainted - not what we want.
-	}
-
-
-	if( menu_up )
-	{
-		char bash_history_path[1024];
-        char *homedir = getenv("HOME");
-		snprintf( bash_history_path, sizeof( bash_history_path ), "%s/.bash_history", homedir ); 
-		FILE * flh = fopen( bash_history_path, "rb" );
-		if( flh )
+		if( cursors )
 		{
-			char * bash_history;
-			fseek( flh, 0, SEEK_END );
-			int len = ftell( flh );
-			fseek( flh, 0, SEEK_SET );
-			bash_history = malloc( len + 1 );
-			fread( bash_history, 1, len, flh );
-	 		bash_history[len] = 0;
-			fclose( flh );
-
-			int bash_count;
-			char ** bash_history_lines = CNOVRSplitStrings( bash_history, "\n", "", 1, &bash_count );
-			int i;
-			int lpl = bash_count-1;
-			memset( history, 0, sizeof(history) );
-			for( i = NUM_HISTORY-1; i >= 0 && lpl >= 0; i-- )
-			{
-				do
-				{
-					int j;
-					if( lpl < 0 ) break;
-					char * hist = bash_history_lines[lpl];
-
-					lpl--;
-
-					for( j = i; j < NUM_HISTORY; j++ )
-						if( strcmp( history[j], hist ) == 0 ) break;
-
-					if( j == NUM_HISTORY )
-					{
-						strncpy( history[i], hist, MAX_HIST_LEN - 1 );
-						history[i][MAX_HIST_LEN-1] = 0;
-						break;
-					}
-				} while( 1 );
-			}
-
-			free(bash_history_lines );
-			free(bash_history);
+			terminal->taint_all = true;
+			CNOVRCanvasSwapBuffers( canvas );
+		}
+		else
+		{
+			menu_up = false;
+			CNOVRTerminalFlipTex( terminal ); //Does not swap if untainted - not what we want.
 		}
 
-		CNOVRCanvasDialogColor( canvas,  CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
-		CNOVRCanvasBGColor( canvas, 0x00000040 );
-		CNOVRCanvasSetOrMask( canvas, 0xff3f3f3f );
-		CNOVRCanvasApplyCannedGUI( canvas, termgui );
+
+		if( menu_up )
+		{
+			char bash_history_path[1024];
+		    char *homedir = getenv("HOME");
+			snprintf( bash_history_path, sizeof( bash_history_path ), "%s/.bash_history", homedir ); 
+			FILE * flh = fopen( bash_history_path, "rb" );
+			if( flh )
+			{
+				char * bash_history;
+				fseek( flh, 0, SEEK_END );
+				int len = ftell( flh );
+				fseek( flh, 0, SEEK_SET );
+				bash_history = malloc( len + 1 );
+				fread( bash_history, 1, len, flh );
+		 		bash_history[len] = 0;
+				fclose( flh );
+
+				int bash_count;
+				char ** bash_history_lines = CNOVRSplitStrings( bash_history, "\n", "", 1, &bash_count );
+				int i;
+				int lpl = bash_count-1;
+				memset( history, 0, sizeof(history) );
+				for( i = NUM_HISTORY-1; i >= 0 && lpl >= 0; i-- )
+				{
+					do
+					{
+						int j;
+						if( lpl < 0 ) break;
+						char * hist = bash_history_lines[lpl];
+
+						lpl--;
+
+						for( j = i; j < NUM_HISTORY; j++ )
+							if( strcmp( history[j], hist ) == 0 ) break;
+
+						if( j == NUM_HISTORY )
+						{
+							strncpy( history[i], hist, MAX_HIST_LEN - 1 );
+							history[i][MAX_HIST_LEN-1] = 0;
+							break;
+						}
+					} while( 1 );
+				}
+
+				free(bash_history_lines );
+				free(bash_history);
+			}
+
+			CNOVRCanvasDialogColor( canvas,  CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
+			CNOVRCanvasBGColor( canvas, 0x00000040 );
+			CNOVRCanvasSetOrMask( canvas, 0xff3f3f3f );
+			CNOVRCanvasApplyCannedGUI( canvas, termgui );
+		}
+		else
+		{
+			CNOVRCanvasSetOrMask( canvas, 0xff3f3f3f );
+			CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
+			CNOVRCanvasTackRectangle( canvas, 0, 0, 100, 100 );
+		}
+
+		struct VRTextureBounds_t vbOverlayTextureBounds;
+		vbOverlayTextureBounds.uMin = 0;
+		vbOverlayTextureBounds.uMax = 1;
+		vbOverlayTextureBounds.vMin = 1;
+		vbOverlayTextureBounds.vMax = 0;
+		cnovrstate->oOverlay->SetOverlayTextureBounds( ulOverlayHandle, &vbOverlayTextureBounds );
+
+		Texture_t t;
+		t.handle = (void*)(uintptr_t)terminal->canvas->model->pTextures[0]->nTextureId;
+		t.eType = ETextureType_TextureType_OpenGL;
+		t.eColorSpace = EColorSpace_ColorSpace_Auto;
+
+		cnovrstate->oOverlay->SetOverlayTexture( ulOverlayHandle, &t );
+		FLT m44[16];	pose_to_matrix44( m44, &store->pOverlayLocation );
+		cnovrstate->oOverlay->SetOverlayTransformAbsolute( ulOverlayHandle, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
 	}
-	else
+	else if( minified == 1 )
 	{
-		CNOVRCanvasSetOrMask( canvas, 0xff3f3f3f );
-		CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
-		CNOVRCanvasTackRectangle( canvas, 0, 0, 100, 100 );
+		CNOVRCanvasClearFrame( canvas );
+		CNOVRCanvasSwapBuffers( canvas );
+
+		Texture_t t;
+		t.handle = (void*)(uintptr_t)terminal->canvas->model->pTextures[0]->nTextureId;
+		t.eType = ETextureType_TextureType_OpenGL;
+		t.eColorSpace = EColorSpace_ColorSpace_Auto;
+
+		cnovrstate->oOverlay->SetOverlayTexture( ulOverlayHandle, &t );
+		FLT m44[16];	pose_to_matrix44( m44, &store->pOverlayLocation );
+		cnovrstate->oOverlay->SetOverlayTransformAbsolute( ulOverlayHandle, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
+
+		minified = 2;
 	}
-
-	struct VRTextureBounds_t vbOverlayTextureBounds;
-	vbOverlayTextureBounds.uMin = 0;
-	vbOverlayTextureBounds.uMax = 1;
-	vbOverlayTextureBounds.vMin = 1;
-	vbOverlayTextureBounds.vMax = 0;
-	cnovrstate->oOverlay->SetOverlayTextureBounds( ulOverlayHandle, &vbOverlayTextureBounds );
-
-	Texture_t t;
-	t.handle = (void*)(uintptr_t)terminal->canvas->model->pTextures[0]->nTextureId;
-	t.eType = ETextureType_TextureType_OpenGL;
-	t.eColorSpace = EColorSpace_ColorSpace_Auto;
-
-	cnovrstate->oOverlay->SetOverlayTexture( ulOverlayHandle, &t );
-	FLT m44[16];	pose_to_matrix44( m44, &store->pOverlayLocation );
-	cnovrstate->oOverlay->SetOverlayTransformAbsolute( ulOverlayHandle, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
+	else if( minified == 2 )
+	{
+	}
 }
 
 
@@ -251,6 +279,16 @@ void RenderFunction( void * tag, void * opaquev )
 int OverlayFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_properties * prop, int buttoninfo )
 {
 	int do_regular = 1;
+
+	if( minified )
+	{
+		if( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS )
+		{
+			minified = 0;
+			store->pOverlayLocation.Scale *= 10;
+		}
+		return -1;
+	}
 
 	if( event == CNOVRF_LOSTFOCUS )
 	{

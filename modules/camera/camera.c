@@ -238,7 +238,10 @@ void UpdateMenuStatuses()
 	sprintf( angleYsettext, "Y: %3.1f", euler[1]*180./3.14159 );
 	sprintf( angleZsettext, "Z: %3.1f", euler[2]*180./3.14159 );
 	if( canvascontrol && canvascontrol->pCannedGUI )
+	{
 		CNOVRCanvasApplyCannedGUI( canvascontrol, canvascontrol->pCannedGUI );
+		CNOVRCanvasSwapBuffers( canvascontrol );
+	}
 
 	for( i = 0; i < MAX_POSES_TO_PULL_FROM_OPENVR; i++ )
 	{
@@ -363,6 +366,7 @@ void adjust_position( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_
 void changemenu( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	UpdateMenuStatuses();
 	CNOVRCanvasApplyCannedGUI( canvascontrol, elem->vopaque );
+	CNOVRCanvasSwapBuffers( canvascontrol );
 }
 
 void resetcam( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
@@ -372,6 +376,7 @@ void resetcam( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_
 	memset( store->paired_object_serial_number, 0, sizeof( store->paired_object_serial_number ) );
 	sprintf( notetext, "Reset.\n" );
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+	CNOVRCanvasSwapBuffers( canvascontrol );
 }
 
 void attachtodev( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
@@ -383,6 +388,7 @@ void attachtodev( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_cann
 		memset( store->paired_object_serial_number, 0, sizeof( store->paired_object_serial_number ) );
 		sprintf( notetext, "Disassociated.\n" );
 		CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+		CNOVRCanvasSwapBuffers( canvascontrol );
 	}
 	else
 	{
@@ -396,12 +402,14 @@ void attachtodev( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_cann
 			paired_object_id = a;
 			strcpy( store->paired_object_serial_number, cnovrstate->asTrackedDeviceSerialStrings[a] );
 			CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+			CNOVRCanvasSwapBuffers( canvascontrol );
 		}
 		else
 		{
 			//Untrackable..
 			sprintf( notetext, "Untrackable.\n" );
 			CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+			CNOVRCanvasSwapBuffers( canvascontrol );
 		}
 	}
 	UpdateMenuStatuses();
@@ -411,11 +419,13 @@ void camsavebuttonhit( struct cnovr_canvas_t * canvas, const struct cnovr_canvas
 	CNOVRNamedPtrSave( "camerastore" );
 	sprintf( notetext, "Saved.\n" );
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+	CNOVRCanvasSwapBuffers( canvascontrol );
 }
 void camrevertbuttonhit( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	CNOVRNamedPtrRevert( "camerastore" );
 	sprintf( notetext, "Reverted.\n" );
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+	CNOVRCanvasSwapBuffers( canvascontrol );
 }
 
 #define MENUH 16
@@ -520,6 +530,7 @@ const const struct cnovr_canvas_canned_gui_element_t cvp_dev_menu[] = {
 void stopcamcal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid ) { 
 	cal_cam_stage = 0;
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_main_menu );
+	CNOVRCanvasSwapBuffers( canvascontrol );
 }
 
 const const struct cnovr_canvas_canned_gui_element_t cvp_cal1[] = {
@@ -534,6 +545,7 @@ void startcamcal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_cann
 	cal_cam_stage = 1;
 	cal_cam_controller = devid;
 	CNOVRCanvasApplyCannedGUI( canvascontrol, cvp_cal1 );
+	CNOVRCanvasSwapBuffers( canvascontrol );
 }
 
 

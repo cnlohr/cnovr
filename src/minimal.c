@@ -6,7 +6,7 @@
 
 int main( int argc, char ** argv )
 {
-	if( CNOVRInit( "test", 0, 0, CNOVR_INIT_OPENVR_REQUIRED ) )
+	if( CNOVRInit( "test", 0, 0, CNOVR_INIT_NEED_OPENVR ) )
 	{
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;
@@ -14,7 +14,7 @@ int main( int argc, char ** argv )
 
 	cnovrstate->iMultisample = 0;
 
-	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example_setup/minimal.json" );
+	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example/minimal.json" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	cnovr_model * model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );

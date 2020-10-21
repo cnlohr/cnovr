@@ -351,6 +351,20 @@ char ** CNOVRFolderListing( const char * path, int * elements )
 	return ret;
 }
 
+int CNOVRFileGetLength( const char * fname )
+{
+	int ret;
+	if( !fname ) return 0;
+	const char * rfn = CNOVRFileSearch( fname );
+	if( !rfn ) return 0;
+	FILE * f = fopen( rfn, "rb" );
+	if( !f ) return 0;
+	fseek( f, 0, SEEK_END );
+	ret = ftell( f );
+	fclose( f );
+	return ret;
+}
+
 char * CNOVRFileToString( const char * fname, int * length )
 {
 	const char * rfn = CNOVRFileSearch( fname );

@@ -199,7 +199,6 @@ void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_
 		curcan++;
 	}
 	c->color = 0xffffffff;
-	CNOVRCanvasSwapBuffers( c );
 }
 
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy )

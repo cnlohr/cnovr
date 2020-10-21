@@ -12,7 +12,7 @@ int main( int argc, char ** argv )
 		return -1;
 	}
 
-	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example_setup/example.json" );
+	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example/example.json" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	cnovr_model * model = CNOVRModelCreate( 0, 3, GL_TRIANGLES );

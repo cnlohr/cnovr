@@ -1,5 +1,7 @@
-all : main overlay offlinetests headless minimal openvrless fullres \
-	compiledintest
+PROJS:=main overlay offlinetests headless minimal openvrless fullres \
+	overlaytermonly ovrballonly
+
+all : $(PROJS)
 
 #slowest, get in queue first for performance in parallel compiles.
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
@@ -82,12 +84,12 @@ DEDICATED_PROJECT_O:=lib/stb_include_custom.o lib/stb_image.o \
 ovrballonly : src/ovrballonly.o $(DEDICATED_PROJECT_O)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
-compiledintest : src/compiledintest.o $(DEDICATED_PROJECT_O)
+overlaytermonly : src/overlayterm.o $(DEDICATED_PROJECT_O)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 clean :
 	rm -rf *.o *~ $(OBJS) src/*.o
-	rm -rf main
+	rm -rf $(PROJS)
 
 
 #motherloade

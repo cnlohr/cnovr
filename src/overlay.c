@@ -12,7 +12,7 @@ int main( int argc, char ** argv )
 		return -1;
 	}
 
-	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example_setup/example.json" );
+	CNOVRStartTCCSystem( (argc==2)?argv[1]:"example/example.json" );
 
 	while(1)
 	{

@@ -1,6 +1,7 @@
 {
 	"searchfolders" : [
-		"projects/overlayterm"
+		"modules/overlayterm",
+		"projects/overlayterm",
 	],
 	"cfiles" : [
 		{

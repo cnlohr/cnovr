@@ -291,17 +291,24 @@ void CNOVRTCCSystemFileChange( void * filename, void * opaquev )
 
 	const char * tccsuitefile = cnovrtccsystem.suitefile;
 
-	printf( "File change event (%s)\n", cnovrtccsystem.suitefile );
+	int filelen;
+	char * filestr = CNOVRFileToString( tccsuitefile, &filelen );
+
+	if( filestr == 0 )
+	{
+		ovrprintf( "Error opening file %s.  Returned null.\n", tccsuitefile );
+		return;
+	}
+
+	ovrprintf( "File change event (%s)\n", cnovrtccsystem.suitefile );
 
 	CNOVRStopTCCSystem();
 	CNOVRFileTimeAddWatch( tccsuitefile, CNOVRTCCSystemFileChange, &cnovrtccsystem, 0 );
 
-	int filelen;
-	char * filestr = CNOVRFileToString( tccsuitefile, &filelen );
-
 	jsmn_parser jp;
-	jsmntok_t tokens[1024];
+	jsmntok_t tokens[2048];
 	jsmn_init( &jp );
+
 	int l = jsmn_parse( &jp, filestr, filelen, tokens, sizeof( tokens ) / sizeof( tokens[0] ) );
 
 	int i = 0;
@@ -503,15 +510,27 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 	if( cnovrtccsystem.suitefile ) free( cnovrtccsystem.suitefile );
 	
 	char * gfile = CNOVRFileSearch( tccsuitefile );
+
 	printf( "COMP FILE %s/%s\n", gfile, tccsuitefile );
-	if( !gfile )
+
+	//If we can't find the file, try prefixing with projects/
+	if( !gfile || CNOVRFileGetLength( gfile ) <= 0 )
 	{
 		char cts[1024];
 		sprintf( cts, "projects/%s/%s.json", tccsuitefile, tccsuitefile );
-		printf( "Project not found.  Maybe it was a project name?  Trying: %s\n", cts );
+		printf( "Project not found.  Maybe it was a projec name?  Trying: %s\n", cts );
 		gfile = CNOVRFileSearch( cts );
 	}
-	if( !gfile )
+
+	if( !gfile || CNOVRFileGetLength( gfile ) <= 0 )
+	{
+		char cts[1024];
+		sprintf( cts, "modules/%s/%s.json", tccsuitefile, tccsuitefile );
+		printf( "Project not found.  Maybe it was a module name?  Trying: %s\n", cts );
+		gfile = CNOVRFileSearch( cts );
+	}
+
+	if( !gfile || CNOVRFileGetLength( gfile ) <= 0 )
 	{
 		ovrprintf( "Error: Could not find project by name of %s\n", tccsuitefile );
 		return;

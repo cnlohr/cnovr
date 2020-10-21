@@ -30,6 +30,7 @@ void * CNOVRNamedPtrData( const char * namedptr, const char * type, int size );
 //////////////////////////////////////////////////////////////////////////////
 
 char ** CNOVRFolderListing( const char * path, int * elements ); //You can free this up with a single free(...)
+int CNOVRFileGetLength( const char * fname );
 char * CNOVRFileToString( const char * fname, int * length );
 char ** CNOVRSplitStrings( const char * line, char * split, char * white, int merge_fields, int * elementcount ); //You can just free(...) the return. it's safe.
 int CNOVRStringCompareEndingCase( const char * thing_to_search, const char * check_extension );
