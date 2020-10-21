@@ -114,14 +114,6 @@ int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_m
 
 	CNOVRFileSearchAddPath( "cnovr" );
 
-	ovrprintf( "Initializing Window.\n" );
-
-	//Create Companion Window.
-	if( ( r = CNFGSetup( appname, screenx, screeny ) ) )
-	{
-		return r;
-	}
-
 	ovrprintf( "Initializing OpenVR.\n" );
 
 	int has_vr = 0;
@@ -156,6 +148,14 @@ int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_m
 	else
 	{
 		ovrprintf( "Mode shows OpenVR Disabled.\n" );
+	}
+
+	ovrprintf( "Initializing Window.\n" );
+
+	//Create Companion Window.
+	if( ( r = CNFGSetup( appname, screenx, screeny ) ) )
+	{
+		return r;
 	}
 
 	//OK, OpenVR is set up.  Now, set up rendering system.
