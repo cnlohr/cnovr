@@ -154,8 +154,6 @@ void UpdateFunction( void * tag, void * opaquev )
 		struct focusinfo * fi = focusdev + i;
 		double elapse = OGGetAbsoluteTime() - fi->time;
 		if( elapse > .2 ) continue;
-		CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, 0, 1.1-elapse*5. ) | 0xf000000 );
-		CNOVRCanvasTackRectangle( canvas, (int)fi->xpx-2, (int)fi->ypx-2, (int)fi->xpx+2, (int)fi->ypx+2 );
 		cursors++;
 
 		if( !minified &&  !menu_up )
@@ -271,6 +269,16 @@ void UpdateFunction( void * tag, void * opaquev )
 			CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
 			CNOVRCanvasTackRectangle( canvas, 0, 0, 100, 100 );
 		}
+
+		for( i = 0; i < sizeof(focusdev)/sizeof(focusdev[0]); i++ )
+		{
+			struct focusinfo * fi = focusdev + i;
+			double elapse = OGGetAbsoluteTime() - fi->time;
+			if( elapse > .2 ) continue;
+			CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, 0, 1.1-elapse*5. ) | 0xf000000 );
+			CNOVRCanvasTackRectangle( canvas, (int)fi->xpx-2, (int)fi->ypx-2, (int)fi->xpx+2, (int)fi->ypx+2 );
+		}
+
 	}
 	else if( minified == 1 )
 	{
