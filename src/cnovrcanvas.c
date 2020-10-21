@@ -101,7 +101,7 @@ int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_prope
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int properties )
 {
 	cnovr_canvas * ret = malloc( sizeof( cnovr_canvas ) );
-	
+	memset( ret, 0, sizeof( ret ) );
 	ret->base.header = &cnovr_canvas_header;
 	ret->base.tccctx = TCCGetTag();
 	ret->color = 0xffffffff;

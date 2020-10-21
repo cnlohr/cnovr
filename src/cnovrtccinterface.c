@@ -617,10 +617,11 @@ extern void * CNFGGC;
 extern void * CNFGWindowGC;
 extern void * CNFGVisual;
 void   CNFGSetVSync( int vson );
-#endif
+
 void XShmCreateImage(); 
 void XShmAttach();
 void XShmGetImage();
+#endif
 #endif
 
 void CNFGSwapBuffers(void);
@@ -972,12 +973,11 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNFGGC )
 	TCCExportS( CNFGWindowGC )
 	TCCExportS( CNFGVisual )
-#endif
-
-	TCCExportS( stat )
 	TCCExportS( XShmCreateImage )
 	TCCExportS( XShmAttach )
 	TCCExportS( XShmGetImage )
+#endif
+	TCCExportS( stat )
 #endif
 	{ 0, 0 }
 };
