@@ -19,13 +19,10 @@ int CNOVRAlertv( void * tag, int priority, const char * format, va_list ap );
 #define ovrprintf(x...) CNOVRAlert( 0, 5, x)
 
 
-enum cnovr_init_mode
-{
-	CNOVR_INIT_OPENVR_REQUIRED = 0,
-	CNOVR_INIT_OPENVR_DESIRED,
-	CNOVR_INIT_OPENVR_DISABLED,
-	CNOVR_INIT_OPENVR_OVERLAY,
-};
+#define CNOVR_INIT_NEED_OPENVR         1
+#define CNOVR_INIT_DISABLE_OPENVR      2
+#define CNOVR_INIT_IS_OVERLAY          4
+#define CNOVR_INIT_DISABLE_MULTISAMPLE 8 
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -99,7 +96,7 @@ extern struct cnovrstate_t * cnovrstate;
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_mode allow_init_without_vr );
+int CNOVRInit( const char * appname, int screenx, int screeny, int initflags );
 void CNOVRShutdown();
 void CNOVRUpdate();
 int CNOVRCheck(); //Check for errors.

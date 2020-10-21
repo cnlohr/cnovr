@@ -93,7 +93,7 @@ void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 }
 
 
-int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_mode eInitMode )
+int CNOVRInit( const char * appname, int screenx, int screeny, int iInitFlags )
 {
 	int r;
 
@@ -117,15 +117,16 @@ int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_m
 	ovrprintf( "Initializing OpenVR.\n" );
 
 	int has_vr = 0;
-	if( eInitMode != CNOVR_INIT_OPENVR_DISABLED )
+
+	if( !( iInitFlags & CNOVR_INIT_DISABLE_OPENVR ) )
 	{
 		EVRInitError e;
 		uint32_t vrtoken;
-		vrtoken = VR_InitInternal( &e, (eInitMode==CNOVR_INIT_OPENVR_OVERLAY)?EVRApplicationType_VRApplication_Overlay:EVRApplicationType_VRApplication_Scene );
+		vrtoken = VR_InitInternal( &e, (iInitFlags & CNOVR_INIT_IS_OVERLAY)?EVRApplicationType_VRApplication_Overlay:EVRApplicationType_VRApplication_Scene );
 		if( !vrtoken )
 		{
 			ovrprintf( "Error calling VR_InitInternal: %d (%s)\n", e, VR_GetVRInitErrorAsEnglishDescription( e ) );
-			if( eInitMode == CNOVR_INIT_OPENVR_REQUIRED )
+			if( iInitFlags & CNOVR_INIT_NEED_OPENVR )
 				return -e;
 		}
 		else
@@ -139,7 +140,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_m
 			if ( ! VR_IsInterfaceVersionValid(IVRSystem_Version) )
 			{
 				ovrprintf( "OpenVR Interface Invalid.\n" );
-				if( eInitMode == CNOVR_INIT_OPENVR_REQUIRED )
+				if( iInitFlags & CNOVR_INIT_NEED_OPENVR )
 					return -1;
 				has_vr = 0;
 			}
@@ -176,7 +177,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_m
 		cnovrstate->stereotargets[0] = 0;
 		cnovrstate->stereotargets[1] = 0;
 		cnovrstate->fPreviewFOV = 100;
-		cnovrstate->iMultisample = DEFAULT_MULTISAMPLE;
+		cnovrstate->iMultisample = (iInitFlags & CNOVR_INIT_DISABLE_MULTISAMPLE)?0:DEFAULT_MULTISAMPLE;
 
 		//Initial camrea
 		pose_make_identity( &cnovrstate->pPreviewPose );
@@ -201,7 +202,7 @@ int CNOVRInit( const char * appname, int screenx, int screeny, enum cnovr_init_m
 		cnovrstate->pTrackedPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->bRenderPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->bTrackedPosesValid = malloc( MAX_POSES_TO_PULL_FROM_OPENVR );
-		cnovrstate->bIsOverlay = eInitMode == CNOVR_INIT_OPENVR_OVERLAY;
+		cnovrstate->bIsOverlay = iInitFlags & CNOVR_INIT_IS_OVERLAY;
 		cnovrstate->pEyeToHead = malloc( sizeof( cnovr_pose ) * 2 );
 		cnovrstate->is_submodule = !!CNOVRFileSearch( "cnovr/assets/cnovr.glsl" );
 	}

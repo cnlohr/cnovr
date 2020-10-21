@@ -67,8 +67,8 @@ minimal : $(OBJS) src/minimal.o
 offlinetests : $(OBJS) src/offlinetests.o
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
-compiledintest : src/compiledintest.o \
-	lib/stb_include_custom.o lib/stb_image.o \
+
+DEDICATED_PROJECT_O:=lib/stb_include_custom.o lib/stb_image.o \
 	lib/cnrbtree.o lib/cnhash_link.o lib/jsmn.o \
 	lib/os_generic_link.o cntools/vlinterm/vlinterm.o \
 	rawdraw/CNFG.o src/disable_tcc.o \
@@ -78,6 +78,11 @@ compiledintest : src/compiledintest.o \
 	src/cnovrfocus.o src/cnovrcanvas.o \
 	src/cnovrterminal.o \
 	./libopenvr_api.so
+
+ovrballonly : src/compiledintest.o $(DEDICATED_PROJECT_O)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+compiledintest : src/compiledintest.o $(DEDICATED_PROJECT_O)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 clean :

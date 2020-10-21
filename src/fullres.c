@@ -8,7 +8,7 @@ int main( int argc, char ** argv )
 {
 	extern int CNFGX11ForceNoDecoration;
 	CNFGX11ForceNoDecoration = 1;
-	if( CNOVRInit( "test", 1920, 1080, CNOVR_INIT_OPENVR_REQUIRED ) )
+	if( CNOVRInit( "test", 1920, 1080, CNOVR_INIT_NEED_OPENVR ) )
 	{
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;

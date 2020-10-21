@@ -6,7 +6,7 @@
 
 int main( int argc, char ** argv )
 {
-	if( CNOVRInit( "test", 1280, 720, CNOVR_INIT_OPENVR_DISABLED ) )
+	if( CNOVRInit( "test", 1280, 720, CNOVR_INIT_DISABLE_OPENVR ) )
 	{
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;
