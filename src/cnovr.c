@@ -535,12 +535,12 @@ void CNOVRUpdate()
 	CNFGSetVSync( 0 );
 #endif
 
+	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
+
 //	double diff = OGGetAbsoluteTime() - FrameStart;
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
 	if( !did_advanced_preview ) CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
-
-	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
 
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
 //	glFlush();
