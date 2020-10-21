@@ -14,11 +14,19 @@ int main( int argc, char ** argv )
 		fprintf( stderr, "Error: Could not init CNOVR.\n" );
 		return -1;
 	}
+	//cnovrstate->iMultisample = 0;
 	OGSetTLS( tcctlstag, 0 );
-	start( "ovrball" );
+
+	CNOVRFileSearchAddPath( "ovrball" );
+
+	//openvrobjectsstart( "wireframe,nodetail" );
+	ovrballstart( "ovrball" );
 	while(1)
 	{
 		CNOVRUpdate();
 	}
+	//unreachable.
+	//openvrobjectsstop( 0 );
+	//ovrballstop( 0 );
 }
 

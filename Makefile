@@ -79,7 +79,7 @@ DEDICATED_PROJECT_O:=lib/stb_include_custom.o lib/stb_image.o \
 	src/cnovrterminal.o \
 	./libopenvr_api.so
 
-ovrballonly : src/compiledintest.o $(DEDICATED_PROJECT_O)
+ovrballonly : src/ovrballonly.o $(DEDICATED_PROJECT_O)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 compiledintest : src/compiledintest.o $(DEDICATED_PROJECT_O)
