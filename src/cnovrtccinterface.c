@@ -429,9 +429,9 @@ static cnovr_canvas * TCCCNOVRCanvasCreate( const char * name, int w, int h, int
 	return ret;
 }
 
-static cnovr_terminal * TCCCNOVRTerminalCreate( const char * name, int rows, int cols )
+static cnovr_terminal * TCCCNOVRTerminalCreate( const char * name, int rows, int cols, int properties )
 {
-	cnovr_terminal * ret = CNOVRTerminalCreate( name, rows, cols );
+	cnovr_terminal * ret = CNOVRTerminalCreate( name, rows, cols, properties );
 	MARKOGLockMutex( tccinterfacemutex );
 	object_cleanup * c = CNHashGetValue( objects_to_delete, TCCGetTag()  );
 	if( c ) cnptrset_insert( c->tccobjects, ret );
