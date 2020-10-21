@@ -106,7 +106,7 @@ int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_prope
 				else
 				{
 					if( prop->devid == 0 )
-						curcan->fFocusTime += cnovrstate->fFrameTime;
+						curcan->fFocusTime += cnovrstate->fDeltaTime;
 					curcan->iHasFocus = 2;
 				}
 				ret = 1;
@@ -116,7 +116,7 @@ int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_prope
 				if( curcan->fFocusTime >= 2 )
 					curcan->fFocusTime = 0;
 				if( curcan->fFocusTime > 0 )
-					curcan->fFocusTime = cnovr_max( (curcan->fFocusTime - cnovrstate->fFrameTime * .3), 0 );
+					curcan->fFocusTime = cnovr_max( (curcan->fFocusTime - cnovrstate->fDeltaTime * .3), 0 );
 			}
 			curcan++;
 		}

@@ -280,7 +280,7 @@ double FrameStart;
 void CNOVRUpdate()
 {
 	double Now = OGGetAbsoluteTime();
-	cnovrstate->fFrameTime = (Now-cnovrstate->fFrameStartTime);
+	cnovrstate->fDeltaTime = (Now-cnovrstate->fFrameStartTime);
 	cnovrstate->fFrameStartTime = Now;
 
 //	static struct TrackedDevicePose_t lastframeposes[MAX_POSES_TO_PULL_FROM_OPENVR];
@@ -539,6 +539,8 @@ void CNOVRUpdate()
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
 	if( !did_advanced_preview ) CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
+
+	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
 
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
 //	glFlush();

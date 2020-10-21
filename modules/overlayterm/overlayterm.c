@@ -284,13 +284,13 @@ void UpdateFunction( void * tag, void * opaquev )
 		int did_dwell_anim = 0;
 		if( minified_dwelling )
 		{
-			minified_dwell += cnovrstate->fFrameTime;
+			minified_dwell += cnovrstate->fDeltaTime;
 			did_dwell_anim = 1;
 			minified_dwelling = 0;
 		}
 		else if( minified_dwell > .1 )
 		{
-			minified_dwell -= cnovrstate->fFrameTime;
+			minified_dwell -= cnovrstate->fDeltaTime;
 			did_dwell_anim = 1;
 		}
 		if( minified_dwell < .1 ) minified_dwell = .1;
