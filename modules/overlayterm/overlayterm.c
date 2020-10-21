@@ -498,7 +498,6 @@ void start( const char * lidentifier )
 
 void stop( const char * identifier )
 {
-	extern void close( int socket );
 
 	quit = 1;
 	if( keyboard_listen_socket_tcp) close( keyboard_listen_socket_tcp );
