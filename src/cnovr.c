@@ -279,17 +279,12 @@ double FrameStart;
 
 void CNOVRUpdate()
 {
-	double Now = OGGetAbsoluteTime();
-	cnovrstate->fDeltaTime = (Now-cnovrstate->fFrameStartTime);
-	cnovrstate->fFrameStartTime = Now;
-
 //	static struct TrackedDevicePose_t lastframeposes[MAX_POSES_TO_PULL_FROM_OPENVR];
 
 	//Get poses
 	int i;
 
 //	memcpy( cnovrstate->openvr_renderposes, lastframeposes, sizeof( lastframeposes ) );
-	InternalCNOVRFocusUpdate();
 
 	if( cnovrstate->bHasOvr )
 	{
@@ -353,6 +348,9 @@ void CNOVRUpdate()
 		}
 	}
 
+	double Now = OGGetAbsoluteTime();
+	cnovrstate->fDeltaTime = (Now-cnovrstate->fFrameStartTime);
+	cnovrstate->fFrameStartTime = Now;
 	FrameStart = OGGetAbsoluteTime();
 
 	//Update + prerender
@@ -524,6 +522,8 @@ void CNOVRUpdate()
 		//glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 #endif
 	}
+
+	InternalCNOVRFocusUpdate();
 
 	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );
 
