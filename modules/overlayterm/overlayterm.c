@@ -83,7 +83,7 @@ void FunctionUptime( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_c
 	CNOVRTerminalFeedback( terminal, (uint8_t*)"uptime\n", 7 );
 }
 
-#define NUM_HISTORY 8
+#define NUM_HISTORY 12
 #define MAX_HIST_LEN 1024
 char history[NUM_HISTORY][MAX_HIST_LEN];
 
@@ -120,6 +120,10 @@ cnovr_canvas_canned_gui_element termgui[] = {
 	{ 690, 45, 400, 350, FunctionHistory, history[5], history[5], 0, 0, 0, 7, 0x10101010 },
 	{ 690, 45, 400, 400, FunctionHistory, history[6], history[6], 0, 0, 0, 7, 0x10101010 },
 	{ 690, 45, 400, 450, FunctionHistory, history[7], history[7], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 500, FunctionHistory, history[8], history[8], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 550, FunctionHistory, history[9], history[9], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 600, FunctionHistory, history[10], history[10], 0, 0, 0, 7, 0x10101010 },
+	{ 690, 45, 400, 650, FunctionHistory, history[11], history[11], 0, 0, 0, 7, 0x10101010 },
 
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0 , 0 },
 };
@@ -176,10 +180,39 @@ void UpdateFunction( void * tag, void * opaquev )
 
 		if( menu_up )
 		{
-			char bash_history_path[1024];
+			char full_file_path[1024];
 		    char *homedir = getenv("HOME");
-			snprintf( bash_history_path, sizeof( bash_history_path ), "%s/.bash_history", homedir ); 
-			FILE * flh = fopen( bash_history_path, "rb" );
+			memset( history, 0, sizeof(history) );
+
+			//First, we see if we have a cnovrterm file.
+			snprintf( full_file_path, sizeof( full_file_path ), "%s/.ovrterm", homedir ); 
+			FILE * flh = fopen( full_file_path, "rb" );
+			int histskip = 0;
+			if( flh )
+			{
+				char * ovrterm;
+				fseek( flh, 0, SEEK_END );
+				int len = ftell( flh );
+				fseek( flh, 0, SEEK_SET );
+				ovrterm = malloc( len + 1 );
+				fread( ovrterm, 1, len, flh );
+		 		ovrterm[len] = 0;
+				fclose( flh );
+
+				int ovrterm_count;
+				char ** ovrterm_lines = CNOVRSplitStrings( ovrterm, "\n", "", 1, &ovrterm_count );
+				int i;
+				for( i = 0; i < ovrterm_count && i < NUM_HISTORY; i++ )
+				{
+					strncpy( history[i], ovrterm_lines[i], MAX_HIST_LEN - 1 );
+					history[i][MAX_HIST_LEN-1] = 0;
+				}
+				histskip = i;
+			}
+
+			//Then we iterate over the bash history.
+			snprintf( full_file_path, sizeof( full_file_path ), "%s/.bash_history", homedir ); 
+			flh = fopen( full_file_path, "rb" );
 			if( flh )
 			{
 				char * bash_history;
@@ -195,8 +228,7 @@ void UpdateFunction( void * tag, void * opaquev )
 				char ** bash_history_lines = CNOVRSplitStrings( bash_history, "\n", "", 1, &bash_count );
 				int i;
 				int lpl = bash_count-1;
-				memset( history, 0, sizeof(history) );
-				for( i = NUM_HISTORY-1; i >= 0 && lpl >= 0; i-- )
+				for( i = NUM_HISTORY-1; i >= histskip && lpl >= 0; i-- )
 				{
 					do
 					{
