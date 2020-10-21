@@ -263,12 +263,13 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int iInitFlags )
 		CNOVRModelAppendMesh( cnovrstate->fullscreengeo, 1, 1, 0, size, 0, 0 );
 	}
 
+	cnovrstate->fFrameStartTime = OGGetAbsoluteTime();
+
 	ovrprintf( "Waiting 30ms for OpenVR to initialize. (TODO, should figure out why this is needed)\n" );
-	
+
 	//???! How do we make sure OpenVR initialization is complete?
 	OGUSleep( 30000 );
 	
-
 	ovrprintf( "Init complete.\n" );
 
 	return 0;
@@ -278,6 +279,10 @@ double FrameStart;
 
 void CNOVRUpdate()
 {
+	double Now = OGGetAbsoluteTime();
+	cnovrstate->fFrameTime = (Now-cnovrstate->fFrameStartTime);
+	cnovrstate->fFrameStartTime = Now;
+
 //	static struct TrackedDevicePose_t lastframeposes[MAX_POSES_TO_PULL_FROM_OPENVR];
 
 	//Get poses
@@ -537,8 +542,6 @@ void CNOVRUpdate()
 
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
 //	glFlush();
-	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-FrameStart);
-
 }
 
 void CNOVRShutdown()

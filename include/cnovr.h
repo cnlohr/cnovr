@@ -71,7 +71,8 @@ struct cnovrstate_t
 
 	cnovr_pose pPreviewPose;
 	float fPreviewFOV;
-	float fFrameTime;
+	float fFrameTime; //Delta Time
+	double fFrameStartTime; //Absolute Time
 
 	short    iPreviewWidth, iPreviewHeight;
 	short    iEyeRenderWidth, iEyeRenderHeight;
