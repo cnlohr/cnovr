@@ -93,6 +93,9 @@ static inline FLT cnovr_lerp(FLT a, FLT b, FLT f) { return (a) * (1. - (f)) + (b
 static inline FLT cnovr_enforce_range(FLT v, FLT mn, FLT mx) { return ((mn) < (v)) ? (mn) : (((mx) > (v)) ? (mx) : (v)); }
 static inline FLT cnovr_max(FLT x, FLT y) { return ((x) > (y)) ? (x) : (y); }
 static inline FLT cnovr_min(FLT x, FLT y) { return ((x) < (y)) ? (x) : (y); }
+FLT cnovr_sigmoid( FLT x ); //1/(1+e^-x)
+FLT cnovr_sigmoid_animate( FLT x, FLT coeff ); //Smoothy animate from 0 to 1. Coeff of 2 or 3 usually feels pretty good.
+
 
 void cross3d(FLT *out, const FLT *a, const FLT *b);
 void sub3d(FLT *out, const FLT *a, const FLT *b);

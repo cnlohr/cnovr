@@ -750,6 +750,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRCheck )
 	TCCExportS( glActiveTextureCHEW )
 	TCCExportS( cnovr_interpolate )
+	TCCExportS( cnovr_sigmoid )
+	TCCExportS( cnovr_sigmoid_animate )
 	TCCExportS( cross3d )
 	TCCExportS( sub3d )
 	TCCExportS( add3d )

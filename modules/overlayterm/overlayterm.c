@@ -296,7 +296,7 @@ void UpdateFunction( void * tag, void * opaquev )
 		if( minified_dwell < .1 ) minified_dwell = .1;
 		if( did_dwell_anim )
 		{
-			store->pOverlayLocation.Scale = minified_base * minified_dwell;
+			store->pOverlayLocation.Scale = minified_base * ( cnovr_sigmoid_animate( (minified_dwell-.1)/.9, 4 ) + .1 );
 			CNOVRCanvasSwapBuffers( canvas );
 		}
 	}

@@ -9,6 +9,19 @@
 #include <cnovr.h>
 #include <stdio.h>
 
+FLT cnovr_sigmoid( FLT x )
+{
+	return 1./(1.+exp(-x));
+}
+
+FLT cnovr_sigmoid_animate( FLT x, FLT coeff )
+{
+	if( x < 0 ) return 0;
+	if( x > 1 ) return 1;
+	float coeffbase = cnovr_sigmoid( -coeff );
+	return (cnovr_sigmoid( x * (coeff*2) - coeff ) - coeffbase) / (1-coeffbase*2);
+}
+
 void cross3d(FLT *out, const FLT *a, const FLT *b) {
 	FLT o0 = a[1] * b[2] - a[2] * b[1];
 	FLT o1 = a[2] * b[0] - a[0] * b[2];

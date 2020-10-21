@@ -116,7 +116,7 @@ int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_prope
 				if( curcan->fFocusTime >= 2 )
 					curcan->fFocusTime = 0;
 				if( curcan->fFocusTime > 0 )
-					curcan->fFocusTime = cnovr_max( curcan->fFocusTime - cnovrstate->fFrameTime * .3, 0 );
+					curcan->fFocusTime = cnovr_max( (curcan->fFocusTime - cnovrstate->fFrameTime * .3), 0 );
 			}
 			curcan++;
 		}
@@ -259,7 +259,7 @@ void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, cnovr_canvas_canned_gui_elemen
 			CNOVRCanvasDrawBox( c, x, y, x + curcan->w, y + curcan->h );
 			if( curcan->fFocusTime > 0)
 			{
-				int xs = x + curcan->fFocusTime * curcan->w;
+				int xs = x + cnovr_sigmoid_animate( curcan->fFocusTime, 4 ) * curcan->w;
 				if( xs > x + curcan->w ) xs = x + curcan->w;
 				c->dialogcolor = curcan->dialogcolor+0x101010;
 				CNOVRCanvasDrawBox( c, x, y, xs, y + curcan->h );
