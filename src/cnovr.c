@@ -196,6 +196,8 @@ int CNOVRInit( const char * appname, int screenx, int screeny, int iInitFlags )
 			cnovrstate->oInput = (struct VR_IVRInput_FnTable *)CNOVRGetOpenVRFunctionTable( IVRInput_Version );
 		}
 
+		cnovrstate->sAppName = (!appname)?strdup("cnovr_unnamed_app"):strdup( appname );
+
 		cnovrstate->openvr_renderposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->openvr_trackedposes = malloc( sizeof( struct TrackedDevicePose_t ) * MAX_POSES_TO_PULL_FROM_OPENVR );
 		cnovrstate->pRenderPoses = malloc( sizeof( cnovr_pose ) * MAX_POSES_TO_PULL_FROM_OPENVR );
@@ -535,7 +537,7 @@ void CNOVRUpdate()
 
 	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
 //	glFlush();
-	cnovrstate->fFrameTimems = (OGGetAbsoluteTime()-FrameStart)*1000;
+	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-FrameStart);
 
 }
 
@@ -579,6 +581,8 @@ void CNOVRShutdown()
 
 	printf( "Unhooking crash handler\n" );
 	tcccrash_uninstall();
+
+	free( cnovrstate->sAppName );
 
 	exit( 0 );
 }

@@ -71,13 +71,15 @@ struct cnovrstate_t
 
 	cnovr_pose pPreviewPose;
 	float fPreviewFOV;
-	float fFrameTimems;
+	float fFrameTime;
 
 	short    iPreviewWidth, iPreviewHeight;
 	short    iEyeRenderWidth, iEyeRenderHeight;
 
 	//For doing final screen-output.
 	cnovr_model * fullscreengeo;
+
+	char * sAppName;
 
 	uint8_t  eyeTarget;
 	uint8_t  bHasOvr;
@@ -86,7 +88,6 @@ struct cnovrstate_t
 	uint8_t  iMultisample; //If 0, use direct path, otherwise, use 2+.
 	uint8_t  is_submodule;
 	uint8_t  bCanHMDFocus;
-
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )

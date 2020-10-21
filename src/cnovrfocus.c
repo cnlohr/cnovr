@@ -168,7 +168,6 @@ void InternalCNOVRFocusUpdate()
 			bPoseIsValid = cnovrstate->bTrackedPosesValid[0];
 			cnovr_pose point_from_mouth = (cnovr_pose){.Rot = {1.0, 0.0, 0.0, 0.0}, .Scale = 1, .Pos = { 0.0, -0.1, 0.0 } };
 			apply_pose_to_pose( &FOCUS.poseTip[ctrl], cnovrstate->pTrackedPoses, &point_from_mouth );
-
 		}
 		else
 		{

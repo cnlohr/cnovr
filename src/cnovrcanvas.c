@@ -15,25 +15,43 @@ static void CNOVRCanvasDelete( cnovr_canvas * ths )
 	CNOVRDelete( ths->model );
 	free( ths->canvasname );
 //	CNOVRFreeLater( ths->data );  //Free'd by the texture.
+
+	if( ths->iProperties & CANVAS_PROP_IS_OPENVR_OVERLAY )
+	{
+		int i;
+		for( i = 0; i < ths->iNumSides; i++ )
+		{
+			if( ths->ulOverlayHandle[i] )
+				cnovrstate->oOverlay->DestroyOverlay( ths->ulOverlayHandle[i] );
+		}
+	}
+
 	CNOVRFreeLater( ths );
 }
 
 static void CNOVRCanvasRender( cnovr_canvas * ths )
 {
-	if( ths->overrideshd )
-		CNOVRRender( ths->overrideshd );
-	else
-		CNOVRRender( ths->shd );
-
-	if( ths->set_filter_type == 0 && ths->model && ths->model->pTextures && ths->model->pTextures[0]->nTextureId )
+	if( ( ths->iProperties & CANVAS_PROP_IS_OPENVR_OVERLAY ) && ( cnovrstate->eyeTarget < 2 ) )
 	{
-		glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-		glBindTexture( GL_TEXTURE_2D, 0 );
-		ths->set_filter_type = 1;
+		//Don't do anything if we're rendering into the VR view and we're an overlay.
 	}
-	CNOVRRender( ths->model );
+	else
+	{
+		if( ths->overrideshd )
+			CNOVRRender( ths->overrideshd );
+		else
+			CNOVRRender( ths->shd );
+
+		if( ths->set_filter_type == 0 && ths->model && ths->model->pTextures && ths->model->pTextures[0]->nTextureId )
+		{
+			glBindTexture( GL_TEXTURE_2D, ths->model->pTextures[0]->nTextureId );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			glBindTexture( GL_TEXTURE_2D, 0 );
+			ths->set_filter_type = 1;
+		}
+		CNOVRRender( ths->model );
+	}
 }
 
 cnovr_header cnovr_canvas_header = {
@@ -74,19 +92,28 @@ int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_prope
 			int allowdrag = curcan->allowdrag;
 			curcan->iHasFocus = 0;
 
+
 			if( curcan->cb && hx >= x && hx <= x + w && hy >= y && hy <= y + h && 
 				( curcan->disabled == 0 || (*curcan->disabled) == 0 ) )
 			{
-				if( !skip && (event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS || (event == CNOVRF_MOTION && allowdrag ) ) )
+				if( ( curcan->fFocusTime > 1 && curcan->fFocusTime < 2 ) ||
+					( !skip && ( event == CNOVRF_DOWNFOCUS || event == CNOVRF_DOWNNOFOCUS || (event == CNOVRF_MOTION && allowdrag ) ) ) )
 				{
 					curcan->cb( c, curcan, hx-x, hy-y, event, prop->devid );
 					curcan->iHasFocus = 1;
+					curcan->fFocusTime = 100; //Skip out of the way.  We don't want to double click.
 				}
 				else
 				{
+					if( prop->devid == 0 )
+						curcan->fFocusTime += cnovrstate->fFrameTime;
 					curcan->iHasFocus = 2;
 				}
 				ret = 1;
+			}
+			else
+			{
+				curcan->fFocusTime = 0;				
 			}
 			curcan++;
 		}
@@ -101,21 +128,22 @@ int CNOVRCanvasFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_prope
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int properties )
 {
 	cnovr_canvas * ret = malloc( sizeof( cnovr_canvas ) );
-	memset( ret, 0, sizeof( ret ) );
+	memset( ret, 0, sizeof( *ret ) );
 	ret->base.header = &cnovr_canvas_header;
 	ret->base.tccctx = TCCGetTag();
 	ret->color = 0xffffffff;
 	ret->bgcolor = 0xff801010;
 	ret->w = w;
 	ret->h = h;
-	ret->presw = 1;
-	ret->presh = ((float)h)/((float)w);
+	ret->presw = ((float)w)/((float)h);
+	ret->presh = 1;
 	ret->iOpaque = 0;
 	ret->pCannedGUI = 0;
 	ret->overrideshd = 0;
 	ret->data = malloc( w * h * 4 );
 	ret->linewidth = 1;
 	ret->set_filter_type = 0;
+	ret->iProperties = properties;
 	ret->canvasname = strdup( trprintf( "%s_pose", name ) );
 	ovrprintf( "Creating canvas\"%s\"\n", name );
 	ret->pose = CNOVRNamedPtrData( ret->canvasname, "cnovr_pose", sizeof( cnovr_pose ) );
@@ -123,7 +151,17 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int propertie
 	ret->model = CNOVRModelCreate( 0, GL_TRIANGLES );
 	cnovr_point4d extradata = { 0, 0, 0, 0 };
 	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){  ret->presw/2, ret->presh/2, .001 }, 0, &extradata );
-	CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){ -ret->presw/2, ret->presh/2, -.001 }, 0, &extradata );
+
+	if( (properties & CANVAS_PROP_ONE_SIDED ) )
+	{
+		ret->iNumSides = 1;
+	}
+	else
+	{
+		CNOVRModelAppendMesh( ret->model, 1, 1, 1, (cnovr_point3d){ -ret->presw/2, ret->presh/2, -.001 }, 0, &extradata );
+		ret->iNumSides = 2;
+	}
+
 	if( ret->pose->Scale == 0 ) pose_make_identity( ret->pose );
 	ret->model->iOpaque = -1;
 	ret->model->pose = ret->pose;
@@ -136,6 +174,29 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int propertie
 		ret->capture.opaque = ret;
 		ret->capture.cb = CNOVRCanvasFocusEvent;
 		CNOVRModelSetInteractable( ret->model, &ret->capture );
+	}
+
+	if( properties & CANVAS_PROP_IS_OPENVR_OVERLAY )
+	{
+		int i;
+		for( i = 0; i < ret->iNumSides; i++ )
+		{
+			ret->ulOverlayHandle[i] = 0;
+			char overlayname[1024];
+			snprintf( overlayname, 1023, "overlay_%s_%d", name, i );
+			EVROverlayError e = cnovrstate->oOverlay->CreateOverlay( overlayname, cnovrstate->sAppName, &ret->ulOverlayHandle[i] );
+			if( e )
+			{
+				ovrprintf( "OpenVR Create Overlay Failed. %d\n", e );
+			}
+			else
+			{
+				VROverlayHandle_t v = ret->ulOverlayHandle[i];
+				cnovrstate->oOverlay->SetOverlayWidthInMeters( v, ret->presw*2.0 );
+				cnovrstate->oOverlay->SetOverlayColor( v, 1., 1., 1. );
+				cnovrstate->oOverlay->ShowOverlay( v );
+			}
+		}
 	}
 
 //	glBind
@@ -176,7 +237,7 @@ void CNOVRCanvasResize( cnovr_canvas * c, int w, int h )
 	c->data = rmap;
 }
 
-void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_element * canned )
+void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, cnovr_canvas_canned_gui_element * canned )
 {
 	c->pCannedGUI = canned;
 	CNOVRCanvasClearFrame( c );
@@ -193,6 +254,14 @@ void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_
 			uint32_t backup = c->dialogcolor;
 			c->dialogcolor = curcan->dialogcolor;
 			CNOVRCanvasDrawBox( c, x, y, x + curcan->w, y + curcan->h );
+			if( curcan->fFocusTime > 0)
+			{
+				int xs = x + curcan->fFocusTime * curcan->w;
+				if( xs > x + curcan->w ) xs = x + curcan->w;
+				c->dialogcolor = curcan->dialogcolor+0x101010;
+				CNOVRCanvasDrawBox( c, x, y, xs, y + curcan->h );
+			}
+
 			c->dialogcolor = backup;
 		}
 		CNOVRCanvasDrawText( c, x+2, y+2, curcan->text, curcan->textsize?curcan->textsize:2 );
@@ -610,6 +679,40 @@ void CNOVRCanvasTackPoly( cnovr_canvas * c, int * points, int verts )
 void CNOVRCanvasSwapBuffers( cnovr_canvas * c )
 {
 	CNOVRTextureLoadDataAsync( c->model->pTextures[0], c->w, c->h, 4, 0, c->data );
+	if( c->iProperties & CANVAS_PROP_IS_OPENVR_OVERLAY )
+	{
+		int i;
+		for( i = 0; i < c->iNumSides; i++ )
+		{
+			VROverlayHandle_t v;
+			if( ( v = c->ulOverlayHandle[i] ) )
+			{
+				struct VRTextureBounds_t vbOverlayTextureBounds;
+				vbOverlayTextureBounds.uMin = 0;
+				vbOverlayTextureBounds.uMax = 1;
+				vbOverlayTextureBounds.vMin = 1;
+				vbOverlayTextureBounds.vMax = 0;
+				cnovrstate->oOverlay->SetOverlayTextureBounds( v, &vbOverlayTextureBounds );
+
+				Texture_t t;
+				t.handle = (void*)(uintptr_t)c->model->pTextures[0]->nTextureId;
+				t.eType = ETextureType_TextureType_OpenGL;
+				t.eColorSpace = EColorSpace_ColorSpace_Auto;
+				cnovrstate->oOverlay->SetOverlayTexture( v, &t );
+
+				if( !c->pose )
+				{
+					ovrprintf( "Error: canvas %s specified overlay, but does not contain a pose.\n", c->canvasname );
+				}
+				else
+				{
+					FLT m44[16];
+					pose_to_matrix44( m44, c->pose );
+					cnovrstate->oOverlay->SetOverlayTransformAbsolute( v, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
+				}
+			}
+		}
+	}
 }
 
 void CNOVRCanvasClearFrame( cnovr_canvas * c )

@@ -25,6 +25,7 @@ typedef struct cnovr_canvas_canned_gui_element_t
 	int textsize; //If 0 defaults to 2.
 	uint32_t dialogcolor;
 	int iHasFocus;			//filled in by focus system.
+	float fFocusTime;
 } cnovr_canvas_canned_gui_element;
 
 typedef struct cnovr_canvas_t
@@ -51,13 +52,18 @@ typedef struct cnovr_canvas_t
 	float presh;
 	int iOpaque;
 	int iOrMask;
+	int iNumSides;
+	int iProperties;
+	/*VROverlayHandle_t*/ uint64_t ulOverlayHandle[2]; //Up to two sides.
 } cnovr_canvas;
 
-#define CANVAS_PROP_NO_INTERACT 1
+#define CANVAS_PROP_NO_INTERACT       1
+#define CANVAS_PROP_IS_OPENVR_OVERLAY 2
+#define CANVAS_PROP_ONE_SIDED         4
 
 //Tricky:  If you want to use this in some advanced way, abusing the model/texture, you can create a model that is w=1, h=1
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int properties );
-void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, const cnovr_canvas_canned_gui_element * canned ); //Applies, or re-renders canned GUI.
+void CNOVRCanvasApplyCannedGUI( cnovr_canvas * c, cnovr_canvas_canned_gui_element * canned ); //Applies, or re-renders canned GUI.
 void CNOVRCanvasResize( cnovr_canvas * c, int w, int h );
 void CNOVRCanvasSetPhysicalSize( cnovr_canvas * c, float sx, float sy );
 void CNOVRCanvasYFlip( cnovr_canvas * c, int yes_flip_y );

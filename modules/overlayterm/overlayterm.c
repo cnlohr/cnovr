@@ -19,8 +19,6 @@ const char * identifier;
 cnovr_terminal * terminal;
 cnovr_model * overlaymodel;
 cnovrfocus_capture overlaycapture;
-cnovr_point3d overlaysize;
-VROverlayHandle_t ulOverlayHandle;
 
 int quit;
 int keyboard_listen_socket_tcp;
@@ -28,6 +26,9 @@ og_thread_t keyboard_input_thread;
 
 int menu_up;
 int minified;
+int minified_dwelling;
+float minified_dwell;
+float minified_base;
 
 struct focusinfo
 {
@@ -90,14 +91,17 @@ char history[NUM_HISTORY][MAX_HIST_LEN];
 void FunctionHistory( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
 {
 	char cmd[MAX_HIST_LEN+4];
-	int len = snprintf( cmd, MAX_HIST_LEN+3, "%s\n", element->vopaque );
-	CNOVRTerminalFeedback( terminal, cmd, len );
+	int len = snprintf( cmd, MAX_HIST_LEN+3, "%s\n", (char*)element->vopaque );
+	CNOVRTerminalFeedback( terminal, (uint8_t*)cmd, len );
 }
 
 void FunctionMinifyTerminal( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * element, int rx, int ry, cnovrfocus_event event, int devid )
 {
 	menu_up = 0;
 	minified = 1;
+	minified_dwell = .1;
+	minified_dwelling = 0;
+	minified_base = store->pOverlayLocation.Scale;
 	store->pOverlayLocation.Scale *= 0.1;
 }
 
@@ -173,8 +177,10 @@ void UpdateFunction( void * tag, void * opaquev )
 		}
 		else
 		{
+			if( menu_up ) terminal->taint_all = true;
 			menu_up = false;
 			CNOVRTerminalFlipTex( terminal ); //Does not swap if untainted - not what we want.
+			//CNOVRCanvasSwapBuffers( canvas );
 		}
 
 
@@ -265,41 +271,34 @@ void UpdateFunction( void * tag, void * opaquev )
 			CNOVRCanvasColor( canvas, CNOVRHSVtoHEX( 0, .1, .1 ) | 0xff000000 );
 			CNOVRCanvasTackRectangle( canvas, 0, 0, 100, 100 );
 		}
-
-		struct VRTextureBounds_t vbOverlayTextureBounds;
-		vbOverlayTextureBounds.uMin = 0;
-		vbOverlayTextureBounds.uMax = 1;
-		vbOverlayTextureBounds.vMin = 1;
-		vbOverlayTextureBounds.vMax = 0;
-		cnovrstate->oOverlay->SetOverlayTextureBounds( ulOverlayHandle, &vbOverlayTextureBounds );
-
-		Texture_t t;
-		t.handle = (void*)(uintptr_t)terminal->canvas->model->pTextures[0]->nTextureId;
-		t.eType = ETextureType_TextureType_OpenGL;
-		t.eColorSpace = EColorSpace_ColorSpace_Auto;
-
-		cnovrstate->oOverlay->SetOverlayTexture( ulOverlayHandle, &t );
-		FLT m44[16];	pose_to_matrix44( m44, &store->pOverlayLocation );
-		cnovrstate->oOverlay->SetOverlayTransformAbsolute( ulOverlayHandle, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
 	}
 	else if( minified == 1 )
 	{
 		CNOVRCanvasClearFrame( canvas );
 		CNOVRCanvasSwapBuffers( canvas );
-
-		Texture_t t;
-		t.handle = (void*)(uintptr_t)terminal->canvas->model->pTextures[0]->nTextureId;
-		t.eType = ETextureType_TextureType_OpenGL;
-		t.eColorSpace = EColorSpace_ColorSpace_Auto;
-
-		cnovrstate->oOverlay->SetOverlayTexture( ulOverlayHandle, &t );
-		FLT m44[16];	pose_to_matrix44( m44, &store->pOverlayLocation );
-		cnovrstate->oOverlay->SetOverlayTransformAbsolute( ulOverlayHandle, ETrackingUniverseOrigin_TrackingUniverseStanding, (struct HmdMatrix34_t *)m44);
-
 		minified = 2;
 	}
 	else if( minified == 2 )
 	{
+		//The passive minified state.
+		int did_dwell_anim = 0;
+		if( minified_dwelling )
+		{
+			minified_dwell += cnovrstate->fFrameTime;
+			did_dwell_anim = 1;
+			minified_dwelling = 0;
+		}
+		else if( minified_dwell > .1 )
+		{
+			minified_dwell -= cnovrstate->fFrameTime;
+			did_dwell_anim = 1;
+		}
+		if( minified_dwell < .1 ) minified_dwell = .1;
+		if( did_dwell_anim )
+		{
+			store->pOverlayLocation.Scale = minified_base * minified_dwell;
+			CNOVRCanvasSwapBuffers( canvas );
+		}
 	}
 }
 
@@ -314,10 +313,14 @@ int OverlayFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus_propertie
 
 	if( minified )
 	{
-		if( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS )
+		if( event == CNOVRF_DOWNNOFOCUS || event == CNOVRF_DOWNFOCUS || minified_dwell > 1 )
 		{
 			minified = 0;
-			store->pOverlayLocation.Scale *= 10;
+			store->pOverlayLocation.Scale = minified_base;
+		}
+		else if( prop->devid == 0 )
+		{
+			minified_dwelling = 1;
 		}
 		return -1;
 	}
@@ -396,9 +399,11 @@ void * KeyboardListenSocketThread( void * v )
 
 static void overlay_scene_setup( void * tag, void * opaquev )
 {
-	terminal = CNOVRTerminalCreate( "testterm", 80, 25 );
-
+	terminal = CNOVRTerminalCreate( "testterm", 80, 25, CANVAS_PROP_IS_OPENVR_OVERLAY );
 	store = CNOVRNamedPtrData( identifier, 0, sizeof( *store ) + 1024 );
+
+	terminal->canvas->pose = &store->pOverlayLocation;
+
 	if( !store->initialized )
 	{
 		pose_make_identity( &store->pOverlayLocation );
@@ -408,7 +413,8 @@ static void overlay_scene_setup( void * tag, void * opaquev )
 		store->initialized = 1;
 	}
 
-	overlaysize[0] = 1.75;
+	cnovr_point3d overlaysize;
+	overlaysize[0] = terminal->canvas->presw;
 	overlaysize[1] = 1;
 	overlaysize[2] = 0;
 
@@ -425,18 +431,6 @@ static void overlay_scene_setup( void * tag, void * opaquev )
 		ovrprintf( "OpenVR Interface Could not get a handle on an overlay object.\n" );
 		return;
 	}
-
-	ulOverlayHandle = 0;
-	EVROverlayError e = cnovrstate->oOverlay->CreateOverlay( "cnovroverlay", "appname", &ulOverlayHandle );
-	if( e )
-	{
-		ovrprintf( "OpenVR Create Overlay Failed. %d\n", e );
-		return;
-	}
-
-	cnovrstate->oOverlay->SetOverlayWidthInMeters( ulOverlayHandle, overlaysize[0]*2.0 );
-	cnovrstate->oOverlay->SetOverlayColor( ulOverlayHandle, 1., 1., 1. );
-	cnovrstate->oOverlay->ShowOverlay( ulOverlayHandle );
 
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
@@ -504,14 +498,11 @@ void start( const char * lidentifier )
 
 void stop( const char * identifier )
 {
+	extern void close( int socket );
 
 	quit = 1;
 	if( keyboard_listen_socket_tcp) close( keyboard_listen_socket_tcp );
 	if( keyboard_input_thread ) OGJoinThread( keyboard_input_thread );
-	if( ulOverlayHandle )
-	{
-		cnovrstate->oOverlay->DestroyOverlay( ulOverlayHandle );
-	}
 	while( kblhead )
 	{
 		if( kblhead->socket ) close( kblhead->socket );

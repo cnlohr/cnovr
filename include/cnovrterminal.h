@@ -19,7 +19,9 @@ typedef struct cnovr_terminal_t
 	int iUpdateNumber;
 } cnovr_terminal;
 
-cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows );
+
+//Properties are carried onto the canvas inside.
+cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows, int properties );
 
 void CNOVRTerminalRunCommand( cnovr_terminal * term, int argc, char ** argv );
 

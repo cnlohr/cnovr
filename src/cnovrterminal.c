@@ -140,7 +140,7 @@ static int LoadFont(cnovr_terminal * term, const char * fontfile)
 }
 
 
-cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows )
+cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows, int properties )
 {
 	cnovr_terminal * ret = malloc( sizeof( cnovr_terminal ) );
 	memset( ret, 0, sizeof( cnovr_terminal ) );
@@ -155,6 +155,8 @@ cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows )
 	ret->ts.termbuffer = 0;
 	ret->title = strdup( name );
 	ret->ts.user = ret;
+	ret->taint_all = true;
+
 
 	if( LoadFont( ret, "cntools/vlinterm/ibm437.pgm") )
 	{
@@ -165,7 +167,7 @@ cnovr_terminal * CNOVRTerminalCreate( const char * name, int cols, int rows )
 	short w = ret->ts.charx * font_w * (CHAR_DOUBLE+1);
 	short h = ret->ts.chary * font_h * (CHAR_DOUBLE+1);
 
-	ret->canvas = CNOVRCanvasCreate( name, w, h, 0 );
+	ret->canvas = CNOVRCanvasCreate( name, w, h, properties );
 
 	ResetTerminal( &ret->ts );
 	ResizeScreen( &ret->ts, ret->ts.charx, ret->ts.chary );
