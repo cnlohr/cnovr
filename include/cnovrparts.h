@@ -161,7 +161,7 @@ typedef struct cnovr_texture_t
 //Defaults to a 1x1 px texture.
 cnovr_texture * CNOVRTextureCreate( int initw, int inith, int initchan ); //Set to all 0 to have the load control these details.
 int CNOVRTextureLoadFileAsync( cnovr_texture * tex, const char * texfile );
-int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data ); //Data must be on heap.
+int CNOVRTextureLoadDataAsync( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data ); //Data must be on heap. NOTE: Special case.  If chan = 0x300, it will go 3 channel into 4.
 int CNOVRTextureLoadDataNow( cnovr_texture * tex, int w, int h, int chan, int is_float, void * data, int data_permanant ); //Must only call from the render/prerender thread.
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -258,7 +258,7 @@ void CNOVRDelinateGeometry( cnovr_model * m, const char * newGeoName );
 
 int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_vec3d direction, cnovr_collide_results * r, float dradius, float minimumt );
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile );
-void CNOVRModelSetNumTextures( cnovr_model * m, int textures );
+void CNOVRModelSetNumTextures( cnovr_model * m, int textures, int defaultdepth /* Usually 4, for RGBA */ );
 
 void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
 

@@ -802,12 +802,21 @@ static void InternalCNOVRTextureLoadSetup(  cnovr_texture * tex, int w, int h, i
 	static const int channelmapI[] = { 0, GL_R8, GL_RG8, GL_RGB8, GL_RGBA8 };
 	static const int channelmapB[] = { 0, GL_RED, GL_RG, GL_RGB, GL_RGBA };
 
-	if( is_float )
-		tex->nInternalFormat = channelmapF[chan];
+	if( chan == 0x300 )
+	{
+		tex->nInternalFormat = GL_RGB8;
+		tex->nFormat = GL_BGRA;
+	}
 	else
-		tex->nInternalFormat = channelmapI[chan];
-	tex->nFormat = channelmapB[chan];
+	{
+		if( is_float )
+			tex->nInternalFormat = channelmapF[chan];
+		else
+			tex->nInternalFormat = channelmapI[chan];
+		tex->nFormat = channelmapB[chan];
+	}
 	tex->nType = is_float?GL_FLOAT:GL_UNSIGNED_BYTE;
+
 	tex->bTaintData = 1;
 }
 
@@ -1449,7 +1458,7 @@ void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTexture
 	CNOVRTextureLoadFileAsync( m->pTextures[0], sTextureFile );
 }
 
-void CNOVRModelSetNumTextures( cnovr_model * m, int textures )
+void CNOVRModelSetNumTextures( cnovr_model * m, int textures, int defaultdepth )
 {
 	int i;
 	for( i = textures; i < m->iTextures; i++ )
@@ -1458,7 +1467,7 @@ void CNOVRModelSetNumTextures( cnovr_model * m, int textures )
 	m->pTextures = realloc( m->pTextures, textures * sizeof( cnovr_texture * ) );
 
 	for( i = m->iTextures; i < textures; i++ )
-		m->pTextures[i] = CNOVRTextureCreate( 1, 1, 4 );
+		m->pTextures[i] = CNOVRTextureCreate( 1, 1, defaultdepth );
 
 	m->iTextures = 1;
 }

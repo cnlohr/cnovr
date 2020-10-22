@@ -1,0 +1,15 @@
+{
+	"searchfolders" : [
+		"modules/shmwindow",
+		"projects/shmsurfacetest",
+	],
+	"cfiles" : [
+		{
+			"cfile" : "shmwindow.c",
+			"identifier" : "/dev/shm/xvfb/Xvfb_screen0:1024:768",
+			"disabled" : false,
+			"comment" : "mkdir /dev/shm/xvfb; Xvfb :99 -screen 0 1024x768x24 -fbdir /dev/shm/xvfb",
+		},
+	]
+}
+

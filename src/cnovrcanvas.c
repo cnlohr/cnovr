@@ -14,7 +14,7 @@ static void CNOVRCanvasDelete( cnovr_canvas * ths )
 	CNOVRDelete( ths->shd );
 	CNOVRDelete( ths->model );
 	free( ths->canvasname );
-//	CNOVRFreeLater( ths->data );  //Free'd by the texture.
+	CNOVRFreeLater( ths->data );
 
 	if( ths->iProperties & CANVAS_PROP_IS_OPENVR_OVERLAY )
 	{
@@ -168,7 +168,7 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int propertie
 	if( ret->pose->Scale == 0 ) pose_make_identity( ret->pose );
 	ret->model->iOpaque = -1;
 	ret->model->pose = ret->pose;
-	CNOVRModelSetNumTextures( ret->model, 1 );
+	CNOVRModelSetNumTextures( ret->model, 1, 4 );
 
 	if( ! (properties&CANVAS_PROP_NO_INTERACT) )
 	{
@@ -178,6 +178,9 @@ cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int propertie
 		ret->capture.cb = CNOVRCanvasFocusEvent;
 		CNOVRModelSetInteractable( ret->model, &ret->capture );
 	}
+
+	//We will handle texture deletion.
+	ret->model->pTextures[0]->bDisableTextureDataFree = 1;
 
 	if( properties & CANVAS_PROP_IS_OPENVR_OVERLAY )
 	{
@@ -681,7 +684,7 @@ void CNOVRCanvasTackPoly( cnovr_canvas * c, int * points, int verts )
 
 void CNOVRCanvasSwapBuffers( cnovr_canvas * c )
 {
-	CNOVRTextureLoadDataAsync( c->model->pTextures[0], c->w, c->h, 4, 0, c->data );
+	CNOVRTextureLoadDataAsync( c->model->pTextures[0], c->w, c->h, (c->iProperties&CANVAS_PROP_FORCE_RGB)?0x300:4, 0, c->data );
 	if( c->iProperties & CANVAS_PROP_IS_OPENVR_OVERLAY )
 	{
 		int i;

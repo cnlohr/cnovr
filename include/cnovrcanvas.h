@@ -41,7 +41,7 @@ typedef struct cnovr_canvas_t
 	uint32_t * data;
 	int linewidth;
 	cnovr_model * model;
-	cnovr_pose  * pose;
+	cnovr_pose  * pose;  //NOTE: If you overriede this, you also must override model->pose.
 	cnovr_shader * shd;
 	cnovr_shader * overrideshd;
 	cnovrfocus_capture capture;
@@ -60,6 +60,7 @@ typedef struct cnovr_canvas_t
 #define CANVAS_PROP_NO_INTERACT       1
 #define CANVAS_PROP_IS_OPENVR_OVERLAY 2
 #define CANVAS_PROP_ONE_SIDED         4
+#define CANVAS_PROP_FORCE_RGB         8 //Still 32-bit, but forces texture to be GL_RGB
 
 //Tricky:  If you want to use this in some advanced way, abusing the model/texture, you can create a model that is w=1, h=1
 cnovr_canvas * CNOVRCanvasCreate( const char * name, int w, int h, int properties );
