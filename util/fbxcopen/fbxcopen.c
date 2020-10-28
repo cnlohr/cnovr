@@ -3,6 +3,64 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined( FBXCUSEPUFF )
+
+#include <puff.h>
+#define localpuff puff
+
+#else
+
+#include <zlib.h>
+int localpuff(unsigned char *dest,      /* pointer to destination pointer */
+         unsigned long *destlen,        /* amount of output space */
+         /*const*/ unsigned char *source,   /* pointer to source data pointer */
+         unsigned long *sourcelen)      /* amount of input available */
+{
+	int ret;
+	unsigned have;
+	z_stream strm;
+
+	/* allocate inflate state */
+	strm.zalloc = Z_NULL;
+	strm.zfree = Z_NULL;
+	strm.opaque = Z_NULL;
+
+	strm.avail_in = *sourcelen;
+	strm.next_in = source - 2; //TRICKY: zlib wants these extra 2 bytes?
+	strm.avail_out = *destlen;
+	strm.next_out = dest;
+
+	ret = inflateInit(&strm);
+	if (ret != Z_OK)
+		return ret;
+
+	ret = inflate(&strm, /*Z_NO_FLUSH*/0);
+
+	switch (ret) {
+	case Z_STREAM_ERROR:
+	 	(void)inflateEnd(&strm);
+		return ret;
+	case Z_NEED_DICT:
+		ret = Z_DATA_ERROR;     /* and fall through */
+	case Z_DATA_ERROR:
+	case Z_MEM_ERROR:
+		(void)inflateEnd(&strm);
+		return ret;
+	case Z_STREAM_END:
+	case Z_OK:
+	 	(void)inflateEnd(&strm);
+
+		*sourcelen = strm.avail_in;
+		*destlen = strm.avail_out;
+
+		return Z_OK;
+	default:
+		return ret; //unknown error;
+	}
+}
+
+#endif
+
 #define loadStatus_RESP
 
 
@@ -196,13 +254,23 @@ int FBXCOpenPropLenSource( fbxcopen_context * ctx )
 
 		if( ret == -1 )
 		{
+			int typesize = 0;
+			switch( ct )
+			{
+				case 'f': typesize = 4; break;
+				case 'd': typesize = 8; break;
+				case 'l': typesize = 8; break;
+				case 'i': typesize = 4; break;
+				case 'b': typesize = 1; break;
+			}
+
 			//ArrayLength = 'len' from above.
 			int encoding = Pop4( ctx ); //Encoding
 			int compressedLen = Pop4( ctx );
 			if( encoding )
-				ret = compressedLen;
-			else
-				ret = len;
+				ret = compressedLen; //'len' becomes # of elements.
+			else if( typesize )
+				ret = len * typesize;
 		}
 	}
 
@@ -238,6 +306,56 @@ void FBXCOpenContextPrintProperties( fbxcopen_context * ctx, int numProps, int d
 			memcpy( cs, ctx->place + fbx->data, len );
 			cs[len] = 0;
 			printf( "%*d:S<%s\n", depth+6, len, cs );
+			break;
+		}
+		case 'f': case 'd': case 'l': case 'i':
+		{
+			int ilen = Pop4( ctx ); //# of elements
+			int enc = Pop4( ctx );
+			long unsigned int ecl = Pop4( ctx );
+			printf( "%*d:%c / %d %d %ld\n", depth+6, len, cc, ilen, enc, ecl );
+		
+			int typesize = 0;
+			switch( cc )
+			{
+				case 'f': typesize = 4; break;
+				case 'd': typesize = 8; break;
+				case 'l': typesize = 8; break;
+				case 'i': typesize = 4; break;
+				case 'b': typesize = 1; break;
+			}
+
+			if( typesize )
+			{
+				char * dataout = fbx->data + ctx->place;
+
+				if( enc )
+				{
+					dataout = malloc( typesize * ilen );
+					unsigned long destlen = typesize * ilen;
+					int r = localpuff( dataout,      /* pointer to destination pointer */
+		     			&destlen,        /* amount of output space */
+		     			fbx->data + ctx->place + 2,   /* pointer to source data pointer */
+		     			&ecl );      /* amount of input available */
+					printf( "PUFF: %d\n", r );
+				}
+
+				int i = 0;
+				for( i = 0; i < ilen ; i++ )
+				{
+					switch( cc )
+					{
+					case 'f': printf( "%f ", ((float*)dataout)[i] ); break;
+					case 'd': printf( "%f ", ((double*)dataout)[i] ); break;
+					case 'l': printf( "%lu ", ((int64_t*)dataout)[i] ); break;
+					case 'i': printf( "%d ", ((int*)dataout)[i] ); break;
+					case 'b': printf( "%d ", ((char*)dataout)[i] ); break;
+					}
+				}
+
+				if( enc ) free( dataout );
+			}
+			break;
 		}
 		default:
 			printf( "%*d:%c\n", depth+6, len, cc );

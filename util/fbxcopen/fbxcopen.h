@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+//OPTIONS:
+// -DFBXCUSEPUFF --> Try to use puff.h.
+
+
 struct fbxcopen_t;
 struct fbxcopen_context_t;
 
@@ -40,20 +44,21 @@ void FBXCOpenResetContext( fbxcopen_context * ctx, int offset /*If offset = mini
 void FBXCOpenDestroy( fbxcopen * fbxc );
 
 
+
+
 //Utility functions:
 
 //Returns negative on error.
 int FBXCOpenPropLenSource( fbxcopen_context * ctx );
 
 
-
 //Exploration functions
-
 //Given we are at the beginning of a Node Record, we want to move into its nested list.
 //Returns zero if successful.
 int FBXCOpenContextGoToNestedList( fbxcopen_context * ctx );
-
 void FBXCOpenContextPrintProperties( fbxcopen_context * ctx, int numProps, int depth );
+
+//You can actually call this on the root node and it will print an expository view of the file.
 void FBXCOpenContextPrintNodeInfo( fbxcopen_context * ctx, int depth );
 
 
@@ -64,6 +69,7 @@ void FBXCOpenContextPrintNodeInfo( fbxcopen_context * ctx, int depth );
 //NOTE: This is a particularly inefficient mode of exploration, please use EnumerateWithCb.
 //NOTE: enumerateOffsets is the beginning of the node itself.
 int FBXCOpenEnumerate( fbxcopen_context * ctx, char *** enumeratePtrs, int ** enumerateOffsets );
+
 
 //Callback returning nonzero-value will stop progression.
 int FBXCOpenEnumerateWithCb( fbxcopen_context * ctx, int (*callback)( fbxcopen_context * ctx, void * opaque, char * section ), void * opaque ); 

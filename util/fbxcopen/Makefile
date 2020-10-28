@@ -1,10 +1,12 @@
 PROJECT:=fbxcopentest
-SRCS:=main.c fbxcopen.c
+SRCS:=main.c fbxcopen.c puff.c
+
+CFLAGS+=-g #-DFBXCUSEPUFF -I.
 
 all : $(PROJECT)
 
 $(PROJECT) : $(SRCS)
-	gcc -o $@ $^
+	gcc $(CFLAGS) $(LDFLAGS) -o $@ $^ -lz
 
 clean :
 	rm -rf *.o *~ $(PROJECT)
