@@ -5,13 +5,19 @@
 
 void fbxcerror( fbxcopen * fbxc, fbxcopen_context * ctx, const char * error )
 {
-	printf( "Error in %p(%p) %p(%p): %s\n", fbxc, fbxc?fbxc->opaque:0, ctx, ctx?ctx->opaque:0, error );
+	printf( "Error in %p(%p) %p(%p): %s\n", fbxc, fbxc?fbxc->opaqueO:0, ctx, ctx?ctx->opaqueC:0, error );
 }
+
+int MyFBXCOpenLoadFn( fbxcopen_context * ctx, int cbtype, void * data, void * opaqueL )
+{
+	printf( "Got val: ctx %d %p\n", cbtype, opaqueL );
+}
+
 
 int main()
 {
 	fbxcopen * fbx = FBXCOpenFile(
-		"monkey-and-box.fbx",
+		"testscene.fbx",
 		fbxcerror,
 		(void*)0x77 /*Sentinal to make sure opaque is preserved*/ );
 
@@ -19,14 +25,24 @@ int main()
 
 	if( !fbx ) return 0;
 
+#if 0
+	//Load a file.
+	FBXCOpenLoadFromContext( fbx, MyFBXCOpenLoadFn, (void*)0x88 );
+#endif
 
+	//A normal enumeration, for dumping a section or the entire file.
+#if 1
 	fbxcopen_context myctx;
 	FBXCOpenMakeContext( fbx, &myctx, 
 		(void*)0x88 /*Sentinal to make sure opaque is preserved*/  );
 
 	FBXCOpenContextPrintNodeInfo( &myctx, 0 );
+#endif
 
 #if 0
+	//Manual Enumeration, this is completely superceded. Do not do things this way.
+	//This is just a raw test.
+
 	char ** enumeratePtrs;
 	int * enumerateOffsets;
 	int sections = FBXCOpenEnumerate( &myctx, &enumeratePtrs, &enumerateOffsets );
