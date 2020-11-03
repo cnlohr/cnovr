@@ -1919,6 +1919,61 @@ static void CNOVRModelLoadOBJ( cnovr_model * m, const char * filename, const cha
 				}
 			}
 		}
+		else if( tolower( line[0] ) == 'l' )
+		{
+			//Line segment.
+			int lineseg[2];
+			int p = 0;
+			int r = sscanf( line + 1, "%d %d", lineseg+0, lineseg+1 );
+			if( r == 2 && lineify )
+			{
+				//NOTE: This is very similar to the code below for adding a line.
+				int VNumber1 = lineseg[0] - 1;
+				int VNumber2 = lineseg[1] - 1;
+
+				cnovr_point3d va;
+				cnovr_point3d vb;
+				copy3d( va, &t.CVerts[VNumber1*3] );
+				copy3d( vb, &t.CVerts[VNumber2*3] );
+				int i1;
+				int i2;
+				if( !RBHAS( lvps, va ) )
+				{
+					i1 = RBA( lvps, va ) = m->pGeos[0]->iVertexCount;
+					if( VNumber1 < t.CVertCount && VNumber1 >= 0 )
+						CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber1*3] );
+					else
+						CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+				}
+				else
+				{
+					i1 = RBA( lvps, va );
+				}
+
+				if( !RBHAS( lvps, vb ) )
+				{
+					i2 = RBA( lvps, vb ) = m->pGeos[0]->iVertexCount;
+					if( VNumber2 < t.CVertCount && VNumber2 >= 0 )
+						CNOVRVBOTackv( m->pGeos[0], 3, &t.CVerts[VNumber2*3] );
+					else
+						CNOVRVBOTack( m->pGeos[0], 3, 0, 0, 0 );
+				}
+				else
+				{
+					i2 = RBA( lvps, vb );
+				}
+					
+				int64_t paria = i1 | (((int64_t)i2)<<32);
+				int64_t parib = i2 | (((int64_t)i1)<<32);
+				//printf( "%llx %llx  %p %p\n", (uint64_t)paria, (uint64_t)parib, RBHAS( lvpsi, paria ), RBHAS( lvpsi, parib ) );
+				if( !RBHAS( lvpsi, paria ) && !RBHAS( lvpsi, parib ) )
+				{
+					lvpsi->access( lvpsi, paria );
+					CNOVRModelTackIndex( m, 2, i1, i2 );
+					indices+=2;
+				}
+			}
+		}
 		else if( tolower( line[0] ) == 'f' )
 		{
 			char buffer[4][TBUFFERSIZE];
