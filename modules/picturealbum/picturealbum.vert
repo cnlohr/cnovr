@@ -1,4 +1,4 @@
-#version 430
+#version AUTOVER
 #include "cnovr.glsl"
 
 layout(location = 0) in vec3 positionin;
