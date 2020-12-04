@@ -23,6 +23,10 @@ All code is licensed under the MIT/X11 and/or newBSD licenses allowing for close
 
 I'm probably never going to write much of a how-to or document anything on this project, either.  I'm mostly hoping google indexes the source code so I can google for when I want to do things I'm doing here.
 
+## Background
+
+This project was born out of spreadgine, which allowed you to use the HTC Vive on a Raspberry Pi 3. [https://github.com/cnlohr/spreadgine](https://github.com/cnlohr/spreadgine) It did not use OpenVR.  This project uses many of the same principles but instead is geared for desktop usage with OpenVR.
+
 ## Operating
 
 ### On Linux:
