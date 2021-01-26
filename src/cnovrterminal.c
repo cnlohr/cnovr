@@ -28,7 +28,9 @@ static void CNOVRTerminalDelete( cnovr_terminal * ths )
 	if( ths->apprxthread )
 	{
 		ths->quit = 1;
+#ifdef POSIX_STUFF
 		kill( ths->ts.pid, SIGINT );
+#endif
 		close( ths->ts.ptspipe );
 		OGJoinThread( ths->apprxthread );
 	}
@@ -187,14 +189,18 @@ void CNOVRTerminalRunCommand( cnovr_terminal * term, int argc, char ** argv )
 	if( term->apprxthread )
 	{
 		term->quit = 1;
+#ifdef POSIX_STUFF
 		kill( term->ts.pid, SIGINT );
+#endif
 		close( term->ts.ptspipe );
 		OGJoinThread( term->apprxthread );
 	}
 
 	term->quit = 0;
 	ResetTerminal( &term->ts );
+#ifdef POSIX_STUFF
 	term->ts.ptspipe = spawn_process_with_pts( "/bin/bash", argv, &term->ts.pid );
+#endif
 	ResizeScreen( &term->ts, term->ts.charx, term->ts.chary );
 	term->apprxthread = OGCreateThread( TermRXThread, (void*)term );
 }
@@ -330,7 +336,9 @@ void CNOVRTerminalEmitStr( cnovr_terminal * term, const uint8_t * strs, int len 
 void CNOVRTerminalFeedback( cnovr_terminal * term, const uint8_t * strs, int len )
 {
 	if( len < 0 ) len = strlen( (const char *)strs );
+#ifdef POSIX_STUFF
 	FeedbackTerminal( &term->ts, strs, len );
+#endif
 }
 
 void HandleBell( struct TermStructure * ts )
