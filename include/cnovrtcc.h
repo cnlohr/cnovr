@@ -26,6 +26,7 @@ float floorf(float x);
 double acos( double f );
 double atan( double f );
 double tan( double f );
+double fmod(double x, double y);
 
 void CNFGSwapBuffers();
 

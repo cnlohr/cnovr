@@ -93,11 +93,13 @@ typedef enum
 	cnovrLRender4,
 	cnovrLPostRender,
 	cnovrLPreviewRender,
+	cnovrLAudioPlay,
+	cnovrLAudioRec,
 	cnovrLMAX,
 } cnovrRunList;
 
 //Returns # of called events.
-int CNOVRListCall( cnovrRunList l, void * data, int delete_on_call ); 
+int CNOVRListCall( cnovrRunList l, void * data );  //Dispatches immediately, in current thread.
 void CNOVRListAdd( cnovrRunList l, void * base_object, cnovr_cb_fn * fn );
 void CNOVRListDeleteTag( void * base_object );
 void CNOVRListDeleteTCCTag( void * tcctag );

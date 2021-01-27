@@ -2,12 +2,20 @@
 #include <cnovrparts.h>
 #include <cnovrfocus.h>
 #include <cnovrcanvas.h>
-#include <cnovr.h>
+#include <cnovrcnfa.h>
 #include <cnovrutil.h>
+#include <cnovr.h>
 #include <stdlib.h>
 #include <string.h>
 
 double StartTime;
+
+int framecount;
+int audio_frame_count;
+int doot;
+
+double SpinRotationDraw;
+float  BeezParam;
 
 const char * identifier;
 cnovr_shader * shader;
@@ -22,10 +30,15 @@ cnovr_shader * spinningdiskshader;
 cnovr_model * spinningdisk;
 cnovrfocus_capture spinningdiskcapture;
 
+cnovr_shader * beezshader;
+cnovr_model * beez;
+cnovrfocus_capture beezcapture;
+
+/*
 cnovr_model * isosphere;
 cnovr_pose    isospherepose;
 cnovrfocus_capture isocapture;
-
+*/
 cnovr_canvas * canvas;
 
 int shutting_down;
@@ -34,10 +47,16 @@ struct staticstore
 	int initialized;
 	cnovr_pose spinningdiskpose;
 	cnovr_pose colorsplotchpose;
+	cnovr_pose beezpose;
 	int colormode;
 	int slide[3];
 	int spinmode;
 	int spinn[3];
+	int time_add_microseconds;
+	int time_add_stutter_every;
+	int time_add_stutter_amount;
+	int beez_every, beez_for;
+	
 } * store;
 
 
@@ -45,24 +64,33 @@ char ColorSlider0[128];
 char ColorSlider1[128];
 char ColorSlider2[128];
 char Spinnerslider0[128];
+char FrameWaitText[128];
+char BeezEvery[128];
+char BeezFor[128];
+char FrameStutterEveryText[128];
+char FrameStutterAmountText[128];
 float ColorParameters[4];
-float SpinnerParameters[4]; //The first 2 are reserved.
 
 void UpdateMenu()
 {
 	if( store->colormode > 5 ) store->colormode = 0;
-	sprintf ( ColorSlider0, "%s: %d\n", ((const char*[6]){ "RED", "GRN", "BLU", "HUE", "SAT", "VAL" })[store->colormode], store->slide[0] );
-	sprintf ( ColorSlider1, "Um: %d\n", store->slide[1] );
-	sprintf ( ColorSlider2, "Vm: %d\n", store->slide[2] );
-	if( store->spinmode > 1 ) store->spinmode = 1;
-	sprintf ( Spinnerslider0, "%s speed: %d\n", ((const char*[2]){ "Time", "Frame" })[store->spinmode], store->spinn[0] );
-	SpinnerParameters[2] = store->spinmode;
-	SpinnerParameters[3] = store->spinn[0]/255.;
-	
+	sprintf( ColorSlider0, "%s: %d", ((const char*[6]){ "RED", "GRN", "BLU", "HUE", "SAT", "VAL" })[store->colormode], store->slide[0] );
+	sprintf( ColorSlider1, "Um: %d", store->slide[1] );
+	sprintf( ColorSlider2, "Vm: %d", store->slide[2] );
 	ColorParameters[0] = (float)store->colormode;
 	ColorParameters[1] = (float)store->slide[0]/255.;
 	ColorParameters[2] = (float)store->slide[1]/255.;
 	ColorParameters[3] = (float)store->slide[2]/255.;
+
+	if( store->spinmode > 1 ) store->spinmode = 1;
+	sprintf( Spinnerslider0, "%s speed: %d", ((const char*[2]){ "Time", "Frame" })[store->spinmode], store->spinn[0] );
+	
+	sprintf( FrameWaitText, "Extra Frame Delay: %4.1fms", store->time_add_microseconds/1000. );
+	sprintf( FrameStutterEveryText, "Stutter frame every %d frames", store->time_add_stutter_every );
+	sprintf( FrameStutterAmountText, "Frame Stutter Delay: %4.1fms", store->time_add_stutter_amount/1000. );
+
+	sprintf( BeezEvery, "Beez Every %d", store->beez_every );
+	sprintf( BeezFor, "Beez For %d", store->beez_for );
 }
 
 void DefaultMenu()
@@ -71,9 +99,16 @@ void DefaultMenu()
 	store->slide[0] = 255;
 	store->slide[1] = 255;
 	store->slide[2] = 255;
+
 	
 	store->spinmode = 0;
 	store->spinn[0] = 20;
+	store->time_add_microseconds = 0;
+	store->time_add_stutter_every = 0;
+	store->time_add_stutter_amount = 0;
+	
+	store->beez_every = 0;
+	store->beez_for = 0;
 	UpdateMenu();
 }
 
@@ -89,6 +124,42 @@ void adjust_spinner( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_c
 {
 	if( rx > 255 ) rx = 255; if( rx < 0 ) rx = 0;
 	store->spinn[elem->iopaque] = rx;
+	UpdateMenu();
+	CNOVRNamedPtrSave( "testworldcodestore" );
+}
+
+void adjust_frame_wait( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	if( rx > 255 ) rx = 255; if( rx < 0 ) rx = 0;
+	switch( elem->iopaque )
+	{
+	case 0:	
+		store->time_add_microseconds = rx * 200;
+		break;
+	case 1:
+		store->time_add_stutter_every = rx / 5;
+		break;
+	case 2:
+		store->time_add_stutter_amount = rx * 200;
+		break;
+	}
+	UpdateMenu();
+	CNOVRNamedPtrSave( "testworldcodestore" );
+}
+
+
+void adjust_beez( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid )
+{
+	if( rx > 255 ) rx = 255; if( rx < 0 ) rx = 0;
+	switch( elem->iopaque )
+	{
+	case 0:	
+		store->beez_every = rx/5;
+		break;
+	case 1:
+		store->beez_for = rx/5;
+		break;
+	}
 	UpdateMenu();
 	CNOVRNamedPtrSave( "testworldcodestore" );
 }
@@ -112,6 +183,9 @@ void spinner_select_button( struct cnovr_canvas_t * canvas, const struct cnovr_c
 #define DEF_WIDTH (160-26)
 #define EXTRA_WIDTH (160-4)
 
+#define MENUSTART __COUNTER__
+#define MENUNEXT  (__COUNTER__-MENUSTART)
+
 struct cnovr_canvas_canned_gui_element_t menu_canvas[] = {
 	{ .x = 2, .y = MENUY(0), .w = 90,  .h = 14, .cb = 0, .text = "Color Splotch" },
 	{ .x = 2, .y = MENUY(1), .w = 256, .h = 14, .cb = 0, .text = ColorSlider0, .cb = adjust_slider, .iopaque = 0, .allowdrag = 1  },
@@ -127,6 +201,14 @@ struct cnovr_canvas_canned_gui_element_t menu_canvas[] = {
 	{ .x = 2, .y = MENUY(6), .w = 256, .h = 14, .cb = 0, .text = Spinnerslider0, .cb = adjust_spinner, .iopaque = 0, .allowdrag = 1  },
 	{ .x = MENUHEXX(0), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "TIME", .cb = spinner_select_button, .iopaque = 0, },
 	{ .x = MENUHEXX(2), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "FRAMES", .cb = spinner_select_button, .iopaque = 1, },
+	{ .x = 2, .y = MENUY(8), .w = 90,  .h = 14, .cb = 0, .text = "Frame Wait" },
+	{ .x = 2, .y = MENUY(9), .w = 256, .h = 14, .cb = 0, .text = FrameWaitText, .cb = adjust_frame_wait, .iopaque = 0, .allowdrag = 1  },
+	{ .x = 2, .y = MENUY(10), .w = 256, .h = 14, .cb = 0, .text = FrameStutterEveryText, .cb = adjust_frame_wait, .iopaque = 1, .allowdrag = 1  },
+	{ .x = 2, .y = MENUY(11), .w = 256, .h = 14, .cb = 0, .text = FrameStutterAmountText, .cb = adjust_frame_wait, .iopaque = 2, .allowdrag = 1  },
+
+	{ .x = 2, .y = MENUY(12), .w = 90,  .h = 14, .cb = 0, .text = "Beez" },
+	{ .x = 2, .y = MENUY(13), .w = 256, .h = 14, .cb = 0, .text = BeezEvery, .cb = adjust_beez, .iopaque = 0, .allowdrag = 1  },
+	{ .x = 2, .y = MENUY(14), .w = 256, .h = 14, .cb = 0, .text = BeezFor, .cb = adjust_beez, .iopaque = 1, .allowdrag = 1  },
 
 	{ .cb = 0, .w = 0, .h = 0 }
 };
@@ -180,30 +262,92 @@ void UpdateFunction( void * tag, void * opaquev )
 
 
 
-
-
 void RenderFunction( void * tag, void * opaquev )
 {
-	static int framecount;
-	framecount++;
 	CNOVRRender( shader );
-	CNOVRRender( texture );
-	CNOVRRender( shaderBasic );
-	CNOVRRender( isosphere );
+	//CNOVRRender( texture );
+	//CNOVRRender( shaderBasic );
+	//CNOVRRender( isosphere );
 	
 	CNOVRRender( spinningdiskshader );
-	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), OGGetAbsoluteTime() - StartTime, framecount, SpinnerParameters[2], SpinnerParameters[3] );
+	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), SpinRotationDraw, 0, 0, 0 );
 	CNOVRRender( spinningdisk );
+
+	CNOVRRender( beezshader );
+	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), BeezParam, OGGetAbsoluteTime(), 0, 0 );
+	CNOVRRender( beez );
 
 	CNOVRRender( colorsplotchshader );
 	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), ColorParameters[0], ColorParameters[1], ColorParameters[2], ColorParameters[3] );
 	CNOVRRender( colorsplotch );
 
-
-
 	CNOVRRender( canvas );
 }
 
+void PrerenderFunction( void * tag, void * opaquev )
+{
+	framecount++;
+	int delay = store->time_add_microseconds;
+	if( store->time_add_stutter_every > 0 )
+	{
+		if( (framecount % store->time_add_stutter_every) == 0 )
+		{
+			delay += store->time_add_stutter_amount;
+		}
+	}
+	
+	if( store->beez_every )
+	{
+		BeezParam = (framecount%store->beez_every) < store->beez_for;
+	}
+	else
+	{
+		BeezParam = 0;
+	}
+	
+//	printf( "%f %f %f %f  %f %f %f\n", store->beezpose.Rot[0], 
+//		store->beezpose.Rot[1], store->beezpose.Rot[2], store->beezpose.Rot[3],
+//		store->beezpose.Pos[0], store->beezpose.Pos[1], store->beezpose.Pos[2] );
+
+	double LastSpinRotation = SpinRotationDraw;
+	double SpinRotation = (store->spinmode?(framecount/10.):((OGGetAbsoluteTime() - StartTime)*10)) * store->spinn[0] / 100.;
+	SpinRotationDraw = fmod( SpinRotation, 1 );
+	if( SpinRotationDraw < LastSpinRotation ) doot = 660;
+
+	if( delay > 0 )
+		OGUSleep( delay );
+}
+
+void AudioPlaybackFunction( void * tag, void * opaquev )
+{
+	cnovr_audiodataset * data = (cnovr_audiodataset *)opaquev;
+	data->cb_no++;
+	
+	int i;
+	int16_t * frames = data->frames;
+	for( i = 0; i < data->numframes; i++ )
+	{
+		float s = sin( audio_frame_count / 48000. * doot * 6.28318 );
+		audio_frame_count++;
+		frames[i*2+0] = s * (doot?5000:0);
+		frames[i*2+1] = s * (doot?5000:0);
+	}
+	doot = 0;
+	
+//This is the data type for 
+//	cnovrLAudioPlay
+//	cnovrLAudioRec
+/*
+typedef struct cnovr_sampleset_t
+{
+	int cb_no;
+	int numframes;
+	int channels;
+	int16_t * frames;
+} cnovr_sampleset;
+*/
+
+}
 
 static void testworld_scene_setup( void * tag, void * opaquev )
 {
@@ -213,6 +357,7 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	shaderBasic = CNOVRShaderCreate( "assets/basic" );
 	colorsplotchshader = CNOVRShaderCreate( "colorsplotch" );
 	spinningdiskshader = CNOVRShaderCreate( "spinningdisk" );
+	beezshader = CNOVRShaderCreate( "beez" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
@@ -222,7 +367,7 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	CNOVRNodeAddObject( node, model );
 	CNOVRNodeAddObject( root, node );
 */
-	canvas = CNOVRCanvasCreate( "TestWorldCanvas", 320, 240, 0 );
+	canvas = CNOVRCanvasCreate( "TestWorldCanvas", 300, 320, 0 );
 	UpdateMenu();
 
 	srand( 0 );
@@ -230,19 +375,31 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	spinningdisk = CNOVRModelCreate( 0, GL_TRIANGLES );
 	spinningdisk->pose = &store->spinningdiskpose;
 	CNOVRModelAppendMesh( spinningdisk, 1, 1, 0, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
+	CNOVRModelAppendMesh( spinningdisk, 1, 1, 0, (cnovr_point3d){ -1.f, 1.f, 1.f }, 0, 0 );
 	spinningdiskcapture.tag = 0;
 	spinningdiskcapture.opaque = spinningdisk;
 	spinningdiskcapture.cb = TestWorldFocusEvent;
 	CNOVRModelSetInteractable( spinningdisk, &spinningdiskcapture );
 
+	beez = CNOVRModelCreate( 0, GL_TRIANGLES );
+	beez->pose = &store->beezpose;
+	CNOVRModelAppendMesh( beez, 1, 1, 0, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
+	CNOVRModelAppendMesh( beez, 1, 1, 0, (cnovr_point3d){ -1.f, 1.f, 1.f }, 0, 0 );
+	beezcapture.tag = 0;
+	beezcapture.opaque = beez;
+	beezcapture.cb = TestWorldFocusEvent;
+	CNOVRModelSetInteractable( beez, &beezcapture );
+
 	colorsplotch = CNOVRModelCreate( 0, GL_TRIANGLES );
 	colorsplotch->pose = &store->colorsplotchpose;
 	CNOVRModelAppendMesh( colorsplotch, 1, 1, 0, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
+	CNOVRModelAppendMesh( colorsplotch, 1, 1, 0, (cnovr_point3d){ -1.f, 1.f, 1.f }, 0, 0 );
 	colorsplotchcapture.tag = 0;
 	colorsplotchcapture.opaque = colorsplotch;
 	colorsplotchcapture.cb = TestWorldFocusEvent;
 	CNOVRModelSetInteractable( colorsplotch, &colorsplotchcapture );
 
+#if 0
 	isosphere = CNOVRModelCreate( 0, GL_TRIANGLES );
 	isosphere->pose = &isospherepose;
 	pose_make_identity( &isospherepose );
@@ -251,7 +408,7 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	isocapture.opaque = isosphere;
 	isocapture.cb = CNOVRFocusDefaultFocusEvent;
 	CNOVRModelSetInteractable( isosphere, &isocapture );
-
+#endif
 
 	texture = CNOVRTextureCreate( 0, 0, 0 ); //Set to all 0 to have the load control these details.
 	CNOVRTextureLoadFileAsync( texture, "test.png" );
@@ -259,6 +416,8 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	UpdateFunction(0,0);
 	CNOVRListAdd( cnovrLUpdate, 0, UpdateFunction );
 	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
+	CNOVRListAdd( cnovrLPrerender, 0, PrerenderFunction );
+	CNOVRListAdd( cnovrLAudioPlay, 0, AudioPlaybackFunction );
 	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
 	printf( "+++ Test World scene setup complete\n" );
 }
@@ -275,6 +434,7 @@ void start( const char * identifier )
 	{
 		int i;
 		pose_make_identity( &store->spinningdiskpose );
+		pose_make_identity( &store->beezpose );
 		pose_make_identity( &store->colorsplotchpose );
 		DefaultMenu();
 		store->initialized = 1;
@@ -283,6 +443,8 @@ void start( const char * identifier )
 	identifier = strdup(identifier);
 	CNOVRJobTack( cnovrQPrerender, testworld_scene_setup, 0, 0, 0 );
 	printf( "=== Example start %s(%p) + %p %p\n", identifier, identifier );
+	
+	CNOVRCNFAInit();
 }
 
 void stop( const char * identifier )

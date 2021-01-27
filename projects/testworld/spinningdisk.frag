@@ -13,14 +13,19 @@ void main()
 {
 	vec2 uvk = uv*2.-1.;
 	
-	float angle = ((clockparams.z>0.5)?(clockparams.y/20.):(clockparams.x*20)) * clockparams.w;
-	
 	float polar = atan( uvk.x, uvk.y ) / (PI*2);
-	float hand = polar + angle;
+	float hand = polar + clockparams.x/2.;
 	float r = length( uvk );
 
-	if( fract( hand ) < .1 )
-		colorOut = vec4( 1. );
+	vec4 col;
+
+	if( fract( hand ) < .05 || ((fract(hand)>0.5 &&fract(hand)<0.55)) )
+		col = vec4( 1. );
 	else
-		colorOut = vec4( 0. );
+		col = vec4( 0. );
+		
+	if( fract( polar ) < .05 || ((fract(polar)>0.5 &&fract(polar)<0.55)) )
+		col.r += .3;
+		
+	colorOut = col;
 }

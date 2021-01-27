@@ -624,6 +624,8 @@ void XShmGetImage();
 #endif
 #endif
 
+void CNOVRCNFAInit();
+
 void CNFGSwapBuffers(void);
 
 //#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
@@ -878,6 +880,8 @@ const struct ImportList ILSYMS[] = {
 
 	TCCExportS( CNFGSwapBuffers )
 
+	TCCExportS( CNOVRCNFAInit )
+
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
 	
 	TCCExportS( _vsnprintf )
@@ -958,7 +962,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( floor )
 	TCCExportS( floorf )
 	TCCExportS( tan )
-	TCCExportS( atan2 )
+	TCCExportS( fmod )
 	TCCExportS( fmodf )
 	{ "_findfirst64", FindFirstFileA },
 	{ "_findnext64", FindNextFile },

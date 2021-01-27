@@ -187,7 +187,7 @@ void InternalCNOVRFocusUpdate()
 			OGLockMutex( FOCUS.mutFocus );
 			props->NewCapturedPassive = 0;
 			props->NewPassiveRealDistance = CNOVRFOCUS_FAR;
-			CNOVRListCall( cnovrLCollide, props, 0 );
+			CNOVRListCall( cnovrLCollide, props );
 			props->capturedPassive = props->NewCapturedPassive;
 			props->capturedPassiveDistance = props->NewPassiveRealDistance;
 			OGUnlockMutex( FOCUS.mutFocus );
