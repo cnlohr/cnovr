@@ -26,6 +26,7 @@ float floorf(float x);
 double acos( double f );
 double atan( double f );
 double tan( double f );
+double sqrt( double f );
 double fmod(double x, double y);
 
 void CNFGSwapBuffers();
@@ -111,6 +112,8 @@ TCCInstance * TCCInterfaceAddCFileInstance( char * cfile, char ** additionalfile
 
 void TCCInstanceDestroy( TCCInstance * tcc );
 
+int CNOVRGetDigitalActionData( uint64_t h );
+float CNOVRGetAnalogActionData( uint64_t h );
 
 #endif
 

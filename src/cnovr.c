@@ -534,9 +534,11 @@ void CNOVRUpdate()
 	void   CNFGSetVSync( int vson );
 	CNFGSetVSync( 0 );
 #endif
-
+//k_pch_SteamVR_PreferredRefreshRate 
 	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
-
+	
+	cnovrstate->fTargetFPS = cnovrstate->oSystem->GetFloatTrackedDeviceProperty( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_DisplayFrequency_Float, 0 );
+	
 //	double diff = OGGetAbsoluteTime() - FrameStart;
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
 	if( !did_advanced_preview ) CNFGSwapBuffers(1);
@@ -594,9 +596,12 @@ void CNOVRShutdown()
 
 int CNOVRCheck()
 {
+	int lastError = -1;
 	GLenum e = glGetError();
 	if( e != GL_NO_ERROR )
 	{
+		if( e == lastError ) return 0;
+		lastError = e;
 		if( e == GL_INVALID_ENUM ) ovrprintf( "GL_INVALID_ENUM\n" );
 		if( e == GL_INVALID_VALUE ) ovrprintf( "GL_INVALID_VALUE\n" );
 		if( e == GL_INVALID_OPERATION ) ovrprintf( "GL_INVALID_OPERATION\n" );

@@ -86,7 +86,7 @@ void FocusSystemRender( void * tag, void * opaque )
 
 
 //XXX TODO: We may want to capture fUpdateTime from actionData.
-int GetDigitalActionData( VRActionHandle_t h )
+int CNOVRGetDigitalActionData( uint64_t h )
 {
 	if( !cnovrstate->oInput ) return -1;
 	InputDigitalActionData_t actionData;
@@ -95,7 +95,7 @@ int GetDigitalActionData( VRActionHandle_t h )
 	return actionData.bActive && actionData.bState;
 }
 
-float GetAnalogActionData( VRActionHandle_t h )
+float CNOVRGetAnalogActionData( uint64_t h )
 {
 	if( !cnovrstate->oInput ) return -1;
 	InputAnalogActionData_t actionData;
@@ -132,7 +132,7 @@ void InternalCNOVRFocusUpdate()
 			int r;
 			VRActionHandle_t h = FOCUS.actionhandles[ctrl][i];
 			if( h == k_ulInvalidActionHandle ) continue;
-			if( ( r = GetDigitalActionData( h ) ) < 0 ) { printf( "Err %d on %d\n", r, i ); continue; }
+			if( ( r = CNOVRGetDigitalActionData( h ) ) < 0 ) { printf( "Err %d on %d\n", r, i ); continue; }
 			int wasdown = (props->buttonmask[0] & 1<<i)?1:0;
 			if( wasdown != r )
 			{

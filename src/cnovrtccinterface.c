@@ -625,7 +625,8 @@ void XShmGetImage();
 #endif
 
 void CNOVRCNFAInit();
-
+int GetDigitalActionData( uint64_t h );
+float CNOVRGetAnalogActionData( uint64_t h );
 void CNFGSwapBuffers(void);
 
 //#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
@@ -837,6 +838,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRPoseFromHMDMatrix )
 	TCCExportS( CNOVRVBOTackv )
 	TCCExportS( CNOVRModelSetNumVBOsWithStrides )
+	TCCExportS( CNOVRGetDigitalActionData )
+	TCCExportS( CNOVRGetAnalogActionData )
 
 	TCCExportS( glGenBuffers )
 	TCCExportS( glBindBuffer )
@@ -948,6 +951,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( rand )
 	TCCExportS( srand )
 
+	TCCExportS( sqrt )
+	TCCExportS( sqrtf )
 	TCCExportS( sin )
 	TCCExportS( sinf )
 	TCCExportS( cos )

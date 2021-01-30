@@ -132,6 +132,10 @@ int CNOVRFocusDefaultFocusEvent( int event, cnovrfocus_capture * cap, cnovrfocus
 
 cnovrfocus_properties * CNOVRFocusGetPropsForDev( int ctrl );
 
+//Helpers from OpenVR
+int CNOVRGetDigitalActionData( uint64_t h );
+float CNOVRGetAnalogActionData( uint64_t h );
+
 /* If you want to manually hook the event...
 
 cnovr_pose some_pose;

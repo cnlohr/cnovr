@@ -12,9 +12,11 @@ double StartTime;
 
 int framecount;
 int audio_frame_count;
-int doot;
+double doot_at;
 
 double SpinRotationDraw;
+double TimeOfNextHit;
+double TimeOfLastHit;
 float  BeezParam;
 
 const char * identifier;
@@ -33,6 +35,8 @@ cnovrfocus_capture spinningdiskcapture;
 cnovr_shader * beezshader;
 cnovr_model * beez;
 cnovrfocus_capture beezcapture;
+
+og_thread_t thddoot;
 
 /*
 cnovr_model * isosphere;
@@ -57,6 +61,7 @@ struct staticstore
 	int time_add_stutter_amount;
 	int beez_every, beez_for;
 	
+	int do_doot;
 } * store;
 
 
@@ -69,6 +74,7 @@ char BeezEvery[128];
 char BeezFor[128];
 char FrameStutterEveryText[128];
 char FrameStutterAmountText[128];
+char DootTimingText[128];
 float ColorParameters[4];
 
 void UpdateMenu()
@@ -109,6 +115,7 @@ void DefaultMenu()
 	
 	store->beez_every = 0;
 	store->beez_for = 0;
+	
 	UpdateMenu();
 }
 
@@ -172,7 +179,14 @@ void color_select_button( struct cnovr_canvas_t * canvas, const struct cnovr_can
 }
 void spinner_select_button( struct cnovr_canvas_t * canvas, const struct cnovr_canvas_canned_gui_element_t * elem, int rx, int ry, cnovrfocus_event event, int devid )
 {
-	store->spinmode = elem->iopaque;
+	if( elem->iopaque < 2 )
+	{
+		store->spinmode = elem->iopaque;
+	}
+	else if( elem->iopaque == 2 )
+	{
+		store->do_doot = !store->do_doot;
+	}
 	UpdateMenu();
 	CNOVRNamedPtrSave( "testworldcodestore" );
 }
@@ -198,9 +212,12 @@ struct cnovr_canvas_canned_gui_element_t menu_canvas[] = {
 	{ .x = MENUHEXX(4), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "SAT", .cb = color_select_button, .iopaque = 4, },
 	{ .x = MENUHEXX(5), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "VAL", .cb = color_select_button, .iopaque = 5, },
 	{ .x = 2, .y = MENUY(5), .w = 90,  .h = 14, .cb = 0, .text = "Spinner" },
+	{ .x = 50, .y = MENUY(5), .w = 90,  .h = 14, .cb = 0, .text = DootTimingText },
 	{ .x = 2, .y = MENUY(6), .w = 256, .h = 14, .cb = 0, .text = Spinnerslider0, .cb = adjust_spinner, .iopaque = 0, .allowdrag = 1  },
 	{ .x = MENUHEXX(0), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "TIME", .cb = spinner_select_button, .iopaque = 0, },
 	{ .x = MENUHEXX(2), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "FRAMES", .cb = spinner_select_button, .iopaque = 1, },
+	{ .x = MENUHEXX(4), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "DOOT", .cb = spinner_select_button, .iopaque = 2, },
+
 	{ .x = 2, .y = MENUY(8), .w = 90,  .h = 14, .cb = 0, .text = "Frame Wait" },
 	{ .x = 2, .y = MENUY(9), .w = 256, .h = 14, .cb = 0, .text = FrameWaitText, .cb = adjust_frame_wait, .iopaque = 0, .allowdrag = 1  },
 	{ .x = 2, .y = MENUY(10), .w = 256, .h = 14, .cb = 0, .text = FrameStutterEveryText, .cb = adjust_frame_wait, .iopaque = 1, .allowdrag = 1  },
@@ -310,9 +327,30 @@ void PrerenderFunction( void * tag, void * opaquev )
 //		store->beezpose.Pos[0], store->beezpose.Pos[1], store->beezpose.Pos[2] );
 
 	double LastSpinRotation = SpinRotationDraw;
-	double SpinRotation = (store->spinmode?(framecount/10.):((OGGetAbsoluteTime() - StartTime)*10)) * store->spinn[0] / 100.;
+	double Now = OGGetAbsoluteTime();
+	double SpinRotation = (store->spinmode?(framecount/10.):((Now - StartTime)*10)) * store->spinn[0] / 100.;
 	SpinRotationDraw = fmod( SpinRotation, 1 );
-	if( SpinRotationDraw < LastSpinRotation ) doot = 660;
+
+	double SpinSpeed = (store->spinmode?(.1*cnovrstate->fTargetFPS):(10)) * store->spinn[0] / 100.;
+	double DistanceToHit = 1.-SpinRotationDraw;
+	double TimeToNextHit = DistanceToHit/SpinSpeed;
+	double NewTimeOfNextHit = TimeToNextHit + Now;
+	
+	if( NewTimeOfNextHit > TimeOfNextHit + 0.1 )
+	{
+		TimeOfLastHit = TimeOfNextHit;
+	}
+	TimeOfNextHit = NewTimeOfNextHit;
+	
+	static int doot_suprress;
+	//printf( "%f %f\n", TimeToNextHit, doot_at );
+	if( TimeToNextHit < .03 && doot_at <= 0 && store->do_doot )
+	{
+		doot_at = OGGetAbsoluteTime() + TimeToNextHit;
+	}
+	
+//	printf( "%f %f %f %f\n", SpinSpeed, SpinRotationDraw, OGGetAbsoluteTime(), TimeOfNextHit );
+//	if( SpinRotationDraw < LastSpinRotation ) doot_at = 660;
 
 	if( delay > 0 )
 		OGUSleep( delay );
@@ -322,31 +360,108 @@ void AudioPlaybackFunction( void * tag, void * opaquev )
 {
 	cnovr_audiodataset * data = (cnovr_audiodataset *)opaquev;
 	data->cb_no++;
-	
+
+	double Now = OGGetAbsoluteTime();
+
 	int i;
 	int16_t * frames = data->frames;
-	for( i = 0; i < data->numframes; i++ )
-	{
-		float s = sin( audio_frame_count / 48000. * doot * 6.28318 );
-		audio_frame_count++;
-		frames[i*2+0] = s * (doot?5000:0);
-		frames[i*2+1] = s * (doot?5000:0);
-	}
-	doot = 0;
-	
-//This is the data type for 
-//	cnovrLAudioPlay
-//	cnovrLAudioRec
-/*
-typedef struct cnovr_sampleset_t
-{
-	int cb_no;
-	int numframes;
-	int channels;
-	int16_t * frames;
-} cnovr_sampleset;
-*/
 
+	double DootStart = doot_at;
+	double DootEnd = DootStart + 0.02;
+	static int DootedFrames;
+	if( DootStart > 0 )
+	{
+		for( i = 0; i < data->numframes; i++ )
+		{
+			double FrameTime = Now + i/48000.;
+			
+			if( FrameTime >= DootStart && FrameTime <= DootEnd )
+			{
+				float s = sin( (DootedFrames++) / 48000. * 660 * 6.28318 );
+				frames[i*2+0] = s * 5000;
+				frames[i*2+1] = s * 5000;
+			}
+			if( FrameTime >= DootEnd )
+			{
+				doot_at = 0;
+				DootedFrames = 0;
+				break;
+			}
+		}
+	}
+}
+
+void * TimingCheckThread(void*v)
+{
+	//double TimeOfNextHit;
+	//double TimeOfLastHit;
+	//sprintf( DootTimingText, "Press A to sync" );
+	uint64_t hleft  = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, 1 );
+	uint64_t hright = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, 1 );
+
+	#define CLICK_KEEP 16
+	double ClickTimes[CLICK_KEEP];
+	int ClickHead;
+
+	int wasdown = 0;
+	while(!shutting_down)
+	{
+		int abtn = CNOVRGetDigitalActionData( hleft ) | CNOVRGetDigitalActionData( hright );
+
+		if( abtn && !wasdown )
+		{
+			double Now = OGGetAbsoluteTime();
+			double NextD = Now - TimeOfLastHit;
+			double LastD = Now - TimeOfNextHit;
+			double Closest;
+			if( -NextD > LastD )
+			{
+				Closest = NextD;
+			}
+			else
+			{
+				Closest = LastD;
+			}
+			//printf( "%f %f %f\n", LastD, NextD, Closest );
+			ClickTimes[ClickHead] = Closest;
+			ClickHead = (ClickHead + 1) % CLICK_KEEP;
+			
+			int i;
+			double Average = 0.0;
+			for( i = 0; i < CLICK_KEEP; i++ )
+			{
+				Average += ClickTimes[i];
+			}
+			Average /= CLICK_KEEP;
+			double stddev = 0.0;
+			for( i = 0; i < CLICK_KEEP; i++ )
+			{
+				stddev += ( ClickTimes[i] - Average )*( ClickTimes[i] - Average );
+				//printf( "\t%f - %f\n", ClickTimes[i], Average );
+			}
+			stddev /= CLICK_KEEP;
+			stddev = sqrt( stddev );
+			int NewHit = 0;
+			double NewAvg = 0.;
+			for( i = 0; i < CLICK_KEEP; i++ )
+			{
+				double diff = ClickTimes[i] - Average;
+				double absdiff = (diff<0)?(-diff):diff;
+				if( absdiff < stddev )
+				{
+					NewHit++;
+					NewAvg += ClickTimes[i];
+				}
+			}
+			NewAvg /= NewHit;
+			printf( "%f %f %f %d\n", Average, NewAvg, stddev, NewHit );
+			sprintf( DootTimingText, "AVG:%4.2f STD:%4.2f HIT:%d\n", NewAvg*1000., stddev*1000., NewHit );
+		}
+		
+		wasdown = abtn;
+		
+		OGUSleep(1000);
+	}
 }
 
 static void testworld_scene_setup( void * tag, void * opaquev )
@@ -418,6 +533,12 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	CNOVRListAdd( cnovrLRender2, 0, RenderFunction );
 	CNOVRListAdd( cnovrLPrerender, 0, PrerenderFunction );
 	CNOVRListAdd( cnovrLAudioPlay, 0, AudioPlaybackFunction );
+	
+	thddoot = OGCreateThread( TimingCheckThread, 0 );
+	
+	sprintf( DootTimingText, "Press A to sync" );
+
+	
 	//CNOVRListAdd( cnovrLCollide, 0, CollideFunction );
 	printf( "+++ Test World scene setup complete\n" );
 }
@@ -450,7 +571,7 @@ void start( const char * identifier )
 void stop( const char * identifier )
 {
 	shutting_down = 1;
-	//OGCancelThread( thdmax );
+	OGJoinThread( thddoot );
 	printf( "=== End Example stop\n" );
 }
 
