@@ -1409,7 +1409,7 @@ void CNOVRListSystemDestroy()
 	}
 }
 
-int CNOVRListCall( cnovrRunList l, void * data, int delete_on_call )
+int CNOVRListCall( cnovrRunList l, void * data )
 {
 	cnhashtable * t = ListHTs[l];
 	og_mutex_t  m = ListMTs[l];

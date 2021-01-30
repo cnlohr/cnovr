@@ -357,9 +357,9 @@ void CNOVRUpdate()
 	//cnovr_simple_node * root = cnovrstate->pRootNode;
 
 	//Scene Graph Pre-Render
-	CNOVRListCall( cnovrLUpdate, 0, 0 );
+	CNOVRListCall( cnovrLUpdate, 0 );
 	while( CNOVRJobProcessQueueElement( cnovrQPrerender ) );
-	CNOVRListCall( cnovrLPrerender, 0, 0 );
+	CNOVRListCall( cnovrLPrerender, 0 );
 
 	//Waste some time...
 	CNFGHandleInput();
@@ -435,11 +435,11 @@ void CNOVRUpdate()
 			glViewport(0, 0, width, height );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 			//root->base.header->Render( root );
-			CNOVRListCall( cnovrLRender0, 0, 0); 
-			CNOVRListCall( cnovrLRender1, 0, 0); 
-			CNOVRListCall( cnovrLRender2, 0, 0); 
-			CNOVRListCall( cnovrLRender3, 0, 0); 
-			CNOVRListCall( cnovrLRender4, 0, 0); 
+			CNOVRListCall( cnovrLRender0, 0 ); 
+			CNOVRListCall( cnovrLRender1, 0 ); 
+			CNOVRListCall( cnovrLRender2, 0 ); 
+			CNOVRListCall( cnovrLRender3, 0 ); 
+			CNOVRListCall( cnovrLRender4, 0 ); 
 			//CNOVRFBufferDeactivate( cnovrstate->stereotargets[i] );
 			CNOVRFBufferBlitResolve( cnovrstate->stereotargets[i] );
 		}
@@ -461,7 +461,7 @@ void CNOVRUpdate()
 	int did_advanced_preview = 1;
 	if( cnovrstate->has_preview )
 	{
-		int r = CNOVRListCall( cnovrLPreviewRender, 0, 0 );
+		int r = CNOVRListCall( cnovrLPreviewRender, 0 );
 		if( !r )
 		{
 			int width = cnovrstate->iPreviewWidth;
@@ -475,11 +475,11 @@ void CNOVRUpdate()
 			//glClearColor( 1, 0, 1, 1 );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 			//root->base.header->Render( root );
-			CNOVRListCall( cnovrLRender0, 0, 0); 
-			CNOVRListCall( cnovrLRender1, 0, 0); 
-			CNOVRListCall( cnovrLRender2, 0, 0); 
-			CNOVRListCall( cnovrLRender3, 0, 0); 
-			CNOVRListCall( cnovrLRender4, 0, 0); 
+			CNOVRListCall( cnovrLRender0, 0 ); 
+			CNOVRListCall( cnovrLRender1, 0 ); 
+			CNOVRListCall( cnovrLRender2, 0 ); 
+			CNOVRListCall( cnovrLRender3, 0 ); 
+			CNOVRListCall( cnovrLRender4, 0 ); 
 		}
 #if 0
 		int width = cnovrstate->iRTWidth = cnovrstate->iPreviewWidth;
@@ -534,15 +534,17 @@ void CNOVRUpdate()
 	void   CNFGSetVSync( int vson );
 	CNFGSetVSync( 0 );
 #endif
-
+//k_pch_SteamVR_PreferredRefreshRate 
 	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
-
+	
+	cnovrstate->fTargetFPS = cnovrstate->oSystem->GetFloatTrackedDeviceProperty( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_DisplayFrequency_Float, 0 );
+	
 //	double diff = OGGetAbsoluteTime() - FrameStart;
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
 	if( !did_advanced_preview ) CNFGSwapBuffers(1);
 //	FrameStart = OGGetAbsoluteTime();
 
-	CNOVRListCall( cnovrLPostRender, 0, 0 ); 
+	CNOVRListCall( cnovrLPostRender, 0 ); 
 //	glFlush();
 }
 
@@ -594,9 +596,12 @@ void CNOVRShutdown()
 
 int CNOVRCheck()
 {
+	int lastError = -1;
 	GLenum e = glGetError();
 	if( e != GL_NO_ERROR )
 	{
+		if( e == lastError ) return 0;
+		lastError = e;
 		if( e == GL_INVALID_ENUM ) ovrprintf( "GL_INVALID_ENUM\n" );
 		if( e == GL_INVALID_VALUE ) ovrprintf( "GL_INVALID_VALUE\n" );
 		if( e == GL_INVALID_OPERATION ) ovrprintf( "GL_INVALID_OPERATION\n" );

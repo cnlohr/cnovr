@@ -74,6 +74,7 @@ struct cnovrstate_t
 	float fFrameTime; //Amount of time spent rendering last frame.
 	float fDeltaTime;
 	double fFrameStartTime; //Absolute Time
+	float fTargetFPS;
 
 	short    iPreviewWidth, iPreviewHeight;
 	short    iEyeRenderWidth, iEyeRenderHeight;

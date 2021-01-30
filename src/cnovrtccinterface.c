@@ -624,6 +624,9 @@ void XShmGetImage();
 #endif
 #endif
 
+void CNOVRCNFAInit();
+int GetDigitalActionData( uint64_t h );
+float CNOVRGetAnalogActionData( uint64_t h );
 void CNFGSwapBuffers(void);
 
 //#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
@@ -835,6 +838,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRPoseFromHMDMatrix )
 	TCCExportS( CNOVRVBOTackv )
 	TCCExportS( CNOVRModelSetNumVBOsWithStrides )
+	TCCExportS( CNOVRGetDigitalActionData )
+	TCCExportS( CNOVRGetAnalogActionData )
 
 	TCCExportS( glGenBuffers )
 	TCCExportS( glBindBuffer )
@@ -877,6 +882,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( glDisable )
 
 	TCCExportS( CNFGSwapBuffers )
+
+	TCCExportS( CNOVRCNFAInit )
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
 	
@@ -944,6 +951,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( rand )
 	TCCExportS( srand )
 
+	TCCExportS( sqrt )
+	TCCExportS( sqrtf )
 	TCCExportS( sin )
 	TCCExportS( sinf )
 	TCCExportS( cos )
@@ -958,7 +967,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( floor )
 	TCCExportS( floorf )
 	TCCExportS( tan )
-	TCCExportS( atan2 )
+	TCCExportS( fmod )
 	TCCExportS( fmodf )
 	{ "_findfirst64", FindFirstFileA },
 	{ "_findnext64", FindNextFile },

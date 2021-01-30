@@ -1,0 +1,30 @@
+{
+	"searchfolders" : [
+		"projects/testworld"
+	],
+	"cfiles" : [
+		{
+			"cfile" : "draggablewindows/draggablewindows.c",
+			"identifier" : "dockable",
+			"disabled" : true,
+		},
+		{
+			"cfile" : "modules/openvrobjects/openvrobjects.c",
+			"identifier" : "wireframe",
+			"comment":"lineify",
+			"disabled" : false,
+		},
+		{
+			"cfile" : "testworld.c",
+			"identifier" : "testworld",
+			"additionalfiles" : [ "another1.h", "another2.h" ],
+			"disabled" : false,
+		},
+		{
+			"cfile" : "picturealbum/picturealbum.c",
+			"identifier" : "assets",
+			"disabled" : true,
+		},
+	]
+}
+
