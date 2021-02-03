@@ -13,19 +13,37 @@ void main()
 {
 	vec2 uvk = uv*2.-1.;
 	
+#ifdef DISC
 	float polar = atan( uvk.x, uvk.y ) / (PI*2);
-	float hand = polar + clockparams.x/2.;
+	float hand = polar + clockparams.x;
 	float r = length( uvk );
 
 	vec4 col;
 
-	if( fract( hand ) < .05 || ((fract(hand)>0.5 &&fract(hand)<0.55)) )
+	if( fract( hand ) < .05 )// || ((fract(hand)>0.5 &&fract(hand)<0.55)) )
 		col = vec4( 1. );
 	else
 		col = vec4( 0. );
 		
-	if( fract( polar ) < .05 || ((fract(polar)>0.5 &&fract(polar)<0.55)) )
+	if( fract( polar ) < .05 )//|| ((fract(polar)>0.5 &&fract(polar)<0.55)) )
 		col.r += .3;
+#else
+	float polar = uv.x;
+	float hand = polar + clockparams.x;
+	float r = length( uvk );
+
+	vec4 col;
+
+	if( fract( hand ) < .05 )
+		col = vec4( 1. );
+	else
+		col = vec4( 0. );
 		
+	if( fract( polar ) < .05 )
+		col.r += .3;
+
+#endif
+
+
 	colorOut = col;
 }
