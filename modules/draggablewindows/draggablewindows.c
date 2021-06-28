@@ -13,6 +13,19 @@
 #include <fcntl.h>
 #include <chew.h>
 
+
+#ifndef GL_PIXEL_UNPACK_BUFFER
+#  define GL_PIXEL_UNPACK_BUFFER 0x88EC
+#endif
+#ifndef GL_MAP_WRITE_BIT
+#  define GL_MAP_WRITE_BIT 0x0002
+#endif
+#ifndef GL_MAP_INVALIDATE_BUFFER_BIT
+#  define GL_MAP_INVALIDATE_BUFFER_BIT 0x0008
+#endif
+#ifndef GL_STREAM_DRAW
+#  define GL_STREAM_DRAW                    0x88E0
+#endif
 #ifdef WINDOWS
 
 
