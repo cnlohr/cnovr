@@ -15,7 +15,7 @@ cnovr_texture * texture;
 #define MAX_SPINNERS 220
 cnovr_model * spinner_m[MAX_SPINNERS];
 cnovr_model * isosphere;
-cnovr_pose    isospherepose;
+
 cnovrfocus_capture isocapture;
 //cnovr_simple_node * spinner_n[MAX_SPINNERS];
 int shutting_down;
@@ -28,6 +28,7 @@ struct staticstore
 	int initialized;
 	cnovr_pose modelpose[MAX_SPINNERS];
 	float zapped[MAX_SPINNERS];
+	cnovr_pose    isospherepose;
 } * store;
 
 
@@ -174,14 +175,12 @@ static void example_scene_setup( void * tag, void * opaquev )
 	}
 
 	isosphere = CNOVRModelCreate( 0, GL_TRIANGLES );
-	isosphere->pose = &isospherepose;
-	pose_make_identity( &isospherepose );
+	isosphere->pose = &store->isospherepose;
 	CNOVRModelLoadFromFileAsync( isosphere, "isosphere.obj" );
 	isocapture.tag = 0;
 	isocapture.opaque = isosphere;
 	isocapture.cb = CNOVRFocusDefaultFocusEvent;
 	CNOVRModelSetInteractable( isosphere, &isocapture );
-
 
 	texture = CNOVRTextureCreate( 0, 0, 0 ); //Set to all 0 to have the load control these details.
 	CNOVRTextureLoadFileAsync( texture, "test.png" );
@@ -199,7 +198,7 @@ void start( const char * identifier )
 
 	store = CNOVRNamedPtrData( "examplecodestore", 0, sizeof( *store ) + 1024 );
 	printf( "=== Initializing %p\n", store );
-//	store->initialized = 0;
+	//store->initialized = 0;
 	if( !store->initialized )
 	{
 		int i;
@@ -209,7 +208,9 @@ void start( const char * identifier )
 			store->modelpose[i].Scale = .2;
 			store->zapped[i] = 0;
 		}
+		pose_make_identity( &store->isospherepose );
 		store->initialized = 1;
+		CNOVRNamedPtrSave( "examplecodestore" );
 	}
 	
 	identifier = strdup(identifier);
