@@ -1,10 +1,10 @@
 #ifndef _CNOVRUTIL_H
 #define _CNOVRUTIL_H
 
+#include <cnovrparts.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <cnovrparts.h>
 
 #define CNOVR_MAX_PATH 255
 

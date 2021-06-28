@@ -3,9 +3,9 @@
 #ifndef _CNOVRPARTS_H
 #define _CNOVRPARTS_H
 
+#include <chew.h>
 #include <stdint.h>
 #include <cnovrmath.h>
-#include <chew.h>
 #include <os_generic.h>
 #include <cnovrfocus.h>
 

@@ -3,17 +3,17 @@
 
 #include <stdint.h>
 
-typedef int GLfixed;
-typedef int GLclampx;
-typedef int64_t GLint64;
-typedef uint64_t GLuint64;
-typedef uint32_t GLuint32;
-typedef int32_t GLint32;
-typedef uint32_t GLuint;
-typedef char GLchar;
+#define GLfixed     int
+#define GLclampx    int
+#define GLint64     int64_t
+#define GLuint64    uint64_t
+#define GLuint32    uint32_t
+#define GLint32     int32_t
+#define GLuint      uint32_t
+#define GLchar      char
 typedef struct __GLsync *GLsync;
-typedef intptr_t GLsizeiptr;
-typedef intptr_t GLintptr;
+#define GLsizeiptr intptr_t
+#define GLintptr   intptr_t
 
 #ifndef APIENTRY
 #define APIENTRY
