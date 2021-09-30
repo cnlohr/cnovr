@@ -50,6 +50,7 @@ make -j4
 #### Prerequisites
 
 * Download and install **64-bit** tinycc 0.9.27 to `C:\tcc`<sup>1</sup> from here https://download-mirror.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win64-bin.zip
+* Download and install the winapi-full tcc zip on top of your TCC installation, overwriting the windows.h, etc. files. You can download it from here: https://download-mirror.savannah.gnu.org/releases/tinycc/winapi-full-for-0.9.27.zip
 * It **must** be the 64-bit version.  You cannot cross-compile cnovr on Windows.
 * It **must** be the public binary version found in the link above (at least right now) as newer versions tweak the way some libraries work.
 * Install SteamVR https://store.steampowered.com/app/250820/SteamVR/
