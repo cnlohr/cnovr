@@ -33,7 +33,7 @@ This project was born out of spreadgine, which allowed you to use the HTC Vive o
 #### Prerequisites:
 
 ```
-sudo apt-get install build-essential libgl1-mesa-dev gcc-multilib git
+sudo apt-get install build-essential libgl1-mesa-dev libasound2-dev gcc-multilib git
 ```
 
 #### Operating:

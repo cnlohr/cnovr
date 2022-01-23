@@ -7,18 +7,15 @@ all : $(PROJS)
 OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
 	lib/cnrbtree.o lib/tccengine_link.o lib/tcccrash_link.o \
 	lib/symbol_enumerator_link.o lib/cnhash_link.o lib/jsmn.o \
-	lib/os_generic_link.o cntools/vlinterm/vlinterm.o
-
-OBJS+=rawdraw/CNFG.o
+	lib/os_generic_link.o cntools/vlinterm/vlinterm.o lib/cnfg.o
 
 OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o \
-	src/cnovrterminal.o \
-	./libopenvr_api.so
+	src/cnovrterminal.o src/cnovrcnfa.o
 
-CFLAGS ?= -DCNFGOGL -g -O2  -DOSG_NOSTATIC -DCNFGCONTEXTONLY
-CFLAGS += -Iopenvr/headers -Irawdraw -Iinclude -Icntools/cnhash -Ilib -Wno-address-of-packed-member
+CFLAGS ?= -g -O2  -DOSG_NOSTATIC -DCNFGCONTEXTONLY
+CFLAGS += -Icntools/rawdraw -Iinclude -Icntools/cnhash -Ilib -Wno-address-of-packed-member
 CFLAGS += -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS += -g -Ilib/tinycc -Icntools/cnrbtree -Icntools/vlinterm
 
@@ -29,7 +26,8 @@ CFLAGS += -g -Ilib/tinycc -Icntools/cnrbtree -Icntools/vlinterm
 
 #Linux
 CC=gcc
-LDFLAGS?=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen -Wl,-rpath,.
+LDFLAGS?=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen -Wl,-rpath,. 	./libopenvr_api.so -lasound -lpulse
+
 
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
 
@@ -43,9 +41,6 @@ LDFLAGS?=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen -Wl,-rp
 
 %.o : %.c
 	$(CC) -c -o $@ $^ $(CFLAGS)
-
-libopenvr_api.so : openvr/lib/linux64/libopenvr_api.so
-	cp openvr/lib/linux64/libopenvr_api.so .
 
 
 main : $(OBJS) src/main.o
@@ -73,12 +68,12 @@ offlinetests : $(OBJS) src/offlinetests.o
 DEDICATED_PROJECT_O:=lib/stb_include_custom.o lib/stb_image.o \
 	lib/cnrbtree.o lib/cnhash_link.o lib/jsmn.o \
 	lib/os_generic_link.o cntools/vlinterm/vlinterm.o \
-	rawdraw/CNFG.o src/disable_tcc.o \
+	lib/cnfg.o src/disable_tcc.o \
 	lib/tcccrash_link.o lib/symbol_enumerator_link.o \
 	src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o \
 	src/cnovrfocus.o src/cnovrcanvas.o \
-	src/cnovrterminal.o \
+	src/cnovrterminal.o src/cnovrcnfa.o \
 	./libopenvr_api.so
 
 ovrballonly : src/ovrballonly.o $(DEDICATED_PROJECT_O)

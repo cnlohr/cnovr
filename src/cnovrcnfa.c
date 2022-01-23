@@ -1,5 +1,5 @@
 #define CNFA_IMPLEMENTATION
-#include "cnfa/cnfa.h"
+#include "cnfa/CNFA.h"
 #include "cnovrcnfa.h"
 #include "cnovrutil.h"
 
