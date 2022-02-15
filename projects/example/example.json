@@ -27,7 +27,7 @@
 		},
 		{
 			"cfile" : "picturealbum/picturealbum.c",
-			"identifier" : "assets",
+			"identifier" : "pics,nearest",
 			"disabled" : false,
 		},
 	]

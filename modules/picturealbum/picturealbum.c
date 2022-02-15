@@ -28,6 +28,7 @@ char picturestorename[160];
 
 //Bitfield of what outputs NOT to draw on.
 int rendermask = 0;
+int flag_nearest = 0;
 
 struct staticstore
 {
@@ -123,8 +124,16 @@ void UpdateFunction( void * tag, void * opaquev )
 					CNOVRVBOTaint( geo );
 				}
 				glBindTexture( GL_TEXTURE_2D, t->nTextureId );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+				if( flag_nearest )
+				{
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+				}
+				else
+				{
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+				}
 				glBindTexture( GL_TEXTURE_2D, 0 );
 
 			}
@@ -338,16 +347,24 @@ void start( const char * identifier )
 	printf( "=== Initializing Picture Album %p\n", store );
 
 	int elementout = 0;
-	char ** identifierstrings = CNOVRSplitStrings( identifier, ";", "", 0, &elementout ); //You can just free(...) the return. it's safe.
+	char ** identifierstrings = CNOVRSplitStrings( identifier, ",", "", 0, &elementout ); //You can just free(...) the return. it's safe.
 	printf( "Identifier with elements: %d %s\n", elementout, identifier );
 	if( elementout < 1 )
 	{
 		printf( "ERROR: Need an identifier for the picture album\n" );
 		return;
 	}
-	if( elementout > 1 )
+	for( kx = 1; kx < elementout; kx++ )
 	{
-		rendermask = atoi( identifierstrings[1] );
+		char * str = identifierstrings[kx];
+		if( strstr( str, "rmask" ) )
+		{
+			rendermask = atoi( str + 5 );
+		}
+		else if( strstr( str, "nearest" ) )
+		{
+			flag_nearest = 1;
+		}
 	}
 	albumpath = identifierstrings[0];
 	CNOVRJobTack( cnovrQPrerender, picturealbum_scene_setup, 0, 0, 0 );
