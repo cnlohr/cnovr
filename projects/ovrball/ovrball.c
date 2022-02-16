@@ -289,7 +289,7 @@ int CheckCollideBallWithMesh( cnovr_model * m, int mesh, cnovr_pose * modelpose,
 	cross3d( tangent_motion, torque_motion, res.collidens );
 
 	cnovr_aamag  rotation_in_model_space;
-	quatrotatevector( rotation_in_model_space, invertedxform.Pos, isospheremotionrotation );
+	quatrotatevector( rotation_in_model_space, invertedxform.Rot, isospheremotionrotation );
 	//This is effectively a torque vector at this point.
 	cnovr_point3d imparted_force;
 	cross3d( imparted_force, rotation_in_model_space, res.collidens );

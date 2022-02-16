@@ -884,15 +884,6 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNFGSwapBuffers )
 
 	TCCExportS( CNOVRCNFAInit )
-
-#if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
-	
-	TCCExportS( _vsnprintf )
-	TCCExportS( _vsnwprintf )
-
-	TCCExportS( _stricmp )
-	TCCExportS( _strnicmp )
-	
 	TCCExportS( memmove )
 	TCCExportS( strstr )	
 	TCCExportS( strcmp )
@@ -902,8 +893,22 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( snprintf )
 	TCCExportS( sprintf )
 	TCCExportS( atoi )
-
 	TCCExportS( strncpy )
+
+	TCCExportS( floorf )
+	TCCExportS( sin )
+	TCCExportS( cos )
+	TCCExportS( srand )
+	TCCExportS( rand )
+
+#if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
+	
+	TCCExportS( _vsnprintf )
+	TCCExportS( _vsnwprintf )
+
+	TCCExportS( _stricmp )
+	TCCExportS( _strnicmp )
+	
 	TCCExportS( EnumWindows )
 	TCCExportS( EnumDesktopWindows )
 	TCCExportS( GetWindowThreadProcessId )

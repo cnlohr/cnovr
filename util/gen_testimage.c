@@ -1,6 +1,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../lib/stb_image_write.h"
 #include <stdio.h>
+#include <stdint.h>
 
 #define W 2048
 #define H 1024

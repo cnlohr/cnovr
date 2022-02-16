@@ -68,6 +68,8 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 	tcc_add_include_path( tce->state, "openvr/headers" );
 	tcc_add_include_path( tce->state, "." );
 
+	tcc_add_include_path( tce->state, "cntools/rawdraw" );
+	tcc_add_include_path( tce->state, "lib" );
 
 #ifdef __aarch64__
 	tcc_add_include_path( tce->state, "/usr/include/aarch64-linux-gnu" );
@@ -76,8 +78,6 @@ static void ReloadTCCInstance( void * tag, void * opaquev )
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 //	tcc_add_include_path( tce->state, "C:/tcc/include/winapi" );
 //	tcc_add_include_path( tce->state, "C:/tcc/include" );
-	tcc_add_include_path( tce->state, "cntools/rawdraw" );
-	tcc_add_include_path( tce->state, "lib" );
 	tcc_add_include_path( tce->state, "lib/tinycc/win32/include" );
 	tcc_add_include_path( tce->state, "lib/tinycc/win32/include/winapi" );
 	tcc_add_include_path( tce->state, "cnovr/lib/tinycc/win32/include" );
