@@ -62,6 +62,7 @@ struct staticstore
 	int beez_every, beez_for;
 	
 	int do_doot;
+	int spin_mode;
 } * store;
 
 
@@ -187,6 +188,10 @@ void spinner_select_button( struct cnovr_canvas_t * canvas, const struct cnovr_c
 	{
 		store->do_doot = !store->do_doot;
 	}
+	else if( elem->iopaque == 3 )
+	{
+		store->spin_mode = !store->spin_mode;
+	}
 	UpdateMenu();
 	CNOVRNamedPtrSave( "testworldcodestore" );
 }
@@ -217,6 +222,7 @@ struct cnovr_canvas_canned_gui_element_t menu_canvas[] = {
 	{ .x = MENUHEXX(0), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "TIME", .cb = spinner_select_button, .iopaque = 0, },
 	{ .x = MENUHEXX(2), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "FRAMES", .cb = spinner_select_button, .iopaque = 1, },
 	{ .x = MENUHEXX(4), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "DOOT", .cb = spinner_select_button, .iopaque = 2, },
+	{ .x = MENUHEXX(6), .y = MENUY(7), .w = 50, .h = 14, .cb = 0, .text = "S MODE", .cb = spinner_select_button, .iopaque = 3, },
 
 	{ .x = 2, .y = MENUY(8), .w = 90,  .h = 14, .cb = 0, .text = "Frame Wait" },
 	{ .x = 2, .y = MENUY(9), .w = 256, .h = 14, .cb = 0, .text = FrameWaitText, .cb = adjust_frame_wait, .iopaque = 0, .allowdrag = 1  },
@@ -287,7 +293,7 @@ void RenderFunction( void * tag, void * opaquev )
 	//CNOVRRender( isosphere );
 	
 	CNOVRRender( spinningdiskshader );
-	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), SpinRotationDraw, 0, 0, 0 );
+	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), SpinRotationDraw, store->spin_mode?1.0f:0.0f, 0, 0 );
 	CNOVRRender( spinningdisk );
 
 	CNOVRRender( beezshader );
