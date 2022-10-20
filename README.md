@@ -84,14 +84,14 @@ Add `-DSTB_INCLUDE_LINE_NONE` to the end of line 2 in `winbuild.bat`.
 
 ## Controller support
 As of now it supports the following controllers natively:
-	* Vive
-	* Knucles
-	* Oculus Touch
+ * Vive
+ * Knucles
+ * Oculus Touch
 
 #### Adding support:
 To add support for your controllers you need to:
-	* Create a default_<controller_name>.json
-	* Add it to default_actions.json
+ * Create a default_<controller_name>.json
+ * Add it to default_actions.json
 
 You can find steamVR's default configuration files for each controller supported in SteamVR\drivers\CONTROLLER\resources\input . They are useful to find the internal name of both the controllers and their functions.
 
