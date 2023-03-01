@@ -1,0 +1,4 @@
+del headless.exe
+tcc.exe -v -o headless.exe -lkernel32 -lgdi32 -lshlwapi -ldbghelp -luser32 -lopengl32 -Iopenvr/headers -Irawdraw -DCNFGOGL -DWINDOWS -DOSG_NOSTATIC -Iinclude -g -Icntools/cnhash -Icntools/cnrbtree -Ilib -Ilib/systemheaders -Ilib/tinycc/include -Icntools/vlinterm -Icntools/rawdraw -Ilib/tinycc src/cnovrcnfa.c -Ilib/cnfa lib/cnrbtree.c src/headless.c lib/stb_include_custom.c lib/stb_image.c lib/tcc_single_file.c lib/tccengine_link.c lib/tcccrash_link.c lib/symbol_enumerator_link.c lib/cnhash_link.c lib/jsmn.c lib/os_generic_link.c lib/cnfg.c src/cnovr.c src/ovrchew.c src/cnovrparts.c src/cnovrmath.c src/cnovrutil.c src/cnovrfocus.c src/cnovrindexedlist.c src/cnovropenvr.c src/cnovrtcc.c src/cnovrtccinterface.c src/cnovrterminal.c src/cnovrcanvas.c cntools/vlinterm/vlinterm.c openvr_api.dll C:/windows/system32/winmm.dll C:/windows/system32/avrt.dll C:/windows/system32/msvcrt.dll C:/windows/system32/ole32.dll -rdynamic
+
+
