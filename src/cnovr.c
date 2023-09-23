@@ -82,9 +82,10 @@ void HandleMotion( int x, int y, int mask )
 {
 }
 
-void HandleDestroy()
+int HandleDestroy()
 {
 	CNOVRShutdown();
+	return 0;
 }
 
 void APIENTRY DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const char* message, const void* userParam)
