@@ -935,6 +935,8 @@ void CNOVRInternalStopCacheSystem()
 
 	CNOVRIndexedListDestroy( ftindexlist );
 
+	if( !htFileTimeCacher ) return;
+
 	//Anything else that hasn't been cleared out by deleting the ftindexlist can get handled here.
 	//XXX TODO: Is there anything left?
 	int k;
