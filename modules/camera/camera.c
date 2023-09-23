@@ -15,6 +15,8 @@
 #include <chew.h>
 #include <cnovrcanvas.h>
 
+#include <chewtypes.h>
+
 #ifndef WINDOWS
 #define CNV4L2_NOSTAT
 #include "cntools/cnv4l2/cnv4l2.c"
@@ -133,7 +135,7 @@ float videoosdvals[4];
 //og_thread_t camerabusinessthread;
 
 
-const const struct cnovr_canvas_canned_gui_element_t cvp_main_menu[];
+const cnovr_canvas_canned_gui_element cvp_main_menu[9];
 
 char camstatustext[63];
 char fovsettext[63];
@@ -851,11 +853,11 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 			glViewport(0, 0, width, height );
 			glClearColor( 0., 0., 0., 0. );
 			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-			CNOVRListCall( cnovrLRender0, 0, 0); 
-			CNOVRListCall( cnovrLRender1, 0, 0); 
-			CNOVRListCall( cnovrLRender2, 0, 0); 
-			CNOVRListCall( cnovrLRender3, 0, 0); 
-			CNOVRListCall( cnovrLRender4, 0, 0); 
+			CNOVRListCall( cnovrLRender0, 0);
+			CNOVRListCall( cnovrLRender1, 0);
+			CNOVRListCall( cnovrLRender2, 0);
+			CNOVRListCall( cnovrLRender3, 0);
+			CNOVRListCall( cnovrLRender4, 0);
 			CNOVRFBufferBlitResolve( pt );
 		}
 		glDisable( GL_DEPTH_TEST );
@@ -926,11 +928,11 @@ void AdvancedPreviewRender( void * tag, void * opaquev )
 		glViewport(0, 0, width, height );
 		glClearColor( 0., 0., 0. ,1. );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-		CNOVRListCall( cnovrLRender0, 0, 0); 
-		CNOVRListCall( cnovrLRender1, 0, 0); 
-		CNOVRListCall( cnovrLRender2, 0, 0); 
-		CNOVRListCall( cnovrLRender3, 0, 0); 
-		CNOVRListCall( cnovrLRender4, 0, 0); 
+		CNOVRListCall( cnovrLRender0, 0);
+		CNOVRListCall( cnovrLRender1, 0);
+		CNOVRListCall( cnovrLRender2, 0);
+		CNOVRListCall( cnovrLRender3, 0);
+		CNOVRListCall( cnovrLRender4, 0);
 		CNOVRFBufferBlitResolve( previewtarget[ihprev][2] );
 	}
 
