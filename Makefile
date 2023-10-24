@@ -14,7 +14,7 @@ OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o \
 	src/cnovrterminal.o src/cnovrcnfa.o
 
-CFLAGS ?= -g -O2  -DOSG_NOSTATIC -DCNFGCONTEXTONLY
+CFLAGS ?= -g -O2  -DOSG_NOSTATIC -DCNFGOGL -DCNFGOGL_NEED_EXTENSION
 CFLAGS += -Icntools/rawdraw -Iinclude -Icntools/cnhash -Ilib -Wno-address-of-packed-member
 CFLAGS += -Wall -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-string-plus-int
 CFLAGS += -g -Ilib/tinycc -Icntools/cnrbtree -Icntools/vlinterm

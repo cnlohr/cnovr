@@ -15,6 +15,7 @@ CNOVRIndexedList * CNOVRIndexedListCreate( cnhash_delete_function df )
 void CNOVRIndexedListDestroy( CNOVRIndexedList * list )
 {
 	int i;
+	if( !list ) return;
 	if( list->df )
 	{
 		for( i = 0; i < list->ht_by_tag->array_size; i++ )
