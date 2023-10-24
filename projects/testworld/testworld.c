@@ -33,8 +33,11 @@ cnovr_model * spinningdisk;
 cnovrfocus_capture spinningdiskcapture;
 
 cnovr_shader * beezshader;
+cnovr_shader * hardshader;
 cnovr_model * beez;
+cnovr_model * hard;
 cnovrfocus_capture beezcapture;
+cnovrfocus_capture hardcapture;
 
 og_thread_t thddoot;
 
@@ -52,6 +55,7 @@ struct staticstore
 	cnovr_pose spinningdiskpose;
 	cnovr_pose colorsplotchpose;
 	cnovr_pose beezpose;
+	cnovr_pose hardpose;
 	int colormode;
 	int slide[3];
 	int spinmode;
@@ -80,8 +84,8 @@ float ColorParameters[4];
 
 void UpdateMenu()
 {
-	if( store->colormode > 5 ) store->colormode = 0;
-	sprintf( ColorSlider0, "%s: %d", ((const char*[6]){ "RED", "GRN", "BLU", "HUE", "SAT", "VAL" })[store->colormode], store->slide[0] );
+	if( store->colormode > 6 ) store->colormode = 0;
+	sprintf( ColorSlider0, "%s: %d", ((const char*[7]){ "RED", "GRN", "BLU", "HUE", "SAT", "VAL", "OVR" })[store->colormode], store->slide[0] );
 	sprintf( ColorSlider1, "Um: %d", store->slide[1] );
 	sprintf( ColorSlider2, "Vm: %d", store->slide[2] );
 	ColorParameters[0] = (float)store->colormode;
@@ -216,6 +220,7 @@ struct cnovr_canvas_canned_gui_element_t menu_canvas[] = {
 	{ .x = MENUHEXX(3), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "HUE", .cb = color_select_button, .iopaque = 3, },
 	{ .x = MENUHEXX(4), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "SAT", .cb = color_select_button, .iopaque = 4, },
 	{ .x = MENUHEXX(5), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "VAL", .cb = color_select_button, .iopaque = 5, },
+	{ .x = MENUHEXX(6), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "OVR", .cb = color_select_button, .iopaque = 6, },
 	{ .x = 2, .y = MENUY(5), .w = 90,  .h = 14, .cb = 0, .text = "Spinner" },
 	{ .x = 50, .y = MENUY(5), .w = 90,  .h = 14, .cb = 0, .text = DootTimingText },
 	{ .x = 2, .y = MENUY(6), .w = 256, .h = 14, .cb = 0, .text = Spinnerslider0, .cb = adjust_spinner, .iopaque = 0, .allowdrag = 1  },
@@ -299,6 +304,9 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( beezshader );
 	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), BeezParam, OGGetAbsoluteTime(), 0, 0 );
 	CNOVRRender( beez );
+
+	CNOVRRender( hardshader );
+	CNOVRRender( hard );
 
 	CNOVRRender( colorsplotchshader );
 	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), ColorParameters[0], ColorParameters[1], ColorParameters[2], ColorParameters[3] );
@@ -479,6 +487,7 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	colorsplotchshader = CNOVRShaderCreate( "colorsplotch" );
 	spinningdiskshader = CNOVRShaderCreate( "spinningdisk" );
 	beezshader = CNOVRShaderCreate( "beez" );
+	hardshader = CNOVRShaderCreate( "hard" );
 /*
 	cnovr_simple_node * root = cnovrstate->pRootNode;
 	node = CNOVRNodeCreateSimple( 1 );
@@ -510,6 +519,15 @@ static void testworld_scene_setup( void * tag, void * opaquev )
 	beezcapture.opaque = beez;
 	beezcapture.cb = TestWorldFocusEvent;
 	CNOVRModelSetInteractable( beez, &beezcapture );
+
+	hard = CNOVRModelCreate( 0, GL_TRIANGLES );
+	hard->pose = &store->hardpose;
+	CNOVRModelAppendMesh( hard, 1, 1, 0, (cnovr_point3d){ 1.f, 1.f, 1.f }, 0, 0 );
+	CNOVRModelAppendMesh( hard, 1, 1, 0, (cnovr_point3d){ -1.f, 1.f, 1.f }, 0, 0 );
+	hardcapture.tag = 0;
+	hardcapture.opaque = hard;
+	hardcapture.cb = TestWorldFocusEvent;
+	CNOVRModelSetInteractable( hard, &hardcapture );
 
 	colorsplotch = CNOVRModelCreate( 0, GL_TRIANGLES );
 	colorsplotch->pose = &store->colorsplotchpose;
@@ -556,12 +574,12 @@ void start( const char * identifier )
 
 	store = CNOVRNamedPtrData( "testworldcodestore", 0, sizeof( *store ) + 1024 );
 	printf( "=== Initializing %p\n", store );
-	//store->initialized = 0;
 	if( !store->initialized )
 	{
 		int i;
 		pose_make_identity( &store->spinningdiskpose );
 		pose_make_identity( &store->beezpose );
+		pose_make_identity( &store->hardpose );
 		pose_make_identity( &store->colorsplotchpose );
 		DefaultMenu();
 		store->initialized = 1;

@@ -45,4 +45,8 @@ void main()
 	{
 		colorOut = vec4( hsv2rgb( vec3( uvi.x, 1.-uvi.y, colorbasis.y ) ), 1.0);
 	}
+	else if( mode == 6 )
+	{
+		colorOut = vec4( colorbasis.yyy, 1.0);
+	}
 }
