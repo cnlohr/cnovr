@@ -357,7 +357,7 @@ void * PhysicsThread( void * v )
 	{
 		static double start;
 		static double last;
-		OGUSleep( 1000 );
+		//OGUSleep( 1000 );
 		double now = OGGetAbsoluteTime();
 		if( start < 1 ) { start = now; last = now; continue; }
 		double runtime = now - start;
@@ -399,15 +399,17 @@ void * PhysicsThread( void * v )
 		int did_hit_this_frame = 0;
 
 		if( !cnovrstate->oInput ) continue;
-		InputPoseActionData_t pad1, pad2;
+		InputPoseActionData_t pad1, pad2, pad3;
 		float tnow = -0.001;
 		EVRInputError e1 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip1, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow, &pad1, sizeof( pad1 ), 0 );
 		EVRInputError e2 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip2, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow, &pad2, sizeof( pad2 ), 0 );
+		EVRInputError e3 = cnovrstate->oInput->GetPoseActionDataRelativeToNow( tip2, ETrackingUniverseOrigin_TrackingUniverseStanding, tnow+0.01777, &pad3, sizeof( pad3 ), 0 );
 
-		cnovr_pose pose1, pose2;
+		cnovr_pose pose1, pose2, pose3;
 		CNOVRPoseFromHMDMatrix( &pose1, &pad1.pose.mDeviceToAbsoluteTracking );
 		CNOVRPoseFromHMDMatrix( &pose2, &pad2.pose.mDeviceToAbsoluteTracking );
-		//printf( "%f %f %f\n", PFTHREE( pose2.Pos ) );
+		CNOVRPoseFromHMDMatrix( &pose3, &pad3.pose.mDeviceToAbsoluteTracking );
+		//printf( "%f %f %f / %f %f %f\n", PFTHREE( pose2.Pos ), PFTHREE( pose3.Pos ) );
 
 		apply_pose_to_pose( &paddlepose1[racketslot], &pose1, &paddetransform1 );
 		apply_pose_to_pose( &paddlepose2[racketslot], &pose2, &paddetransform2 );
@@ -467,6 +469,7 @@ float fpstime = 1.;
 void UpdateFunction( void * tag, void * opaquev )
 {
 	int i;
+
 	glLineWidth( 2.0 );
 	static double start;
 	static double last;

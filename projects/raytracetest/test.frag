@@ -23,15 +23,30 @@ float hit_sphere( vec3 center, float radius ){
     }
 }
 
+vec3 chash33(vec3 p3)
+{
+	p3 = fract(p3 * vec3(.1031f, .1030f, .0973f));
+    p3 += dot(p3, p3.yxz+33.33);
+    return fract((p3.xxy + p3.yxx)*p3.zyx);
+}
+
+
 void main()
 {
 	vec3 drawnorm = vec3( 0., 0., 1. );
 	ray = normalize(rayin);
 	float minhit = 1000.;
 	float x, y, z;
-	for( x = 0; x < 4; x++ )
-	for( y = 0; y < 4; y++ )
-	for( z = 0; z < 4; z++ )
+	#define n 7
+	
+	vec3 ch = chash33(ray*1000.);
+	
+	ray += ch*.01;
+	//if( ch.x > .1 ) { colorOut = vec4(0.); return; }
+	
+	for( x = 0; x < (ch.x*n); x++ )
+	for( y = 0; y < (ch.z*n); y++ )
+	for( z = 0; z < (ch.y*n); z++ )
 	{
 		vec3 spherepos = vec3( x, y, z );
 

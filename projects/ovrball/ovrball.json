@@ -22,7 +22,7 @@
 			"cfile" : "modules/openvrobjects/openvrobjects.c",
 			"identifier" : "wireframe,nodetail",
 			"comment":"lineify",
-			"disabled" : true,
+			"disabled" : false,
 		},
 		{
 			"cfile" : "modules/camera/camera.c",

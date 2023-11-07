@@ -22,6 +22,7 @@ cnovr_rf_buffer * Pass1Buffer;
 cnovr_rf_buffer * Pass2Buffer;
 cnovr_rf_buffer * Pass3Buffer;
 
+#define GL_RGBA32F 0x8814
 #define ARRAYSIZE 128
 uint8_t GeoData[ARRAYSIZE*ARRAYSIZE*ARRAYSIZE][4];
 uint8_t AddTex[ARRAYSIZE*ARRAYSIZE*ARRAYSIZE][4];
