@@ -549,7 +549,8 @@ char * CNOVRFileSearch( const char * fname )
 	if( CheckFileExists( fname ) )
 	{
 		//File already exists, as-is, is an absolute path, or in our working directory.
-		strcpy( cret, fname );
+		if ( cret != fname )
+			strcpy( cret, fname );
 		return cret;
 	}
 
