@@ -648,7 +648,7 @@ void InternalFileSearchCloseThread()
 	{
 		char * cret = OGGetTLS( search_path_return );
 		if( cret )
-			free( cret );
+			OGSetTLS( search_path_return, (cret = NULL) );
 	}
 }
 
@@ -1535,7 +1535,8 @@ static void DeleteLaterFrameCb( void * tag, void * opaquev )
 		int len = stb__sbn( dlb );
 		for( i = 0; i < len; i++ )
 		{
-			free( dlb[i] );
+			if (dlb[i])
+				free( dlb[i] );
 		}
 		stb__sbn( dlb ) = 0;
 	}
