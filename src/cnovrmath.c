@@ -658,6 +658,15 @@ of this vector, we will rotate 180 degrees around a generated axis if
 since in this case ANY axis of rotation is valid.
 */
 void quatfrom2vectors(FLT *q, const FLT *src, const FLT *dest) {
+
+	// Instead from https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+	cross3d(q+1, src, dest );
+	float magsrc = magnitude3d( src );
+	float magdest = magnitude3d( dest );
+	q[0] = magsrc * magdest + dot3d(src, dest);
+	normalize3d( q, q ); // Absolutely required.
+
+#if 0
 	// Based on Stan Melax's article in Game Programming Gems
 
 	// Copy, since cannot modify local
@@ -709,6 +718,7 @@ void quatfrom2vectors(FLT *q, const FLT *src, const FLT *dest) {
 		quatnormalize(q, q);
 
 	}
+	#endif
 }
 
 void matrix44copy(FLT *mout, const FLT *minm) { memcpy(mout, minm, sizeof(FLT) * 16); }
@@ -800,6 +810,19 @@ void pose_to_matrix44(FLT *matrix44, const cnovr_pose *pose_in) {
 	scale3d( matrix44 + 0, matrix44 + 0, pose_in->Scale );
 	scale3d( matrix44 + 4, matrix44 + 4, pose_in->Scale );
 	scale3d( matrix44 + 8, matrix44 + 8, pose_in->Scale );
+	matrix44[3] = pose_in->Pos[0];
+	matrix44[7] = pose_in->Pos[1];
+	matrix44[11] = pose_in->Pos[2];
+	zero3d( matrix44 + 12 );
+	matrix44[15] = 1;
+}
+
+void pose_and_scale_to_matrix44(FLT *matrix44, const cnovr_pose *pose_in, const cnovr_point3d scale )
+{
+	quattomatrix(matrix44, pose_in->Rot);
+	scale3d( matrix44 + 0, matrix44 + 0, pose_in->Scale * scale[0] );
+	scale3d( matrix44 + 4, matrix44 + 4, pose_in->Scale * scale[1] );
+	scale3d( matrix44 + 8, matrix44 + 8, pose_in->Scale * scale[2] );
 	matrix44[3] = pose_in->Pos[0];
 	matrix44[7] = pose_in->Pos[1];
 	matrix44[11] = pose_in->Pos[2];

@@ -653,6 +653,7 @@ static void CNOVRTextureLoadFileTask( void * tag, void * opaquev )
 	OGUnlockMutex( t->mutProtect );
 
 	int x, y, chan;
+
 	const char * ffn = CNOVRFileSearch( localfn );
 	if( !ffn )
 	{
@@ -1472,9 +1473,16 @@ void CNOVRModelSetNumTextures( cnovr_model * m, int textures, int defaultdepth )
 	m->iTextures = 1;
 }
 
-void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose )
+void CNOVRModelRenderWithPose( cnovr_model * m, const cnovr_pose * pose )
 {
 	pose_to_matrix44( cnovrstate->mModel, pose );
+	glUniformMatrix4fv( CNOVRMAPPEDUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
+	m->base.header->Render( (cnovr_base*)m );
+}
+
+void CNOVRModelRenderWithPoseAndScale( cnovr_model * m, const cnovr_pose * pose, const cnovr_point3d scale )
+{
+	pose_and_scale_to_matrix44( cnovrstate->mModel, pose, scale );
 	glUniformMatrix4fv( CNOVRMAPPEDUNIFORMPOS( UNIFORMSLOT_MODEL ), 1, 1, cnovrstate->mModel );
 	m->base.header->Render( (cnovr_base*)m );
 }

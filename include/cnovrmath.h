@@ -221,7 +221,7 @@ void quatoddproduct(FLT *outvec3, cnovr_quat qa, cnovr_quat qb);
 void quatslerp(cnovr_quat q, const cnovr_quat qa, const cnovr_quat qb, FLT t);
 void quatrotatevector(FLT *vec3out, const cnovr_quat quat, const FLT *vec3in);
 void eulerrotatevector(FLT *vec3out, const cnovr_euler_angle quat, const FLT *vec3in);
-void quatfrom2vectors(cnovr_quat q, const FLT *src, const FLT *dest); //XXX I am suspicious this function is not good.
+void quatfrom2vectors(cnovr_quat q, const FLT *src, const FLT *dest);
 void eulerfrom2vectors(cnovr_euler_angle q, const FLT *src, const FLT *dest);
 
 // This is the quat equivalent of 'pout = pose * pin' if pose were a 4x4 matrix in homogenous space
@@ -250,6 +250,7 @@ static inline cnovr_pose pose_invert_rtn(const cnovr_pose *pose_in)
 }
 
 void pose_to_matrix44(FLT *mat44, const cnovr_pose *pose_in);
+void pose_and_scale_to_matrix44(FLT *mat44, const cnovr_pose *pose_in, const cnovr_point3d scale );
 void matrix44_to_pose(cnovr_pose *poseout, const FLT *m44); //HMD43-safe.
 
 void matrix44copy(FLT *mout, const FLT *minm);

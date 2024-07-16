@@ -12,6 +12,10 @@
 #include "cnovrtccinterface.h"
 #include "cnovr.h"
 
+#include "cnsslclient.h"
+#include "cnhttpclient.h"
+#include "cnhttpcommon.h"
+
 #if defined(WINDOWS) || defined( WIN32 ) || defined( WIN64 )
 #include <windows.h>
 #else
@@ -136,6 +140,16 @@ int    jsmnintparse( const char * data, int start, int end )
 	buffer[len] = 0;
 	if( strcmp( buffer, "true" ) == 0 ) return 1;
 	else return atoi( buffer );
+}
+
+float  jsmnfloatparse( const char * data, int start, int end )
+{
+	int len = end - start;
+	char buffer[len+1];
+	memcpy( buffer, data + start, len );
+	buffer[len] = 0;
+	if( strcmp( buffer, "true" ) == 0 ) return 1.0f;
+	else return atof( buffer );
 }
 
 
@@ -540,6 +554,77 @@ char * CNOVRFileSearch( const char * fname )
 	if( !cret ) { OGSetTLS( search_path_return, (cret = CNOVRThreadMalloc( CNOVR_MAX_PATH+1 ) ) ); }
 
 	int fnamelen = strlen( fname );
+
+	// Check for if it's an http:// address.
+	if( strncmp( fname, "http://", 7 ) == 0 || strncmp( fname, "PROXY:", 6 ) == 0 )
+	{
+		int len = fnamelen * 2 + 7;
+		if( len >= CNOVR_MAX_PATH )
+		{
+			ovrprintf( "Warning URL \"%s\" too long\n", fname );			
+		}
+		int i;
+		mkdir( "cache" );
+		int cretlen = sprintf( cret, "cache/" );
+		for( i = 0; i < fnamelen; i++ )
+		{
+			cret[cretlen+0] = tohex1buff[fname[i]>>4];
+			cret[cretlen+1] = tohex1buff[fname[i]&15];
+			cretlen += 2;
+		}
+		cret[cretlen] = 0;
+
+		if( CheckFileExists( cret ) )
+		{
+			return cret;
+		}
+		
+		char proxystr[CNOVR_MAX_PATH];
+
+		struct cnhttpclientrequest req;
+		memset( &req, 0, sizeof( req ) );
+		req.host = 0;
+		req.port = 0;		
+		if( strncmp( fname, "PROXY:", 6 ) == 0 )
+		{
+			int i;
+			req.Proxy = proxystr;
+			for( i = 6; i < fnamelen; i++ )
+			{
+				int c = proxystr[i-6] = fname[i];
+				if( c == ';' ) { proxystr[i-6] = 0; i++; break; }
+			}
+			if( i == fnamelen )
+			{
+				ovrprintf( "Error: URL %s with proxy not suffixed by ;\n", fname );
+				return 0;
+			}
+			req.URL = fname + i;
+			req.Proxy = proxystr;
+			printf( "PROXY: %s / %s\n", proxystr, req.URL );
+		}
+		else
+		{
+			req.URL = fname;
+			req.Proxy = 0;
+		}
+		req.AddedHeaders = "Authorization: Bot ++++++++++++++++++++-+++++++++++++++++++\r\nUser-Agent: DiscordBot (https://github.com/cnlohr,0)";
+		req.AuxData = 0;
+		req.AuxDataLength = 0;
+		struct cnhttpclientresponse * r = CNHTTPClientTransact( &req );
+		
+		if( r->code >= 200 && r->code < 300 )
+		{
+			FILE * f = fopen( cret, "wb" );
+			fwrite( r->payload, r->payloadlen, 1, f );
+			fclose( f );
+			CNHTTPClientCleanup( r );
+			return cret;
+		}
+
+		CNHTTPClientCleanup( r );
+		return 0;
+	}
 
 	if( fnamelen >= CNOVR_MAX_PATH ) 
 	{

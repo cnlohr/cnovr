@@ -19,6 +19,7 @@ int tvasprintf( char ** out, const char * format, va_list ap );
 char * trprintf( const char * format, ... ); //Thread-save return value.
 char * jsmnstrsn( char * outbuffer, int outlen, const char * data, int start, int end ); //Extracts a substring of data into outbuffer and returns outbuffer.
 int    jsmnintparse( const char * data, int start, int end );
+float  jsmnfloatparse( const char * data, int start, int end );
 
 //Not sure if we need this feature.
 void * CNOVRNamedPtrGet( const char * namedptr, const char * type );
