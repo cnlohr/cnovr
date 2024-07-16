@@ -12,6 +12,7 @@
 #include <string.h>
 #include <cnrbtree.h>
 #include <chew.h>
+#include <jsmn.h>
 
 #if !defined( WIN32 ) && !defined( WINDOWS )
 #include <sys/stat.h>
@@ -628,6 +629,7 @@ void CNOVRCNFAInit();
 int GetDigitalActionData( uint64_t h );
 float CNOVRGetAnalogActionData( uint64_t h );
 void CNFGSwapBuffers(void);
+void __chkstk();
 
 //#define TCCExport( x ) tcc_add_symbol( tce->state, #x, &TCC##x );
 //#define TCCExportS( x ) tcc_add_symbol( tce->state, #x, &x );
@@ -690,6 +692,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( CNOVRModelTaintIndices )
 	TCCExportS( CNOVRModelTackIndex )
 	TCCExportS( CNOVRModelRenderWithPose )
+	TCCExportS( CNOVRModelRenderWithPoseAndScale )
 	TCCExportS( CNOVRModelApplyTextureFromFileAsync )
 	TCCExportS( CNOVRModelAppendMesh )
 	TCCExportS( CNOVRModelLoadFromFileAsync )
@@ -726,6 +729,8 @@ const struct ImportList ILSYMS[] = {
 	TCCExport( CNOVRFolderListing )
 	TCCExport( CNOVRSplitStrings )
 	TCCExport( CNOVRFileToString )
+	TCCExportS( CNOVRFileSearchAbsolute )
+	TCCExportS( CNOVRFileSearch )
 	TCCExport( CNOVRJobTack )
 	TCCExport( CNOVRListAdd )
 	TCCExport( CNOVRListDeleteTCCTag )
@@ -835,6 +840,13 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( matrix444transform )
 	TCCExportS( matrix34multiply )
 
+
+	TCCExportS( jsmn_init )
+	TCCExportS( jsmnstrsn )
+	TCCExportS( jsmnintparse )
+	TCCExportS( jsmnfloatparse )
+	TCCExportS( jsmn_parse )
+
 	TCCExportS( CNOVRPoseFromHMDMatrix )
 	TCCExportS( CNOVRVBOTackv )
 	TCCExportS( CNOVRModelSetNumVBOsWithStrides )
@@ -870,6 +882,9 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( glViewport )
 	TCCExportS( glClearColor )
 	TCCExportS( glClear )
+	TCCExportS( glBegin )
+	TCCExportS( glEnd )
+	TCCExportS( glVertex3f )
 
 	TCCExportS( CNOVRHSVtoHEX )
 
@@ -896,13 +911,15 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( strncpy )
 
 	TCCExportS( floorf )
+	TCCExportS( powf )
+	TCCExportS( pow )
 	TCCExportS( sin )
 	TCCExportS( cos )
 	TCCExportS( srand )
 	TCCExportS( rand )
 
 #if defined(WINDOWS) || defined( WIN32 ) || defined ( WIN64 )
-	
+	TCCExportS( __chkstk )
 	TCCExportS( _vsnprintf )
 	TCCExportS( _vsnwprintf )
 

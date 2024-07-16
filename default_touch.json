@@ -41,7 +41,7 @@
         {
           "inputs": {
             "touch": {
-              "output": "/actions/m/in/pinchclickright"
+              "output": "/actions/m/in/graspclickright"
             }
           },
           "mode": "joystick",
@@ -50,7 +50,7 @@
         {
           "inputs": {
             "touch": {
-              "output": "/actions/m/in/pinchclickleft"
+              "output": "/actions/m/in/graspclickleft"
             }
           },
           "mode": "joystick",
@@ -77,7 +77,7 @@
         {
           "inputs": {
             "click": {
-              "output": "/actions/m/in/graspclickright"
+              "output": "/actions/m/in/pinchclickright"
             }
           },
           "mode": "trigger",
@@ -115,7 +115,7 @@
         {
           "inputs": {
             "click": {
-              "output": "/actions/m/in/graspclickleft"
+              "output": "/actions/m/in/pinchclickleft"
             },
             "pull": {
               "output": "/actions/m/in/trigleft"

@@ -5,6 +5,8 @@ out vec4 colorOut;
 
 in vec4 localpos;
 
+uniform vec4 props;  //#MAPUNIFORM props 19
+
 void main()
 {
 	if( localpos.w > 0.5 ) 
@@ -23,11 +25,22 @@ void main()
 		//colorOut = vec4( abs(localpos.xyz)*1.0, 1.0);
 
 		//Ruler
-		colorOut = vec4(
-			.4,
-			(mod( z, 1.0 ) < 0.01)?1.0:0.0,
-			(mod( z, 0.1 ) < 0.01)?1.0:0.0,
-			1.0);
+		if( props.z >= 0.0 )
+		{
+			colorOut = vec4(
+				.4,
+				(mod( z, 1.0 ) < 0.01)?1.0:0.0,
+				(mod( z, 0.1 ) < 0.01)?1.0:0.0,
+				1.0);
+		}
+		else
+		{
+			colorOut = vec4(
+				(mod( z, 1.0 ) < 0.01)?1.0:0.0,
+				.4,
+				.4,
+				1.0);
+		}
 
 	}
 }

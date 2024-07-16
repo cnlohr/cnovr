@@ -260,7 +260,8 @@ int  CNOVRModelCollide( cnovr_model * m, const cnovr_point3d start, const cnovr_
 void CNOVRModelApplyTextureFromFileAsync( cnovr_model * m, const char * sTextureFile );
 void CNOVRModelSetNumTextures( cnovr_model * m, int textures, int defaultdepth /* Usually 4, for RGBA */ );
 
-void CNOVRModelRenderWithPose( cnovr_model * m, cnovr_pose * pose );
+void CNOVRModelRenderWithPose( cnovr_model * m, const cnovr_pose * pose );
+void CNOVRModelRenderWithPoseAndScale( cnovr_model * m, const cnovr_pose * pose, const cnovr_point3d scale );
 
 //XXX TODO NOTE: We can set the models up to be "stamped" down with different uniform properties.  
 
