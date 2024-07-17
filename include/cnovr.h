@@ -91,6 +91,8 @@ struct cnovrstate_t
 	uint8_t  iMultisample; //If 0, use direct path, otherwise, use 2+.
 	uint8_t  is_submodule;
 	uint8_t  bCanHMDFocus;
+
+	uint32_t KeyboardState;
 } __attribute__((packed));
 
 #if defined( TCCINSTANCE ) && defined( WINDOWS )

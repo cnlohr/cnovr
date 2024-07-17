@@ -520,7 +520,7 @@ void CNOVRStartTCCSystem( const char * tccsuitefile )
 	{
 		char cts[1024];
 		sprintf( cts, "projects/%s/%s.json", tccsuitefile, tccsuitefile );
-		printf( "Project not found.  Maybe it was a projec name?  Trying: %s\n", cts );
+		printf( "Project not found.  Maybe it was a project name?  Trying: %s\n", cts );
 		gfile = CNOVRFileSearch( cts );
 	}
 

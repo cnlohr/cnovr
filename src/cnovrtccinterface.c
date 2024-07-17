@@ -932,6 +932,7 @@ const struct ImportList ILSYMS[] = {
 	TCCExportS( GetWindowTextA )
 	TCCExportS( OpenProcess )
 	TCCExportS( GetModuleFileNameA )
+	TCCExportS( GetAsyncKeyState )
 
 	TCCExportS( CloseHandle )
 	TCCExportS( CreateCompatibleDC )

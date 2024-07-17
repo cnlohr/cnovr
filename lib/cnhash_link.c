@@ -1,2 +1,4 @@
-#include "../cntools/cnhash/cnhash.c"
+#define CNHASH_IMPLEMENTATION
+
+#include "../cntools/cnhash/cnhash.h"
 

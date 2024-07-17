@@ -41,37 +41,38 @@ void InternalSetupNamedPtrs();
 
 // Bit-mapping:
 // ---- ---- -Z[Shift][Space] DSAW
-uint16_t KeyboardState = 0x0000;
-
+// KeyboardState
 void HandleKey( int keycode, int bDown )
 {
+	if( !cnovrstate ) return;
 	if( (keycode == 27 || keycode == 65307) && bDown ) CNOVRShutdown( );
 	printf( "!.. %d\n", keycode );
 
 	switch(keycode)
 	{
-		case 0x77: bDown ? (KeyboardState |= 0x0001) : (KeyboardState &= 0xFFFE); break; // W
-		case 0x61: bDown ? (KeyboardState |= 0x0002) : (KeyboardState &= 0xFFFD); break; // A
-		case 0x73: bDown ? (KeyboardState |= 0x0004) : (KeyboardState &= 0xFFFB); break; // S
-		case 0x64: bDown ? (KeyboardState |= 0x0008) : (KeyboardState &= 0xFFF7); break; // D
-		case 0x20: bDown ? (KeyboardState |= 0x0010) : (KeyboardState &= 0xFFEF); break; // Space
-		case 0x10: bDown ? (KeyboardState |= 0x0020) : (KeyboardState &= 0xFFDF); break; // Shift
-		case 0x7A: bDown ? (KeyboardState |= 0x0040) : (KeyboardState &= 0xFFBF); break; // Z
+		case 0x77: bDown ? (cnovrstate->KeyboardState |= 0x0001) : (cnovrstate->KeyboardState &= 0xFFFE); break; // W
+		case 0x61: bDown ? (cnovrstate->KeyboardState |= 0x0002) : (cnovrstate->KeyboardState &= 0xFFFD); break; // A
+		case 0x73: bDown ? (cnovrstate->KeyboardState |= 0x0004) : (cnovrstate->KeyboardState &= 0xFFFB); break; // S
+		case 0x64: bDown ? (cnovrstate->KeyboardState |= 0x0008) : (cnovrstate->KeyboardState &= 0xFFF7); break; // D
+		case 0x20: bDown ? (cnovrstate->KeyboardState |= 0x0010) : (cnovrstate->KeyboardState &= 0xFFEF); break; // Space
+		case 0x10: bDown ? (cnovrstate->KeyboardState |= 0x0020) : (cnovrstate->KeyboardState &= 0xFFDF); break; // Shift
+		case 0x7A: bDown ? (cnovrstate->KeyboardState |= 0x0040) : (cnovrstate->KeyboardState &= 0xFFBF); break; // Z
 	}
 }
 
 // Called from CNOVRUpdate to move the preview camera according to the current mouse and keyboard input.
 void HandleHIDInput()
 {
+	if( !cnovrstate ) return;
 	float MovementQty = 0.005;
-	if((KeyboardState & 0x0040) == 0x0040) { MovementQty = 0.03; } // Hold Z for speed
+	if((cnovrstate->KeyboardState & 0x0040) == 0x0040) { MovementQty = 0.03; } // Hold Z for speed
 
-	if((KeyboardState & 0x0001) == 0x0001) { cnovrstate->pPreviewPose.Pos[2] += MovementQty; }
-	if((KeyboardState & 0x0004) == 0x0004) { cnovrstate->pPreviewPose.Pos[2] -= MovementQty; }
-	if((KeyboardState & 0x0002) == 0x0002) { cnovrstate->pPreviewPose.Pos[0] += MovementQty; }
-	if((KeyboardState & 0x0008) == 0x0008) { cnovrstate->pPreviewPose.Pos[0] -= MovementQty; }
-	if((KeyboardState & 0x0010) == 0x0010) { cnovrstate->pPreviewPose.Pos[1] -= MovementQty; }
-	if((KeyboardState & 0x0020) == 0x0020) { cnovrstate->pPreviewPose.Pos[1] += MovementQty; }
+	if((cnovrstate->KeyboardState & 0x0001) == 0x0001) { cnovrstate->pPreviewPose.Pos[2] += MovementQty; }
+	if((cnovrstate->KeyboardState & 0x0004) == 0x0004) { cnovrstate->pPreviewPose.Pos[2] -= MovementQty; }
+	if((cnovrstate->KeyboardState & 0x0002) == 0x0002) { cnovrstate->pPreviewPose.Pos[0] += MovementQty; }
+	if((cnovrstate->KeyboardState & 0x0008) == 0x0008) { cnovrstate->pPreviewPose.Pos[0] -= MovementQty; }
+	if((cnovrstate->KeyboardState & 0x0010) == 0x0010) { cnovrstate->pPreviewPose.Pos[1] -= MovementQty; }
+	if((cnovrstate->KeyboardState & 0x0020) == 0x0020) { cnovrstate->pPreviewPose.Pos[1] += MovementQty; }
 }
 
 void HandleButton( int x, int y, int button, int bDown )
@@ -353,7 +354,6 @@ void CNOVRUpdate()
 	cnovrstate->fDeltaTime = (Now-cnovrstate->fFrameStartTime);
 	cnovrstate->fFrameStartTime = Now;
 	FrameStart = OGGetAbsoluteTime();
-
 	//Update + prerender
 	//cnovr_simple_node * root = cnovrstate->pRootNode;
 
@@ -528,17 +528,25 @@ void CNOVRUpdate()
 
 	if( CNOVRCheck() ) ovrprintf( "Cycle Check\n" );
 
+	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
+
 #if defined( WINDOWS ) || defined( WIN32 ) || defined ( WIN64 )
-	wglSwapIntervalEXTCHEW(0);
+		wglSwapIntervalEXTCHEW(!cnovrstate->bHasOvr);
 #else
-	//XXX Hacky - this disables vsync on Linux only
-	void   CNFGSetVSync( int vson );
-	CNFGSetVSync( 0 );
+		//XXX Hacky - this disables vsync on Linux only
+		void   CNFGSetVSync( int vson );
+		CNFGSetVSync( !cnovrstate->bHasOvr );
 #endif
 //k_pch_SteamVR_PreferredRefreshRate 
-	cnovrstate->fFrameTime = (OGGetAbsoluteTime()-cnovrstate->fFrameStartTime);
-	
-	cnovrstate->fTargetFPS = cnovrstate->oSystem->GetFloatTrackedDeviceProperty( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_DisplayFrequency_Float, 0 );
+
+	if( cnovrstate->bHasOvr )
+	{
+		cnovrstate->fTargetFPS = cnovrstate->oSystem->GetFloatTrackedDeviceProperty( k_unTrackedDeviceIndex_Hmd, ETrackedDeviceProperty_Prop_DisplayFrequency_Float, 0 );
+	}
+	else
+	{
+		cnovrstate->fTargetFPS = 10000;
+	}
 	
 //	double diff = OGGetAbsoluteTime() - FrameStart;
 //	if( diff > 0.004 )	printf( "Diff: %f\n", diff );
@@ -546,6 +554,7 @@ void CNOVRUpdate()
 //	FrameStart = OGGetAbsoluteTime();
 
 	CNOVRListCall( cnovrLPostRender, 0 ); 
+
 //	glFlush();
 }
 
