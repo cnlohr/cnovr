@@ -19,6 +19,8 @@ typedef struct internal_focus_system_t
 	cnovr_pose      poseController[CNOVRINPUTDEVS];
 	int bShowControllerPointer[CNOVRINPUTDEVS];
 
+	VRActionHandle_t skeletonHandle[CNOVRINPUTDEVS];
+
 	cnovr_model * mdlPointer;
 	cnovr_model * mdlHitPos;
 	cnovr_shader * shdPointer;
@@ -36,9 +38,14 @@ typedef struct internal_focus_system_t
 
 internal_focus_system FOCUS;
 
-VRActionHandle_t CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( int dev, int ctrl )
+uint64_t CNOVRFocusGetVRActionHandleFromControllerAndCtrlA( int dev, int ctrl )
 {
 	return FOCUS.actionhandles[dev][ctrl];
+}
+
+uint64_t CNOVRFocusGetVRActionHandleForSkeleton( int dev )
+{
+	return FOCUS.skeletonHandle[dev];
 }
 
 cnovr_pose * CNOVRFocusGetTipPose( int device )
@@ -275,6 +282,7 @@ void InternalCNOVRFocusSetup()
 		{
 			FOCUS.actionhandles[ctrl][i] = k_ulInvalidActionHandle;
 		}
+		FOCUS.skeletonHandle[ctrl] = k_ulInvalidActionHandle;
 	}
 
 	if( cnovrstate->oInput )
@@ -335,6 +343,18 @@ void InternalCNOVRFocusSetup()
 					{
 						//Got the action OK.
 						//ovrprintf( "Got action: %s / %llx\n", stmp, FOCUS.actionhandles[ctrl][i] );
+					}
+				}
+				
+				if( ctrl == 1 || ctrl == 2 )
+				{
+					const char * hand = (ctrl == 1)?"left":"right";
+					sprintf( stmp, "/actions/m/in/handskeleton%s", hand );
+					printf( "HAND: %s\n", stmp );
+					int ret = cnovrstate->oInput->GetActionHandle( stmp, &FOCUS.skeletonHandle[ctrl] );
+					if( ret )
+					{
+						ovrprintf( "Warning: Couldn't get action handle for skeleton controller %s\n", hand );
 					}
 				}
 			}
@@ -488,12 +508,12 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 						//XXX TODO: Try to make it absolute instead of progressive.
 
 						//Tricky: We're doing a two-hand grab.
-						cnovr_point3d grabpos_conroller_space1 = { 0, 0, fc->initial_grab_z[CNOVRINPUTDEV_LEFT] };
-						cnovr_point3d grabpos_conroller_space2 = { 0, 0, fc->initial_grab_z[CNOVRINPUTDEV_RIGHT] };
+						cnovr_point3d grabpos_controller_space1 = { 0, 0, fc->initial_grab_z[CNOVRINPUTDEV_LEFT] };
+						cnovr_point3d grabpos_controller_space2 = { 0, 0, fc->initial_grab_z[CNOVRINPUTDEV_RIGHT] };
 						cnovr_point3d grabposworldspaceLeft;
 						cnovr_point3d grabposworldspaceRight;
-						apply_pose_to_point(grabposworldspaceLeft, fc->twohandgrab_last[CNOVRINPUTDEV_LEFT], grabpos_conroller_space1 );
-						apply_pose_to_point(grabposworldspaceRight, &prop->poseTip, grabpos_conroller_space2 );
+						apply_pose_to_point(grabposworldspaceLeft, fc->twohandgrab_last[CNOVRINPUTDEV_LEFT], grabpos_controller_space1 );
+						apply_pose_to_point(grabposworldspaceRight, &prop->poseTip, grabpos_controller_space2 );
 
 						//Ok, so we have two grab positions in world space.  How are we gonna do this?
 						//Piece-meal?
@@ -593,8 +613,8 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 
 					//Just in case we click another controller, we also want to store what the other hand would be.
 					float z = fc->initial_grab_z[devid] = prop->NewPassiveRealDistance;
-					cnovr_point3d grabpos_conroller_space = { 0, 0, z };
-					apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_conroller_space );
+					cnovr_point3d grabpos_controller_space = { 0, 0, z };
+					apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_controller_space );
 				}
 			}
 			break;
@@ -630,8 +650,8 @@ void CNOVRGeneralHandleFocusEvent( cnovr_model_focus_controller * fc, cnovr_pose
 				poseout = fc->focusgrab[devid] = malloc( sizeof( cnovr_pose ) );
 
 			float z = fc->initial_grab_z[devid] = prop->NewPassiveRealDistance;
-			cnovr_point3d grabpos_conroller_space = { 0, 0, z };
-			apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_conroller_space );
+			cnovr_point3d grabpos_controller_space = { 0, 0, z };
+			apply_pose_to_point( fc->gplast[devid], &prop->poseTip, grabpos_controller_space );
 			unapply_pose_from_pose( fc->focusgrab[devid], &prop->poseTip, pose );
 
 			if( fc->twohandgrab_last[CNOVRINPUTDEV_LEFT] && fc->twohandgrab_last[CNOVRINPUTDEV_RIGHT] )

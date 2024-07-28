@@ -103,8 +103,8 @@ void init( const char * identifier )
 void * PhysicsThread( void * v )
 {
 	int after_first;
-	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, CTRLA_TIP );
-	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, CTRLA_TIP );
+	VRActionHandle_t tip1 = CNOVRFocusGetVRActionHandleFromControllerAndCtrlA( 1, CTRLA_TIP );
+	VRActionHandle_t tip2 = CNOVRFocusGetVRActionHandleFromControllerAndCtrlA( 2, CTRLA_TIP );
 
 	cnovr_pose poselast1;
 	cnovr_pose poselast2;

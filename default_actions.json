@@ -8,6 +8,10 @@
     {
       "controller_type": "oculus_touch",
       "binding_url": "default_touch.json"
+    },
+    {
+      "controller_type": "svl_raw_hand_tracker",
+      "binding_url": "default_hand.json"
     }
   ],
   "action_sets": [
@@ -35,7 +39,9 @@
     { "name": "/actions/m/in/graspclickright", "requirement" : "optional", "type": "boolean" },
     { "name": "/actions/m/in/trigright", "requirement" : "optional", "type": "vector1" },
     { "name": "/actions/m/in/modelright", "type": "pose" },
-    { "name": "/actions/m/in/tipright", "type": "pose" }
+    { "name": "/actions/m/in/tipright", "type": "pose" },
+	{ "name": "/actions/m/in/handskeletonleft", "type": "skeleton", "skeleton": "/skeleton/hand/left" },
+	{ "name": "/actions/m/in/handskeletonright", "type": "skeleton", "skeleton": "/skeleton/hand/right" }
   ],
   "localization" : [
    {

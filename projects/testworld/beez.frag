@@ -32,13 +32,13 @@ void main()
 		float dx, dy;
 		
 		#define BEEZ 10
-		#define speed 8.
+		#define speed 1.
 		float bestZ = 10000;
 		for( dx = -8; dx < 8; dx++ )
 		for( dy = -8; dy < 8; dy++ )
 		{
 			vec2 dl = vec2( dx, dy );
-			float phase = rand( dl )*10. + clockparams.y*speed;
+			float phase = fract( ( rand( dl )*10. + clockparams.y*speed) / 1000.0 ) * 1000.0;
 			vec2 iuv = uv * 2. - 1. + dl*.2;
 			vec2 vv = vec2( sin(phase), cos(phase) );
 			//colorOut = vec4( iuv, 0., 1. );
@@ -49,6 +49,7 @@ void main()
 				bestZ = l;
 				colorOut = vec4( linedist*QuickRanbow(phase),1. );
 			}
+			//colorOut = vec4( phase, 1.0, 1.0, 1.0 );
 		}
 	}
 }

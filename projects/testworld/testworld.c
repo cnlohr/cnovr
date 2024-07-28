@@ -146,13 +146,13 @@ void adjust_frame_wait( struct cnovr_canvas_t * canvas, const struct cnovr_canva
 	switch( elem->iopaque )
 	{
 	case 0:	
-		store->time_add_microseconds = rx * 200;
+		store->time_add_microseconds = rx * 400;
 		break;
 	case 1:
 		store->time_add_stutter_every = rx / 5;
 		break;
 	case 2:
-		store->time_add_stutter_amount = rx * 200;
+		store->time_add_stutter_amount = rx * 400;
 		break;
 	}
 	UpdateMenu();
@@ -302,7 +302,7 @@ void RenderFunction( void * tag, void * opaquev )
 	CNOVRRender( spinningdisk );
 
 	CNOVRRender( beezshader );
-	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), BeezParam, OGGetAbsoluteTime(), 0, 0 );
+	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), BeezParam, OGGetAbsoluteTime()-StartTime, 0, 0 );
 	CNOVRRender( beez );
 
 	CNOVRRender( hardshader );
@@ -410,8 +410,8 @@ void * TimingCheckThread(void*v)
 	//double TimeOfNextHit;
 	//double TimeOfLastHit;
 	//sprintf( DootTimingText, "Press A to sync" );
-	uint64_t hleft  = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 1, 1 );
-	uint64_t hright = CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( 2, 1 );
+	uint64_t hleft  = CNOVRFocusGetVRActionHandleFromControllerAndCtrlA( 1, 1 );
+	uint64_t hright = CNOVRFocusGetVRActionHandleFromControllerAndCtrlA( 2, 1 );
 
 	#define CLICK_KEEP 16
 	double ClickTimes[CLICK_KEEP];

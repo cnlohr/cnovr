@@ -105,7 +105,10 @@ void CNOVRFocusAcquire( cnovrfocus_capture * ce, int wantfocus );
 void CNOVRFocusRemoveTag( void * tag );
 cnovr_pose * CNOVRFocusGetTipPose( int device );
 
-uint64_t CNOVRFocusGetVRActionHandleFromConrollerAndCtrlA( int dev, int ctrl ); //Where ctrl = stuff like CTRLA_TIP
+uint64_t CNOVRFocusGetVRActionHandleFromControllerAndCtrlA( int dev, int ctrl ); //Where ctrl = stuff like CTRLA_TIP
+
+uint64_t CNOVRFocusGetVRActionHandleForSkeleton( int dev );
+
 
 // Subsystem designed to link cnovr_models and make them trackable.
 
