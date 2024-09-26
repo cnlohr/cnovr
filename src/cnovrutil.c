@@ -564,7 +564,7 @@ char * CNOVRFileSearch( const char * fname )
 			ovrprintf( "Warning URL \"%s\" too long\n", fname );			
 		}
 		int i;
-		mkdir( "cache" );
+		mkdir( "cache", 0777 );
 		int cretlen = sprintf( cret, "cache/" );
 		for( i = 0; i < fnamelen; i++ )
 		{
