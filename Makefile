@@ -12,7 +12,9 @@ OBJS+=lib/stb_include_custom.o lib/stb_image.o lib/tcc_single_file.o \
 OBJS+=src/cnovr.o src/ovrchew.o src/cnovrparts.o src/cnovrmath.o src/cnovrutil.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o src/cnovrtcc.o \
 	src/cnovrtccinterface.o src/cnovrfocus.o src/cnovrcanvas.o \
-	src/cnovrterminal.o src/cnovrcnfa.o
+	src/cnovrterminal.o src/cnovrcnfa.o \
+	cntools/ssl/cnhttpclient.o cntools/ssl/cnsslclient.o cntools/ssl/cnhttpcommon.o
+
 
 CFLAGS ?= -g -O2  -DOSG_NOSTATIC -DCNFGOGL -DCNFGOGL_NEED_EXTENSION
 CFLAGS += -Icntools/rawdraw -Iinclude -Icntools/cnhash -Ilib -Wno-address-of-packed-member
@@ -26,7 +28,7 @@ CFLAGS += -g -Ilib/tinycc -Icntools/cnrbtree -Icntools/vlinterm -Icntools/ssl
 
 #Linux
 CC=gcc
-LDFLAGS?=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen -Wl,-rpath,. 	./libopenvr_api.so -lasound -lpulse -lopenssl
+LDFLAGS?=-lX11 -lGL -ldl -lm -lpthread -lXext -rdynamic -Wl,--wrap=fopen -Wl,-rpath,. 	./libopenvr_api.so -lasound -lpulse -lcrypto -lssl
 
 
 #You can get it from ./openvr/lib/linux64/libopenvr_api.so
@@ -74,7 +76,8 @@ DEDICATED_PROJECT_O:=lib/stb_include_custom.o lib/stb_image.o \
 	src/cnovrindexedlist.o src/cnovropenvr.o \
 	src/cnovrfocus.o src/cnovrcanvas.o \
 	src/cnovrterminal.o src/cnovrcnfa.o \
-	./libopenvr_api.so
+	./libopenvr_api.so \
+	cntools/ssl/cnhttpclient.o cntools/ssl/cnsslclient.o cntools/ssl/cnhttpcommon.o
 
 ovrballonly : src/ovrballonly.o $(DEDICATED_PROJECT_O)
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
