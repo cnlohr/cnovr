@@ -6,6 +6,7 @@ out vec4 colorOut;
 in vec2 uv;
 
 uniform vec4 colorbasis; //#MAPUNIFORM colorbasis 19
+uniform vec4 timebasis; //#MAPUNIFORM timebasis 20
 
 // All components are in the range [0…1], including hue.
 vec3 hsv2rgb(vec3 c)
@@ -48,5 +49,9 @@ void main()
 	else if( mode == 6 )
 	{
 		colorOut = vec4( colorbasis.yyy, 1.0);
+	}
+	else if( mode == 7 )
+	{
+		colorOut = vec4(mod( timebasis.xxx, 7.0 ) / 7.0 * 0.9 + 0.1, 1.0);
 	}
 }

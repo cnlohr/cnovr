@@ -84,8 +84,9 @@ float ColorParameters[4];
 
 void UpdateMenu()
 {
-	if( store->colormode > 6 ) store->colormode = 0;
-	sprintf( ColorSlider0, "%s: %d", ((const char*[7]){ "RED", "GRN", "BLU", "HUE", "SAT", "VAL", "OVR" })[store->colormode], store->slide[0] );
+	if( store->colormode > 7 ) store->colormode = 0;
+
+	sprintf( ColorSlider0, "%s: %d", ((const char*[8]){ "RED", "GRN", "BLU", "HUE", "SAT", "VAL", "OVR", "STP" })[store->colormode], store->slide[0] );
 	sprintf( ColorSlider1, "Um: %d", store->slide[1] );
 	sprintf( ColorSlider2, "Vm: %d", store->slide[2] );
 	ColorParameters[0] = (float)store->colormode;
@@ -221,6 +222,7 @@ struct cnovr_canvas_canned_gui_element_t menu_canvas[] = {
 	{ .x = MENUHEXX(4), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "SAT", .cb = color_select_button, .iopaque = 4, },
 	{ .x = MENUHEXX(5), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "VAL", .cb = color_select_button, .iopaque = 5, },
 	{ .x = MENUHEXX(6), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "OVR", .cb = color_select_button, .iopaque = 6, },
+	{ .x = MENUHEXX(7), .y = MENUY(4), .w = 24, .h = 14, .cb = 0, .text = "STP", .cb = color_select_button, .iopaque = 7, },
 	{ .x = 2, .y = MENUY(5), .w = 90,  .h = 14, .cb = 0, .text = "Spinner" },
 	{ .x = 50, .y = MENUY(5), .w = 90,  .h = 14, .cb = 0, .text = DootTimingText },
 	{ .x = 2, .y = MENUY(6), .w = 256, .h = 14, .cb = 0, .text = Spinnerslider0, .cb = adjust_spinner, .iopaque = 0, .allowdrag = 1  },
@@ -310,6 +312,7 @@ void RenderFunction( void * tag, void * opaquev )
 
 	CNOVRRender( colorsplotchshader );
 	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 19 ), ColorParameters[0], ColorParameters[1], ColorParameters[2], ColorParameters[3] );
+	glUniform4f( CNOVRMAPPEDUNIFORMPOS( 20 ), framecount & 0xffffff, 0, 0, 0 ); // about 37 hours.
 	CNOVRRender( colorsplotch );
 
 	CNOVRRender( canvas );
