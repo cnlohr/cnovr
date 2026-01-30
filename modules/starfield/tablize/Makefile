@@ -5,7 +5,8 @@ all : tablize flat_stars.dat
 #	gunzip hip_main.dat.gz
 
 constellationship.fab :
-	wget https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/western_SnT/constellationship.fab
+	# https://raw.githubusercontent.com/Stellarium/stellarium/master/skycultures/western_SnT/constellationship.fab
+	wget https://raw.githubusercontent.com/Stellarium/stellarium/64837f8b18c8f8ce4fa4de0474e447efe5a1d9da/skycultures/western_SnT/constellationship.fab
 
 hip2.dat :
 	wget http://cdsarc.u-strasbg.fr/ftp/I/311/hip2.dat.gz
